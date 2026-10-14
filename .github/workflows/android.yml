@@ -21,6 +21,8 @@ permissions:
 jobs:
   build:
     name: Build APK
+    # PRs do Dependabot não recebem as variáveis do Environment e não precisam de APK: o CI já compila o app
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # PR: a branch de destino decide; push/manual: a própria branch

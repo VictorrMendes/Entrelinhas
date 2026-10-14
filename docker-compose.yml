@@ -14,7 +14,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       # banco SQLite e arquivos dos livros: é esta pasta que entra no backup do servidor
-      - ./storage:/app/data
+      - ${STORAGE_DIR:-./storage}:/app/data
     ports:
       - "${API_PORT:-8787}:8787"
     restart: unless-stopped

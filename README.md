@@ -29,7 +29,7 @@ docker compose up -d --build
 docker compose logs -f api
 ```
 
-- **Dados:** `./storage`, com o banco `leitor.db` e a pasta `files/`. É o que entra no backup do servidor.
+- **Dados:** `./storage`, ou a pasta definida em `STORAGE_DIR` (ex.: `/mnt/dados/entrelinhas`), com o banco `leitor.db` e a pasta `files/`. É o que entra no backup do servidor.
 - **Atualizar:** `git pull && docker compose up -d --build`. As migrações rodam sozinhas na subida.
 - **Saúde:** o container tem healthcheck em `/health`. O `docker stop` termina as requisições em andamento e fecha o banco.
 - **Logs:** em JSON no stdout (`docker compose logs`). Crashes do app aparecem como `app crash`.

@@ -22,6 +22,10 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    # só versões LTS do Node (pares): a troca de major é manual, quando a próxima LTS sair
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: gradle
     directory: /android

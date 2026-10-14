@@ -15,8 +15,8 @@ val keystore = rootProject.file("keystore.properties").takeIf { it.exists() }?.l
 android {
     namespace = "com.victor.leitor"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 2
         }
     }
 
