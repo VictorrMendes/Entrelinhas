@@ -1,0 +1,7 @@
+# LF no repositório e na pasta de trabalho, também no Windows (Biome e o gradlew no CI esperam LF)
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ttf binary
+*.jar binary

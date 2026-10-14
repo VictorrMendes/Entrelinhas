@@ -1,0 +1,165 @@
+name: Android
+
+# APK instalável: todo PR para master/homolog gera um (link comentado no PR) e o merge vira Release.
+# O backend vem da variável API_URL do Environment: "production" (master, https) ou "homolog" (homolog).
+on:
+  pull_request:
+    branches: [master, homolog]
+    paths: [android/**, .github/workflows/android.yml]
+  push:
+    branches: [master, homolog]
+    paths: [android/**, .github/workflows/android.yml]
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # PR: a branch de destino decide; push/manual: a própria branch
+    environment: ${{ (github.base_ref || github.ref_name) == 'master' && 'production' || 'homolog' }}
+    permissions:
+      contents: read
+      pull-requests: write
+
+    defaults:
+      run:
+        working-directory: android
+
+    outputs:
+      apk: ${{ steps.apk.outputs.name }}
+      version: ${{ steps.apk.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # produção só com https; homolog aceita http:// (backend na rede de casa) e o build libera HTTP sozinho
+      - name: Check API_URL
+        env:
+          API_URL: ${{ vars.API_URL }}
+          ENVIRONMENT: ${{ (github.base_ref || github.ref_name) == 'master' && 'production' || 'homolog' }}
+        run: |
+          if [[ "$API_URL" == https://* ]]; then
+            exit 0
+          elif [[ "$API_URL" == http://* && "$ENVIRONMENT" == homolog ]]; then
+            exit 0
+          else
+            echo "::error::Defina a variável API_URL no Environment $ENVIRONMENT (https://...; http:// só na homolog)."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # sem a chave própria, o APK sai assinado com a chave de debug do runner (muda a cada execução)
+      # e o Android recusa instalar por cima da versão anterior
+      - name: Release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::Sem ANDROID_KEYSTORE_BASE64: APK assinado com chave de debug (desinstale antes de atualizar)."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      # o número da execução vira o versionCode: cada APK novo atualiza o anterior
+      - name: Build
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: chmod +x gradlew && ./gradlew assembleRelease -PbackendUrl="$API_URL" -PversionCode=${{ github.run_number }}
+
+      # um APK por arquitetura sai do build; publicamos o arm64, que é o de praticamente todo celular atual
+      - name: Name APK
+        id: apk
+        env:
+          ENVIRONMENT: ${{ (github.base_ref || github.ref_name) == 'master' && 'production' || 'homolog' }}
+        run: |
+          version="$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)-${{ github.run_number }}"
+          name="entrelinhas-$ENVIRONMENT-$version.apk"
+          mv app/build/outputs/apk/release/app-arm64-v8a-release.apk "$RUNNER_TEMP/$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        id: upload
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ runner.temp }}/${{ steps.apk.outputs.name }}
+          retention-days: 30
+          if-no-files-found: error
+
+      # mapeamento do R8: transforma os nomes embaralhados de um crash de produção nos reais
+      # (retrace). Um por APK, com o mesmo nome dele.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.apk.outputs.name }}-mapping
+          path: android/app/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
+          if-no-files-found: warn
+
+      # PR de fork não tem permissão de escrita: só PRs do próprio repositório recebem o comentário
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.upload.outputs.artifact-url }}
+          APK: ${{ steps.apk.outputs.name }}
+          API_URL: ${{ vars.API_URL }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh pr comment "$PR" --edit-last --create-if-none --body "📱 **APK para testar:** [$APK]($URL)
+
+          Backend: \`$API_URL\` · commit \`${SHA::7}\`
+
+          O download vem em .zip (artefato do Actions, válido por 30 dias): extraia e abra o .apk no celular."
+
+  release:
+    name: Release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.apk }}
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ needs.build.outputs.apk }}
+          VERSION: ${{ needs.build.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$BRANCH" = master ]; then
+            gh release create "v$VERSION" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Entrelinhas $VERSION" --generate-notes
+          else
+            gh release create "homolog-v$VERSION" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Entrelinhas $VERSION (homolog)" --generate-notes --prerelease
+          fi

@@ -1,0 +1,25 @@
+# nome fixo do projeto: os containers se chamam entrelinhas-* em qualquer pasta
+name: entrelinhas
+
+services:
+  api:
+    build: ./backend
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?defina GEMINI_API_KEY no .env}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+      DAILY_CHAR_LIMIT: ${DAILY_CHAR_LIMIT:-}
+      MAX_ACCOUNT_BYTES: ${MAX_ACCOUNT_BYTES:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # banco SQLite e arquivos dos livros: é esta pasta que entra no backup do servidor
+      - ./storage:/app/data
+    ports:
+      - "${API_PORT:-8787}:8787"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

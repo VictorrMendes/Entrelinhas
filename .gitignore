@@ -1,0 +1,18 @@
+.env
+node_modules/
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+# release signing
+keystore.properties
+*.jks
+*.keystore
+# dados do backend (contas, sincronização): ./storage no compose, backend/data rodando direto
+storage/*
+!storage/.gitkeep
+backend/data/
+# ajustes locais do compose (ex.: porta só em loopback no servidor)
+docker-compose.override.yml
