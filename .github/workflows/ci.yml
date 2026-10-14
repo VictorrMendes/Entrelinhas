@@ -67,7 +67,7 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       # lint do Android + testes unitários (parser de livros, Leitner, ofensiva, mesclagem da sincronização)
       # e um build de verdade; o APK de release (com R8) sai no workflow Android
