@@ -1,7 +1,6 @@
 package com.victor.leitor
 
 import androidx.compose.ui.res.stringResource
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -49,6 +48,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.outlined.Hearing
+import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,6 +84,9 @@ fun Vocabulary(app: App, modifier: Modifier) {
     val due = remember(version) { app.db.dueWords() }
     val current = due.firstOrNull()
     var sort by rememberSaveable { mutableIntStateOf(0) }
+    var practice by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    // dictation over the example sentences of saved words, in the language each word was read in
+    val examples = remember(all) { all.mapNotNull { w -> w.example?.takeIf { it.split(' ').size >= 3 }?.let { it to w.source } }.shuffled().take(10) }
     val ctx = LocalContext.current
     val res = LocalResources.current
     val scope = rememberCoroutineScope()
@@ -89,7 +100,10 @@ fun Vocabulary(app: App, modifier: Modifier) {
             val ok = runCatching {
                 withContext(Dispatchers.IO) { ctx.contentResolver.openOutputStream(uri)!!.use { it.write(vocabularyCsv(all, res.getString(R.string.csv_columns)).toByteArray()) } }
             }.isSuccess
-            Toast.makeText(ctx, if (ok) res.getString(R.string.vocabulary_exported, all.size) else res.getString(R.string.vocabulary_export_failed), Toast.LENGTH_LONG).show()
+            app.notices.show(
+                if (ok) Notice(res.getString(R.string.vocabulary_exported, all.size), NoticeKind.SUCCESS)
+                else Notice(res.getString(R.string.vocabulary_export_failed), NoticeKind.ERROR),
+            )
         }
     }
 
@@ -103,10 +117,24 @@ fun Vocabulary(app: App, modifier: Modifier) {
             }
         }
         if (all.isEmpty()) {
-            Empty(stringResource(R.string.vocabulary_empty_title), stringResource(R.string.vocabulary_empty_text))
+            Empty(stringResource(R.string.vocabulary_empty_title), stringResource(R.string.vocabulary_empty_text), R.drawable.empty_vocabulary)
         } else LazyColumn(contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { WordStats(all.size, all.count { it.learned }, due.size) }
-            item { Flashcard(app, current, scope) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = app.prefs.listenFirst, onClick = { app.prefs.listenFirst = !app.prefs.listenFirst },
+                        label = { Text(stringResource(R.string.listen_first)) }, leadingIcon = { Icon(Icons.Outlined.Headphones, null) },
+                    )
+                    if (examples.isNotEmpty()) {
+                        AssistChip(
+                            onClick = { practice = examples }, label = { Text(stringResource(R.string.listening_practice)) },
+                            leadingIcon = { Icon(Icons.Outlined.Hearing, null) },
+                        )
+                    }
+                }
+            }
+            item { Flashcard(app, current, scope, app.prefs.listenFirst) }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     RoundAction(Icons.Filled.Refresh, stringResource(R.string.repeat), MaterialTheme.colorScheme.primary, enabled = current != null) {
@@ -126,12 +154,13 @@ fun Vocabulary(app: App, modifier: Modifier) {
             items(words, key = { it.id }) { w -> WordCard(app, w, scope) }
         }
     }
+    practice?.let { DictationSheet(app, it) { practice = null } }
 }
 
 private fun pronounce(app: App, scope: CoroutineScope, w: Word) {
     scope.launch {
         if (!app.speech.speak(w.original, w.source)) {
-            Toast.makeText(app, app.getString(R.string.install_voice, langName(w.source)), Toast.LENGTH_LONG).show()
+            app.notices.show(Notice(app.getString(R.string.install_voice, langName(w.source)), NoticeKind.ERROR))
         }
     }
 }
@@ -151,7 +180,10 @@ private fun WordStats(saved: Int, learned: Int, due: Int) {
 }
 
 @Composable
-private fun Flashcard(app: App, word: Word?, scope: CoroutineScope) {
+private fun Flashcard(app: App, word: Word?, scope: CoroutineScope, listenFirst: Boolean) {
+    // listening first: the card only plays the word until the reader asks to see it
+    var shown by remember(word?.id, listenFirst) { mutableStateOf(!listenFirst) }
+    LaunchedEffect(word?.id, listenFirst) { if (listenFirst && word != null) pronounce(app, scope, word) }
     Box(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Surface(
             shape = CardShape, color = MaterialTheme.colorScheme.surfaceVariant, border = cardBorder,
@@ -160,9 +192,19 @@ private fun Flashcard(app: App, word: Word?, scope: CoroutineScope) {
         Surface(shape = CardShape, color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(horizontal = 24.dp, vertical = 28.dp).heightIn(min = 160.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (word == null) {
+                    Image(painterResource(R.drawable.celebrate), null, Modifier.size(96.dp).padding(bottom = 8.dp))
                     Text(stringResource(R.string.nothing_to_review), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.nothing_to_review_hint), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else if (!shown) {
+                    FilledIconButton(onClick = { pronounce(app, scope, word) }, Modifier.size(72.dp)) {
+                        Icon(Icons.AutoMirrored.Outlined.VolumeUp, stringResource(R.string.listen_pronunciation), Modifier.size(36.dp))
+                    }
+                    Text(
+                        stringResource(R.string.listen_and_guess), Modifier.padding(top = 14.dp),
+                        textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = { shown = true }, Modifier.padding(top = 6.dp)) { Text(stringResource(R.string.show_answer)) }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(word.original, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)

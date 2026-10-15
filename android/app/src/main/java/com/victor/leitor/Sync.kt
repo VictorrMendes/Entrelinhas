@@ -9,6 +9,8 @@ import org.json.JSONObject
 data class SyncBook(
     val hash: String, val title: String, val fileType: String, val language: String?, val targetLanguage: String?,
     val lastBlock: Int, val lastOpenedAt: Long?, val completedAt: Long?, val updatedAt: Long,
+    /** Shelf names separated by line breaks. */
+    val shelves: String = "",
 )
 
 data class SyncWord(
@@ -26,7 +28,7 @@ data class SyncHighlight(
 
 data class SyncDay(
     val day: Long, val active: Int, val sessions: Int, val translations: Int, val words: Int, val paragraphs: Int,
-    val autoParagraphs: Int, val seconds: Int, val goalMet: Int,
+    val autoParagraphs: Int, val seconds: Int, val goalMet: Int, val dictations: Int = 0,
 )
 
 /** [deletions] maps "kind|key" to when it was deleted. */
@@ -58,7 +60,7 @@ fun merge(a: Snapshot, b: Snapshot): Snapshot {
                 SyncDay(
                     p.day, maxOf(p.active, q.active), maxOf(p.sessions, q.sessions), maxOf(p.translations, q.translations),
                     maxOf(p.words, q.words), maxOf(p.paragraphs, q.paragraphs), maxOf(p.autoParagraphs, q.autoParagraphs),
-                    maxOf(p.seconds, q.seconds), maxOf(p.goalMet, q.goalMet),
+                    maxOf(p.seconds, q.seconds), maxOf(p.goalMet, q.goalMet), maxOf(p.dictations, q.dictations),
                 )
             }
         },
@@ -74,7 +76,7 @@ fun Snapshot.toJson(): JSONObject = JSONObject()
     .put("books", JSONArray(books.map {
         JSONObject().put("hash", it.hash).put("title", it.title).put("fileType", it.fileType).put("language", it.language)
             .put("targetLanguage", it.targetLanguage).put("lastBlock", it.lastBlock).put("lastOpenedAt", it.lastOpenedAt)
-            .put("completedAt", it.completedAt).put("updatedAt", it.updatedAt)
+            .put("completedAt", it.completedAt).put("updatedAt", it.updatedAt).put("shelves", it.shelves)
     }))
     .put("words", JSONArray(words.map {
         JSONObject().put("normalized", it.normalized).put("original", it.original).put("translated", it.translated).put("src", it.src)
@@ -88,7 +90,7 @@ fun Snapshot.toJson(): JSONObject = JSONObject()
     .put("days", JSONArray(days.map {
         JSONObject().put("day", it.day).put("active", it.active).put("sessions", it.sessions).put("translations", it.translations)
             .put("words", it.words).put("paragraphs", it.paragraphs).put("autoParagraphs", it.autoParagraphs).put("seconds", it.seconds)
-            .put("goalMet", it.goalMet)
+            .put("goalMet", it.goalMet).put("dictations", it.dictations)
     }))
     .put("deletions", JSONObject(deletions))
 
@@ -96,7 +98,7 @@ fun snapshotFromJson(j: JSONObject) = Snapshot(
     books = j.optJSONArray("books").list {
         SyncBook(
             it.getString("hash"), it.getString("title"), it.getString("fileType"), it.stringOrNull("language"), it.stringOrNull("targetLanguage"),
-            it.getInt("lastBlock"), it.longOrNull("lastOpenedAt"), it.longOrNull("completedAt"), it.getLong("updatedAt"),
+            it.getInt("lastBlock"), it.longOrNull("lastOpenedAt"), it.longOrNull("completedAt"), it.getLong("updatedAt"), it.optString("shelves"),
         )
     },
     words = j.optJSONArray("words").list {
@@ -114,7 +116,7 @@ fun snapshotFromJson(j: JSONObject) = Snapshot(
     days = j.optJSONArray("days").list {
         SyncDay(
             it.getLong("day"), it.getInt("active"), it.getInt("sessions"), it.getInt("translations"), it.getInt("words"),
-            it.getInt("paragraphs"), it.getInt("autoParagraphs"), it.getInt("seconds"), it.getInt("goalMet"),
+            it.getInt("paragraphs"), it.getInt("autoParagraphs"), it.getInt("seconds"), it.getInt("goalMet"), it.optInt("dictations"),
         )
     },
     deletions = j.optJSONObject("deletions")?.let { d -> d.keys().asSequence().associateWith { d.getLong(it) } }.orEmpty(),

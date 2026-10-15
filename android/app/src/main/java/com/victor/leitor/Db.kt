@@ -22,6 +22,9 @@ data class Book(
     val lastOpenedAt: Long?,
     val completedAt: Long?,
     val contentHash: String?,
+    /** CEFR level (A1–C2), estimated by AI once per book. */
+    val level: String? = null,
+    val shelves: List<String> = emptyList(),
 ) {
     val status
         get() = when {
@@ -52,10 +55,11 @@ data class Word(
 
 data class Highlight(val id: Long, val block: Int, val start: Int, val end: Int, val color: Int, val note: String?)
 
-enum class Stat(val column: String) {
-    SESSION("reading_sessions_count"),
+enum class Stat(val column: String, val translation: Boolean = true) {
+    SESSION("reading_sessions_count", translation = false),
     WORD("translated_words_count"),
     PARAGRAPH("translated_paragraphs_count"),
+    DICTATION("dictations_count", translation = false),
 }
 
 data class DayStat(
@@ -73,7 +77,7 @@ fun localDay(millis: Long = System.currentTimeMillis()): Long =
     Math.floorDiv(millis + java.util.TimeZone.getDefault().getOffset(millis), 86_400_000L)
 
 // Queries run on the caller's thread: the tables are small.
-class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
+class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
     /** Bumped on every write so Compose screens re-query. */
     val changes = MutableStateFlow(0)
 
@@ -112,7 +116,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
                 saved_at INTEGER NOT NULL,
                 UNIQUE (original_text_normalized, source_language, target_language))""",
         )
-        onUpgrade(db, 1, 3)
+        onUpgrade(db, 1, 4)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -164,6 +168,13 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
                 "CREATE TABLE deletions (kind TEXT NOT NULL, key TEXT NOT NULL, deleted_at INTEGER NOT NULL, PRIMARY KEY (kind, key))",
             ).forEach(db::execSQL)
         }
+        if (oldVersion < 4) {
+            listOf(
+                "ALTER TABLE books ADD COLUMN level TEXT",
+                "ALTER TABLE books ADD COLUMN shelves TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE progress_daily_stats ADD COLUMN dictations_count INTEGER NOT NULL DEFAULT 0",
+            ).forEach(db::execSQL)
+        }
     }
 
     private fun Cursor.longOrNull(i: Int) = if (isNull(i)) null else getLong(i)
@@ -186,7 +197,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
         writableDatabase.execSQL(
             "UPDATE progress_daily_stats SET reading_active = 1, ${stat.column} = ${stat.column} + ?, " +
                 "translations_count = translations_count + ? WHERE day = ?",
-            arrayOf<Any>(n, if (stat == Stat.SESSION) 0 else n, day),
+            arrayOf<Any>(n, if (stat.translation) n else 0, day),
         )
         changed()
     }
@@ -224,10 +235,13 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
     fun booksCompletedSince(millis: Long): Int =
         DatabaseUtils.queryNumEntries(readableDatabase, "books", "completed_at >= ?", arrayOf("$millis")).toInt()
 
-    private val bookCols = "id, title, file_type, language, target_language, block_count, last_block_index, last_opened_at, completed_at, content_hash"
+    private val bookCols = "id, title, file_type, language, target_language, block_count, last_block_index, last_opened_at, completed_at, content_hash, level, shelves"
 
     private fun Cursor.toBook() =
-        Book(getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), getInt(6), longOrNull(7), longOrNull(8), getString(9))
+        Book(
+            getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), getInt(6), longOrNull(7), longOrNull(8), getString(9),
+            getString(10), getString(11).split('\n').filter { it.isNotEmpty() },
+        )
 
     fun books(): List<Book> =
         readableDatabase.rawQuery("SELECT $bookCols FROM books ORDER BY COALESCE(last_opened_at, created_at) DESC", null)
@@ -283,6 +297,33 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
             put("updated_at", System.currentTimeMillis())
         }, "id = ?", arrayOf("$id"))
         changed()
+    }
+
+    fun setShelves(id: Long, shelves: List<String>) {
+        writableDatabase.update("books", ContentValues().apply {
+            put("shelves", shelves.joinToString("\n"))
+            put("updated_at", System.currentTimeMillis())
+        }, "id = ?", arrayOf("$id"))
+        changed()
+    }
+
+    /** Not synced: a level never changes, and each device asks for it once. */
+    fun setLevel(id: Long, level: String) {
+        writableDatabase.update("books", ContentValues().apply { put("level", level) }, "id = ?", arrayOf("$id"))
+        changed()
+    }
+
+    fun totals(): Totals {
+        fun n(sql: String) = DatabaseUtils.longForQuery(readableDatabase, sql, null).toInt()
+        return Totals(
+            readingMinutes = n("SELECT COALESCE(SUM(reading_seconds), 0) / 60 FROM progress_daily_stats"),
+            savedWords = n("SELECT COUNT(*) FROM saved_words"),
+            learnedWords = n("SELECT COUNT(*) FROM saved_words WHERE box >= ${Leitner.MASTERED}"),
+            booksCompleted = n("SELECT COUNT(*) FROM books WHERE completed_at IS NOT NULL"),
+            dictations = n("SELECT COALESCE(SUM(dictations_count), 0) FROM progress_daily_stats"),
+            goalDays = n("SELECT COUNT(*) FROM progress_daily_stats WHERE goal_met = 1"),
+            longestStreak = streak().longest,
+        )
     }
 
     fun cachedTranslation(key: String): String? =
@@ -417,9 +458,9 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
     /** Books imported before content hashes existed have no identity across devices, so they stay local. */
     fun exportSnapshot() = Snapshot(
         books = query(
-            "SELECT content_hash, title, file_type, language, target_language, last_block_index, last_opened_at, completed_at, updated_at " +
+            "SELECT content_hash, title, file_type, language, target_language, last_block_index, last_opened_at, completed_at, updated_at, shelves " +
                 "FROM books WHERE content_hash IS NOT NULL",
-        ) { SyncBook(getString(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), longOrNull(7), getLong(8)) },
+        ) { SyncBook(getString(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), longOrNull(7), getLong(8), getString(9)) },
         words = query(
             "SELECT original_text_normalized, original_text, translated_text, source_language, target_language, book_title, example, box, " +
                 "due_day, saved_at, updated_at FROM saved_words",
@@ -430,8 +471,8 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
         ) { SyncHighlight(getString(0), getInt(1), getInt(2), getInt(3), getInt(4), getString(5), getLong(6), getLong(7)) },
         days = query(
             "SELECT day, reading_active, reading_sessions_count, translations_count, translated_words_count, translated_paragraphs_count, " +
-                "auto_translated_paragraphs_count, reading_seconds, goal_met FROM progress_daily_stats",
-        ) { SyncDay(getLong(0), getInt(1), getInt(2), getInt(3), getInt(4), getInt(5), getInt(6), getInt(7), getInt(8)) },
+                "auto_translated_paragraphs_count, reading_seconds, goal_met, dictations_count FROM progress_daily_stats",
+        ) { SyncDay(getLong(0), getInt(1), getInt(2), getInt(3), getInt(4), getInt(5), getInt(6), getInt(7), getInt(8), getInt(9)) },
         deletions = query("SELECT kind, key, deleted_at FROM deletions") { "${getString(0)}|${getString(1)}" to getLong(2) }.toMap(),
     )
 
@@ -448,6 +489,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
                     put("last_block_index", b.lastBlock)
                     put("last_opened_at", b.lastOpenedAt)
                     put("completed_at", b.completedAt)
+                    put("shelves", b.shelves)
                     put("updated_at", b.updatedAt)
                 }, "id = ?", arrayOf("$id"))
             }
@@ -494,8 +536,8 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 3) {
                     "UPDATE progress_daily_stats SET reading_active = MAX(reading_active, ?), reading_sessions_count = MAX(reading_sessions_count, ?), " +
                         "translations_count = MAX(translations_count, ?), translated_words_count = MAX(translated_words_count, ?), " +
                         "translated_paragraphs_count = MAX(translated_paragraphs_count, ?), auto_translated_paragraphs_count = MAX(auto_translated_paragraphs_count, ?), " +
-                        "reading_seconds = MAX(reading_seconds, ?), goal_met = MAX(goal_met, ?) WHERE day = ?",
-                    arrayOf<Any>(d.active, d.sessions, d.translations, d.words, d.paragraphs, d.autoParagraphs, d.seconds, d.goalMet, d.day),
+                        "reading_seconds = MAX(reading_seconds, ?), goal_met = MAX(goal_met, ?), dictations_count = MAX(dictations_count, ?) WHERE day = ?",
+                    arrayOf<Any>(d.active, d.sessions, d.translations, d.words, d.paragraphs, d.autoParagraphs, d.seconds, d.goalMet, d.dictations, d.day),
                 )
             }
             for ((kindKey, at) in s.deletions) {

@@ -4,13 +4,18 @@ import path from 'node:path';
 import { after } from 'node:test';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
-import type { Gemini } from '../src/translate/gemini.ts';
+import type { Mailer } from '../src/mail.ts';
+import type { Model } from '../src/translate/gemini.ts';
 
-export async function makeApp(options: { gemini?: Gemini; env?: Record<string, string> } = {}) {
+export async function makeApp(
+  options: { gemini?: Model; nvidia?: Model | null; mailer?: Mailer | null; env?: Record<string, string> } = {},
+) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'leitor-test-'));
   const config = loadConfig({ DATA_DIR: dataDir, JWT_SECRET: 'test-secret-with-at-least-32-characters!', ...options.env });
   const app = buildApp(config, {
     gemini: options.gemini ?? (async () => ({ text: 'ok', usage: { tokens: { input: 0, output: 0, total: 0 } } })),
+    nvidia: options.nvidia ?? null,
+    mailer: options.mailer === undefined ? async () => {} : options.mailer,
     logger: false,
   });
   await app.ready();

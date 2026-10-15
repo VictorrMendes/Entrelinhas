@@ -52,6 +52,10 @@ npm run lint                      # Biome (lint + formatação); npm run format 
 | `JWT_SECRET` | em dev, gerado e salvo em `DATA_DIR/jwt-secret` | obrigatória em produção (32+ caracteres) |
 | `DATA_DIR` | `backend/data` (`/app/data` no container) | banco SQLite e arquivos dos livros |
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | ~0,85 s por parágrafo; `gemini-3.7-flash` levou ~4 s e teve 503 nos testes |
+| `NVIDIA_API_KEY` | — | opcional; modelos gratuitos da NVIDIA (40 req/min) calculam o nível dos livros e respondem quando o Gemini está no limite |
+| `NVIDIA_MODEL` | `moonshotai/kimi-k3` | o `deepseek-v4.1-flash` passou de 120 s sem responder nos testes |
+| `SMTP_URL` | — | envia o código do "Esqueci minha senha"; sem ele, em produção a rota responde `RESET_UNAVAILABLE` (em dev o código aparece no log) |
+| `MAIL_FROM` | `Entrelinhas <no-reply@localhost>` | remetente dos e-mails |
 | `DAILY_CHAR_LIMIT` | `200000` | caracteres por conta por dia |
 | `MAX_ACCOUNT_BYTES` | 1 GB | espaço na nuvem por conta |
 | `TRUST_PROXY` | `false` | `true` atrás de proxy reverso |
@@ -69,7 +73,15 @@ Para backup e sincronização, a pessoa cria uma conta com e-mail e senha:
 - senha com scrypt e token JWT HS256 válido por 30 dias;
 - e-mail inexistente e senha errada dão a mesma resposta;
 - depois de 10 tentativas erradas, o e-mail fica bloqueado por 15 minutos;
-- cada IP pode fazer até 20 chamadas de login por minuto.
+- cada IP pode fazer até 20 chamadas de login por minuto;
+- **Esqueci minha senha:** `POST /auth/password/forgot` manda por e-mail um código de 6 dígitos, válido por 15 minutos, e responde igual para e-mails sem conta. Depois, `POST /auth/password/reset` recebe `{email, code, password}` e devolve um token novo. O código aceita 5 tentativas, e a troca de senha derruba as sessões abertas antes dela.
+
+Para o e-mail sair pelo Gmail, crie uma [senha de app](https://myaccount.google.com/apppasswords) e preencha no `.env`:
+
+```env
+SMTP_URL=smtps://seu.email%40gmail.com:senha-de-app@smtp.gmail.com:465
+MAIL_FROM=Entrelinhas <seu.email@gmail.com>
+```
 
 Todas as rotas abaixo exigem `Authorization: Bearer <token>`. Os erros sempre vêm como `{success: false, error: {code, message}}`.
 
@@ -78,7 +90,9 @@ Todas as rotas abaixo exigem `Authorization: Bearer <token>`. Os erros sempre v�
 | Rota | Corpo / resposta |
 |---|---|
 | `POST /translate` | `{text, sourceLang, targetLang, context?}`; com `context` (a frase), traduz só a palavra no sentido da frase |
-| `POST /translate/batch` | `{targetLanguage, sourceLanguage?, items:[{blockId, text}]}` |
+| `POST /translate/batch` | `{targetLanguage, sourceLanguage?, items:[{blockId, text}]}`; usada pelo modo Entrelinhas, frase por frase |
+| `POST /explain` | `{text, sentence, sourceLang, targetLang}` → `{explanation}`; Gemini primeiro (rápido), NVIDIA de reserva |
+| `POST /level` | `{sample, language}` → `{level}` (A1–C2); NVIDIA primeiro (é trabalho de fundo), Gemini de reserva |
 | `GET /sync/snapshot` | `{version, snapshot}` |
 | `PUT /sync/snapshot` | `{version, snapshot}`; responde 409 se outro aparelho enviou antes |
 | `GET /sync/files` | sha256 dos livros guardados |
@@ -133,14 +147,25 @@ Todos os textos do app ficam em `app/src/main/res/values/strings.xml`, em PT-BR.
 - **PDF:** texto e imagens na ordem em que aparecem na página, capítulos do sumário do PDF e OCR (ML Kit, offline) em PDFs escaneados
 - **Leitor:**
   - palavra traduzida no sentido da frase, com pronúncia e botão Salvar (guarda também a frase de exemplo)
-  - tradução de parágrafo, que fica salva ao reabrir o livro; modo **Auto**
-  - **Sumário** (EPUB nav/NCX, outline do PDF ou títulos de capítulo) e **Buscar** (sem diferenciar acentos); rolar continua passando de capítulo
-  - **Ouvir o livro** (texto em voz, com velocidade ajustável)
-  - **Destaques e notas**: pressione e segure uma frase
+  - **expressões:** as setas ‹ › da palavra incluem a palavra anterior ou a próxima ("gave up", "on the other hand")
+  - **Explicar:** a IA explica o sentido na frase, a gramática e dá um exemplo novo
+  - palavras e expressões salvas aparecem sublinhadas sempre que voltam no livro
+  - **modo Entrelinhas:** a tradução de cada frase logo abaixo dela (ou o parágrafo inteiro, à escolha no **Aa**), salva ao reabrir o livro
+  - **Aa:** temas de leitura (claro, sépia, escuro e noite), tamanho da letra, espaçamento, margens, fonte (Literata ou Nunito) e voz
+  - **Sumário** e links internos do livro (EPUB nav/NCX, FB2, outline do PDF ou títulos de capítulo) e **Buscar** (sem diferenciar acentos)
+  - **Ouvir o livro:** a palavra falada fica marcada no texto. Há uma barra de controle com frase anterior/próxima, velocidade e "só ouvir", que esconde o texto até você tocar.
+  - **Pressione e segure uma frase:**
+    - ouvir em loop e mais devagar;
+    - traduzir e explicar;
+    - ditado de 10 frases;
+    - falar a frase e receber uma nota de pronúncia;
+    - destacar com nota.
 - **Cache de traduções:** a mesma tradução online nunca é paga duas vezes
 - **Vocabulário:**
   - repetição espaçada (Leitner: 1, 3, 7, 14, 30 e 90 dias) com flashcard, frase de exemplo e pronúncia
+  - **treinar escuta:** flashcards que começam pelo áudio e ditado com as frases de exemplo
   - exportação em CSV pronto para o Anki
+- **Biblioteca:** **estantes** criadas pelo menu do livro, que viram filtros e sincronizam, e o **nível CEFR** de cada livro (A1–C2), calculado pela IA uma vez por livro
 - **Ofensiva:**
   - meta diária em minutos de leitura ativa, com escudos que cobrem dias sem leitura
   - lembrete diário por notificação, que só aparece se a meta ainda não foi batida
@@ -149,12 +174,23 @@ Todos os textos do app ficam em `app/src/main/res/values/strings.xml`, em PT-BR.
   - exclusões são propagadas
   - as estatísticas do dia ficam com o maior valor, para nada contar duas vezes
 - **Relatório de erros:** crashes são gravados no aparelho e enviados ao backend na abertura seguinte
-- **Progresso:** ofensiva, tempo de leitura, gráfico de traduções e detalhes
+- **Progresso:** XP e nível, 10 **conquistas** (com aviso ao desbloquear), ofensiva, tempo de leitura, gráfico de traduções e detalhes
+- **Avisos:** barra própria (sucesso, erro, informação) com ação, como "Abrir" o livro importado ou "Tentar de novo" a sincronização
+- **Vozes:** as do próprio Android (gratuitas e offline), escolhidas por idioma no **Aa → Escolher voz**
 
 ## Testes e pipeline
 
-- **`backend`:** `npm test`, com 15 testes (auth, token adulterado, rate limit, cota, falha do modelo, sync, arquivos, limite de espaço, crash, health).
-- **`android`:** `./gradlew lintDebug testDebugUnitTest`, com 17 testes (parser de livros, Leitner, ofensiva, CSV e a mesclagem da sincronização).
+- **`backend`:** `npm test`, com 21 testes:
+  - auth, token adulterado e rate limit;
+  - recuperação de senha;
+  - cota, falha do modelo, Explicar com reserva e nível do livro;
+  - sync, arquivos e limite de espaço;
+  - crash e health.
+- **`android`:** `./gradlew lintDebug testDebugUnitTest`, com 25 testes:
+  - parser de livros, links e expressões;
+  - Leitner, ofensiva, CSV, ditado e XP/conquistas;
+  - a mesclagem da sincronização;
+  - testes de interface com Robolectric (rodam na JVM, sem emulador, inclusive na CI).
 
 No GitHub (`.github/`), no mesmo esquema do ReadUp, com as branches `master` (produção) e `homolog`:
 
@@ -176,3 +212,5 @@ Para o `android.yml`, crie os Environments `production` e `homolog` no repositó
 - a tradução não preserva negrito e itálico (o backend devolve texto puro)
 - livros importados antes da versão com hash de conteúdo não entram na sincronização (basta importá-los de novo)
 - traduções de parágrafo salvas não vão para a nuvem (são refeitas sob demanda e ficam no cache)
+- vozes melhores e gratuitas: o próximo passo seria um servidor [Piper](https://github.com/OHF-Voice/piper1-gpl) no mesmo servidor do backend (offline, roda em CPU, ~35 idiomas)
+- versão web instalável (PWA) para iPhone

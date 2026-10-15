@@ -154,6 +154,18 @@ class BookParserTest {
         assertEquals(listOf(TocEntry("One", ch1), TocEntry("Two", ch2)), parsed.toc)
     }
 
+    @Test
+    fun neighbourWordsGrowAnExpression() {
+        val text = "He gave up, finally."
+        val gave = wordRange(text, 4)!!
+        assertEquals("gave", text.substring(gave))
+        assertEquals("He", text.substring(previousWord(text, gave.first)!!))
+        assertEquals("up", text.substring(nextWord(text, gave.last + 1)!!))
+        assertEquals("finally", text.substring(nextWord(text, 10)!!))
+        assertNull(previousWord(text, 0))
+        assertNull(nextWord(text, text.length - 1))
+    }
+
     /** Minimal EPUB: [chapters] (href, html) in spine order; the manifest lists them reversed so order must come from the spine. */
     private fun epub(vararg chapters: Pair<String, String>, images: Map<String, ByteArray> = emptyMap(), extraManifest: String = ""): ByteArray {
         val manifest = chapters.indices.reversed().joinToString("") { """<item id="c$it" href="${chapters[it].first}"/>""" } + extraManifest

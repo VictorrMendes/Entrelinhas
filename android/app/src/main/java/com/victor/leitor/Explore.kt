@@ -9,7 +9,6 @@ import android.webkit.URLUtil
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -144,7 +143,7 @@ private fun Browser(app: App, site: Site, onClose: () -> Unit, onOpen: (Long) ->
                         }
                         setDownloadListener { url, userAgent, disposition, mime, _ ->
                             val name = URLUtil.guessFileName(url, disposition, mime)
-                            Toast.makeText(ctx, ctx.getString(R.string.downloading, name), Toast.LENGTH_SHORT).show()
+                            app.notices.show(Notice(ctx.getString(R.string.downloading, name)))
                             app.importDownload(url, name, userAgent) { added = it }
                         }
                         loadUrl(site.url)
