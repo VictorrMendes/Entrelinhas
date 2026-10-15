@@ -47,6 +47,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.material.icons.outlined.Pin
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -134,6 +136,7 @@ private const val MAX_NAME = 40
 fun SignInSheet(app: App, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var create by remember { mutableStateOf(false) }
+    var resetting by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -181,6 +184,10 @@ fun SignInSheet(app: App, onDismiss: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Image(painterResource(R.drawable.mascot), null, Modifier.size(88.dp))
+            if (resetting) {
+                PasswordReset(app, email, onBack = { resetting = false }, onDone = onDismiss)
+                return@Column
+            }
             Text(
                 stringResource(if (create) R.string.create_title else R.string.sign_in_title),
                 Modifier.padding(top = 8.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
@@ -241,6 +248,9 @@ fun SignInSheet(app: App, onDismiss: () -> Unit) {
                 keyboardActions = KeyboardActions(onDone = { send() }),
                 supportingText = if (create) ({ Text(stringResource(R.string.password_hint)) }) else null,
             )
+            if (!create) {
+                TextButton(onClick = { resetting = true; error = null }, Modifier.align(Alignment.End)) { Text(stringResource(R.string.forgot_password)) }
+            }
             error?.let {
                 Text(
                     stringResource(it),
@@ -256,3 +266,100 @@ fun SignInSheet(app: App, onDismiss: () -> Unit) {
         }
     }
 }
+
+/** "Forgot my password": ask for a code by email, then type it with the new password. Signs in at the end. */
+@Composable
+private fun PasswordReset(app: App, initialEmail: String, onBack: () -> Unit, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val res = LocalResources.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    var email by remember { mutableStateOf(initialEmail) }
+    var codeSent by remember { mutableStateOf(false) }
+    var code by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<Int?>(null) }
+
+    fun run(block: suspend () -> Unit) {
+        keyboard?.hide()
+        busy = true
+        error = null
+        scope.launch {
+            try {
+                block()
+            } catch (e: ApiException) {
+                error = when (e.code) {
+                    "INVALID_CODE" -> R.string.error_invalid_code
+                    "RESET_UNAVAILABLE" -> R.string.error_reset_unavailable
+                    "TOO_MANY_ATTEMPTS", "TOO_MANY_REQUESTS" -> R.string.error_too_many_attempts
+                    "INVALID_REQUEST" -> R.string.error_invalid_reset
+                    else -> R.string.error_sign_in
+                }
+            } catch (e: IOException) {
+                error = R.string.error_no_connection
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    Text(
+        stringResource(R.string.reset_title), Modifier.padding(top = 8.dp),
+        style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        if (codeSent) stringResource(R.string.reset_code_sent, email.trim()) else stringResource(R.string.reset_hint),
+        Modifier.padding(top = 4.dp, bottom = 20.dp), style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
+    )
+    if (!codeSent) {
+        OutlinedTextField(
+            email, { email = it }, Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.email)) }, leadingIcon = { Icon(Icons.Outlined.Email, null) },
+            singleLine = true, shape = RoundedCornerShape(14.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
+        )
+    } else {
+        OutlinedTextField(
+            code, { code = it.filter(Char::isDigit).take(6) }, Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.reset_code)) }, leadingIcon = { Icon(Icons.Outlined.Pin, null) },
+            singleLine = true, shape = RoundedCornerShape(14.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Next),
+        )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            password, { password = it }, Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.new_password)) }, leadingIcon = { Icon(Icons.Outlined.Lock, null) },
+            singleLine = true, shape = RoundedCornerShape(14.dp), visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            supportingText = { Text(stringResource(R.string.password_hint)) },
+        )
+    }
+    error?.let {
+        Text(
+            stringResource(it),
+            Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 14.dp, vertical = 10.dp),
+            color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+    val ready = !busy && if (codeSent) code.length == 6 && password.length >= 8 else email.isNotBlank()
+    Button(
+        onClick = {
+            if (!codeSent) run { app.backend.requestPasswordReset(email.trim()); codeSent = true }
+            else run {
+                app.backend.resetPassword(email.trim(), code, password)
+                app.sync()
+                app.notices.show(Notice(res.getString(R.string.password_changed), NoticeKind.SUCCESS))
+                onDone()
+            }
+        },
+        enabled = ready, modifier = Modifier.fillMaxWidth().padding(top = 20.dp).height(52.dp),
+    ) {
+        if (busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+        else Text(stringResource(if (codeSent) R.string.save_new_password else R.string.send_code), style = MaterialTheme.typography.titleMedium)
+    }
+    if (codeSent) TextButton(onClick = { run { app.backend.requestPasswordReset(email.trim()) } }, enabled = !busy) { Text(stringResource(R.string.resend_code)) }
+    TextButton(onClick = onBack) { Text(stringResource(R.string.back_to_sign_in)) }
+}
+

@@ -5,9 +5,9 @@ export interface ModelResult {
   usage: { tokens: { input: number; output: number; total: number } };
 }
 
-export type Gemini = (system: string, text: string, schema?: object) => Promise<ModelResult>;
+export type Model = (system: string, text: string, schema?: object) => Promise<ModelResult>;
 
-export function createGemini(apiKey: string | undefined, model: string): Gemini {
+export function createGemini(apiKey: string | undefined, model: string): Model {
   return async (system, text, schema) => {
     if (!apiKey) throw new ApiError(500, 'SERVER_MISCONFIGURED', 'GEMINI_API_KEY is not set');
     const request = () =>

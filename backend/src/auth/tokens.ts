@@ -4,8 +4,8 @@ const TTL_SECONDS = 30 * 24 * 3600;
 
 export interface Tokens {
   issue(accountId: number): string;
-  /** The account id of a well-signed, unexpired token; whether the account still exists is the guard's job. */
-  verify(token: string): number | null;
+  /** Account and issue time (seconds) of a well-signed, unexpired token; whether it is still accepted is the guard's job. */
+  verify(token: string): { account: number; issuedAt: number } | null;
 }
 
 /** HS256 JWTs. The signature is always checked as HS256 whatever the header claims, so `alg` tricks don't apply. */
@@ -15,7 +15,8 @@ export function createTokens(secret: string): Tokens {
   return {
     issue(accountId) {
       const head = encode({ alg: 'HS256', typ: 'JWT' });
-      const body = encode({ sub: String(accountId), exp: Math.floor(Date.now() / 1000) + TTL_SECONDS });
+      const now = Math.floor(Date.now() / 1000);
+      const body = encode({ sub: String(accountId), iat: now, exp: now + TTL_SECONDS });
       return `${head}.${body}.${hmac(`${head}.${body}`).toString('base64url')}`;
     },
     verify(token) {
@@ -25,7 +26,7 @@ export function createTokens(secret: string): Tokens {
       const want = hmac(`${head}.${body}`);
       const got = Buffer.from(sig, 'base64url');
       if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) return null;
-      let claims: { sub?: unknown; exp?: unknown };
+      let claims: { sub?: unknown; exp?: unknown; iat?: unknown };
       try {
         claims = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
       } catch {
@@ -33,7 +34,7 @@ export function createTokens(secret: string): Tokens {
       }
       if (typeof claims.exp !== 'number' || claims.exp * 1000 < Date.now()) return null;
       const id = Number(claims.sub);
-      return Number.isInteger(id) ? id : null;
+      return Number.isInteger(id) ? { account: id, issuedAt: typeof claims.iat === 'number' ? claims.iat : 0 } : null;
     },
   };
 }

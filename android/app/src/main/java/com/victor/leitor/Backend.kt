@@ -35,10 +35,24 @@ class Backend(private val prefs: Prefs) {
     suspend fun signIn(email: String, password: String, name: String? = null) {
         val body = JSONObject().put("email", email).put("password", password)
         if (name != null) body.put("name", name)
-        val data = json("POST", if (name != null) "/auth/signup" else "/auth/login", body, authed = false).getJSONObject("data")
-        prefs.token = data.getString("token")
-        prefs.accountEmail = data.getString("email")
-        prefs.accountName = if (data.isNull("name")) null else data.getString("name") // accounts made before names existed
+        adopt(json("POST", if (name != null) "/auth/signup" else "/auth/login", body, authed = false).getJSONObject("data"))
+    }
+
+    /** Emails a 6-digit code; the answer is the same whether the email has an account or not. */
+    suspend fun requestPasswordReset(email: String) {
+        json("POST", "/auth/password/forgot", JSONObject().put("email", email), authed = false)
+    }
+
+    /** Sets the new password with the emailed code and signs in; other sessions of the account stop working. */
+    suspend fun resetPassword(email: String, code: String, password: String) {
+        val body = JSONObject().put("email", email).put("code", code).put("password", password)
+        adopt(json("POST", "/auth/password/reset", body, authed = false).getJSONObject("data"))
+    }
+
+    private fun adopt(session: JSONObject) {
+        prefs.token = session.getString("token")
+        prefs.accountEmail = session.getString("email")
+        prefs.accountName = if (session.isNull("name")) null else session.getString("name") // accounts made before names existed
     }
 
     fun signOut() {

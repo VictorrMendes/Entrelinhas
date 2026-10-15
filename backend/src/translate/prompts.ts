@@ -22,6 +22,16 @@ export const wordInContextPrompt = (s: string, t: string, sentence: string, word
   `Translate ONLY «${word}» with the meaning it has in the sentence. Never translate the other words of the sentence. ` +
   'Answer with that translation only (one to three words), without quotes or explanations.';
 
+export const explainPrompt = (s: string, t: string, sentence: string) =>
+  `You are a friendly ${langName(s)} teacher for learners who speak ${langName(t)}. The user sends a word, expression or sentence ` +
+  `taken from this sentence of a book: «${sentence}». Explain in ${langName(t)}, in at most four short sentences, what it means there ` +
+  'and any grammar, idiom or nuance worth knowing, then give one short new example in the original language with its translation. ' +
+  'Do not describe pronunciation (the app plays the audio). Plain text, no markdown.';
+
+export const levelPrompt = (s: string) =>
+  `You assess reading difficulty. The user sends excerpts of a book in ${langName(s)}. Answer only with the CEFR level ` +
+  '(A1, A2, B1, B2, C1 or C2) a learner needs to read this book comfortably.';
+
 export const batchPrompt = (s: string | undefined, t: string) =>
   'You are a literary translator. The user sends a JSON array of consecutive book paragraphs (blockId, text). ' +
   `Translate every text ${s ? `from ${langName(s)} ` : ''}to natural, grammatically correct ${langName(t)}, keeping tone and consistency across paragraphs. ` +

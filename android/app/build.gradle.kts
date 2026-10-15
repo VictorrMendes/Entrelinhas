@@ -68,6 +68,9 @@ android {
             isUniversalApk = true
         }
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -88,4 +91,9 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1") // OCR of scanned PDFs, model bundled (works offline)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     testImplementation("junit:junit:4.13.2")
+    // UI tests run on the JVM with Robolectric, so CI needs no emulator
+    testImplementation("org.robolectric:robolectric:4.16")
+    testImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

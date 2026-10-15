@@ -8,11 +8,18 @@ export interface Config {
   jwtSecret: string;
   geminiApiKey: string | undefined;
   geminiModel: string;
+  /** Optional: NVIDIA's free hosted models take the background work (book levels) and back Gemini up. */
+  nvidiaApiKey: string | undefined;
+  nvidiaModel: string;
   dailyCharLimit: number;
   maxAccountBytes: number;
   /** Behind a reverse proxy (Caddy, Nginx, Cloudflare Tunnel) the client IP comes from X-Forwarded-For. */
   trustProxy: boolean;
   logLevel: string;
+  production: boolean;
+  /** smtps://user:password@host:465; without it, password reset emails are unavailable in production. */
+  smtpUrl: string | undefined;
+  mailFrom: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -37,10 +44,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     geminiApiKey: env.GEMINI_API_KEY,
     // flash-lite measured ~0.85s per paragraph vs ~4s (and occasional 503s) for gemini-3.7-flash
     geminiModel: env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+    nvidiaApiKey: env.NVIDIA_API_KEY || undefined,
+    // deepseek-v4.1-flash timed out (>120 s) where kimi-k3 answered in 45 s
+    nvidiaModel: env.NVIDIA_MODEL || 'moonshotai/kimi-k3',
     dailyCharLimit: int('DAILY_CHAR_LIMIT', 200_000),
     maxAccountBytes: int('MAX_ACCOUNT_BYTES', 1024 ** 3),
     trustProxy: env.TRUST_PROXY === 'true',
     logLevel: env.LOG_LEVEL || 'info',
+    production,
+    smtpUrl: env.SMTP_URL || undefined,
+    mailFrom: env.MAIL_FROM || 'Entrelinhas <no-reply@localhost>',
   };
 }
 

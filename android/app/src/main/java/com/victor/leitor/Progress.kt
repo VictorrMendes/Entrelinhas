@@ -40,6 +40,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -84,6 +89,7 @@ fun Progress(app: App, modifier: Modifier) {
     val streak = remember(version) { app.db.streak() }
     val booksRead = remember(version, range) { app.db.booksCompletedSince(dayStartMillis(from)) }
     val bars = remember(stats, range) { bars(stats, from, today, range) }
+    val totals = remember(version) { app.db.totals() }
     val primary = MaterialTheme.colorScheme.primary
 
     Column(
@@ -91,6 +97,7 @@ fun Progress(app: App, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ScreenTitle(stringResource(R.string.progress_title))
+        LevelCard(totals)
         Segmented(Range.entries.map { stringResource(it.label) }, range.ordinal) { range = Range.entries[it] }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             StatTile(Icons.Outlined.CalendarToday, primary, stringResource(R.string.reading_days), "${stats.count { it.active }}", Modifier.weight(1f))
@@ -127,7 +134,75 @@ fun Progress(app: App, modifier: Modifier) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
+        Achievements(totals)
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Lifetime XP and the level it reaches; the bar fills toward the next level. */
+@Composable
+fun LevelCard(t: Totals) {
+    val level = Levels.of(t.xp)
+    val from = Levels.start(level)
+    val to = Levels.start(level + 1)
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primary, contentColor = onPrimary) {
+        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.EmojiEvents, null, tint = Flame)
+                Text(stringResource(R.string.level_n, level), Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.xp_n, t.xp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(onPrimary.copy(alpha = 0.25f))) {
+                Box(Modifier.fillMaxWidth((t.xp - from).toFloat() / (to - from)).fillMaxHeight().clip(CircleShape).background(onPrimary))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.xp_to_next, to - t.xp, level + 1), style = MaterialTheme.typography.bodySmall, color = onPrimary.copy(alpha = 0.85f))
+        }
+    }
+}
+
+@Composable
+fun Achievements(t: Totals) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.achievements), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                "${Achievement.entries.count { it.unlocked(t) }}/${Achievement.entries.size}",
+                style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(stringResource(R.string.xp_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Achievement.entries.chunked(2).forEach { pair ->
+            // IntrinsicSize gives both tiles of a row the height of the taller one
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                pair.forEach { AchievementTile(it, t, Modifier.weight(1f).fillMaxHeight()) }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AchievementTile(a: Achievement, t: Totals, modifier: Modifier) {
+    val done = a.unlocked(t)
+    val tint = if (done) Flame else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = modifier) {
+        Column(Modifier.padding(16.dp).alpha(if (done) 1f else 0.65f)) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                Icon(if (done) Icons.Outlined.EmojiEvents else Icons.Outlined.Lock, null, Modifier.size(22.dp), tint = tint)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(stringResource(a.title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(a.text), Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!done) {
+                Text(
+                    "${minOf(a.value(t), a.target)}/${a.target}", Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
     }
 }
 
