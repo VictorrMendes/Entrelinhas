@@ -82,7 +82,7 @@ android {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.activity:activity-compose:1.8.0")
@@ -92,8 +92,8 @@ dependencies {
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     testImplementation("junit:junit:4.13.2")
     // UI tests run on the JVM with Robolectric, so CI needs no emulator
-    testImplementation("org.robolectric:robolectric:4.16")
-    testImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation(platform("androidx.compose:compose-bom:2026.09.00"))
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
