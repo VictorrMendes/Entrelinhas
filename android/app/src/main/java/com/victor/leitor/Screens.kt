@@ -329,6 +329,16 @@ fun Settings(app: App, modifier: Modifier) {
         SettingCard(stringResource(R.string.delete_all_books), subtitle = stringResource(R.string.delete_all_books_hint)) { dialog = "books" }
         Section(stringResource(R.string.section_about))
         SettingCard(stringResource(R.string.about), subtitle = stringResource(R.string.about_version, BuildConfig.VERSION_NAME, BuildConfig.BACKEND_URL), onClick = null)
+        val version = "${BuildConfig.VERSION_NAME}-${BuildConfig.VERSION_CODE}"
+        SettingCard(
+            stringResource(R.string.updates_title),
+            subtitle = when {
+                !app.updater.enabled -> stringResource(R.string.updates_local, version)
+                app.updating -> stringResource(R.string.updates_busy)
+                else -> stringResource(R.string.updates_hint, version)
+            },
+            onClick = if (app.updater.enabled && !app.updating) ({ app.checkForUpdate() }) else null,
+        )
         SignOutButton(app)
         Spacer(Modifier.height(24.dp))
     }

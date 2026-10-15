@@ -195,8 +195,9 @@ npm run lint                      # Biome (lint + formatação); npm run format 
 | `JWT_SECRET` | em dev, gerado e salvo em `DATA_DIR/jwt-secret` | obrigatória em produção (32+ caracteres) |
 | `DATA_DIR` | `backend/data` (`/app/data` no container) | banco SQLite e arquivos dos livros |
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | ~0,85 s por parágrafo; `gemini-3.7-flash` levou ~4 s e teve 503 nos testes |
-| `NVIDIA_API_KEY` | — | opcional; modelos gratuitos da NVIDIA (40 req/min) calculam o nível dos livros e respondem quando o Gemini está no limite |
-| `NVIDIA_MODEL` | `moonshotai/kimi-k3` | o `deepseek-v4.1-flash` passou de 120 s sem responder nos testes |
+| `GEMINI_FALLBACK_MODELS` | `gemini-3.1-flash-lite` | modelos de reserva, separados por vírgula. A cota grátis é de 15 req/min **por modelo**: quando o principal dá 429 ou demora mais de 1,5 s, a pergunta vai também para o próximo e vale a primeira resposta |
+| `NVIDIA_API_KEY` | — | opcional; modelos gratuitos da NVIDIA (40 req/min) entram quando o Gemini dá 429 ou passa de 1,5 s (vale a primeira resposta) e calculam o nível dos livros |
+| `NVIDIA_MODEL` | `nvidia/nemotron-3-super-120b-a12b` | nos testes, 0,7–1,2 s por palavra e 10 de 12 palavras ambíguas certas; modelos que raciocinam (`kimi-k3`, `deepseek-v4.1-flash`) levaram de 45 s a mais de 120 s |
 | `SMTP_URL` | — | envia o código do "Esqueci minha senha"; sem ele, em produção a rota responde `RESET_UNAVAILABLE` (em dev o código aparece no log) |
 | `MAIL_FROM` | `Entrelinhas <no-reply@localhost>` | remetente dos e-mails |
 | `DAILY_CHAR_LIMIT` | `200000` | caracteres por conta por dia |

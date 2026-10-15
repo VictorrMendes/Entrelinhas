@@ -86,10 +86,12 @@ jobs:
           } > keystore.properties
 
       # o número da execução vira o versionCode: cada APK novo atualiza o anterior
+      # updateChannel: o app instalado procura versões novas nos Releases deste mesmo ambiente e se atualiza sozinho
       - name: Build
         env:
           API_URL: ${{ vars.API_URL }}
-        run: chmod +x gradlew && ./gradlew assembleRelease -PbackendUrl="$API_URL" -PversionCode=${{ github.run_number }}
+          ENVIRONMENT: ${{ (github.base_ref || github.ref_name) == 'master' && 'production' || 'homolog' }}
+        run: chmod +x gradlew && ./gradlew assembleRelease -PbackendUrl="$API_URL" -PversionCode=${{ github.run_number }} -PupdateChannel="$ENVIRONMENT"
 
       # um APK por arquitetura sai do build; publicamos o arm64, que é o de praticamente todo celular atual
       - name: Name APK

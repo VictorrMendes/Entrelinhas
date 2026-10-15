@@ -1,6 +1,8 @@
 package com.victor.leitor
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -18,6 +20,12 @@ class Backend(private val prefs: Prefs) {
     suspend fun call(method: String, path: String, body: ByteArray? = null, contentType: String = JSON, authed: Boolean = true): ByteArray =
         withContext(Dispatchers.IO) {
             var (status, bytes) = exchange(method, path, body, contentType, if (authed) token() else null)
+            // a proxy in front of the server (Cloudflare, Nginx) answers 502-504 on its own during restarts and dropped connections;
+            // one retry hides those blips. Auth calls aren't repeated: a lost answer there may already have taken effect.
+            if (status in 502..504 && errorOf(bytes) == null && !path.startsWith("/auth/")) {
+                delay(1000)
+                exchange(method, path, body, contentType, if (authed) token() else null).let { status = it.first; bytes = it.second }
+            }
             if (status == 401 && authed) {
                 val hadAccount = prefs.accountEmail != null
                 signOut()
@@ -25,11 +33,15 @@ class Backend(private val prefs: Prefs) {
                 exchange(method, path, body, contentType, token()).let { status = it.first; bytes = it.second }
             }
             if (status >= 400) {
-                val err = runCatching { JSONObject(String(bytes)).optJSONObject("error") }.getOrNull()
+                Log.w("Backend", "$method $path -> $status ${String(bytes).take(300)}")
+                val err = errorOf(bytes)
                 throw ApiException(status, err?.optString("code").orEmpty().ifEmpty { "HTTP_$status" }, err?.optString("message").orEmpty())
             }
             bytes
         }
+
+    /** The `error` object of our own error responses; null for anything else, such as a proxy's error page. */
+    private fun errorOf(bytes: ByteArray): JSONObject? = runCatching { JSONObject(String(bytes)).optJSONObject("error") }.getOrNull()
 
     /** Creates the account when [name] is given, otherwise signs in. */
     suspend fun signIn(email: String, password: String, name: String? = null) {

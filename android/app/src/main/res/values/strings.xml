@@ -356,4 +356,16 @@
     <string name="ach_ten_hours">Maratonista</string>
     <string name="ach_ten_hours_text">Leia por 10 horas</string>
     <string name="server_outdated">O servidor ainda não tem este recurso. Atualize o backend e tente de novo.</string>
+    <string name="server_unavailable">O servidor não respondeu. Tente de novo em instantes.</string>
+    <string name="update_available">Nova versão %1$s disponível</string>
+    <string name="update_action">Atualizar</string>
+    <string name="update_downloading">Baixando a versão %1$s…</string>
+    <string name="update_failed">Não foi possível baixar a atualização.</string>
+    <string name="update_check_failed">Não foi possível procurar atualizações. Verifique a internet.</string>
+    <string name="update_other_key">Esta versão foi assinada com outra chave. Desinstale o app e instale-a uma única vez; depois disso as atualizações funcionam por aqui.</string>
+    <string name="up_to_date">Você já está na versão mais recente.</string>
+    <string name="updates_title">Atualizações</string>
+    <string name="updates_hint">Versão %1$s · toque para procurar</string>
+    <string name="updates_busy">Baixando a atualização…</string>
+    <string name="updates_local">Versão %1$s · build local, sem atualização automática</string>
 </resources>

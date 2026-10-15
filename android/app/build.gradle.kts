@@ -9,6 +9,8 @@ plugins {
 // signed with the debug key so they can still be installed and tested.
 // Emulator default reaches the host machine; pass -PbackendUrl=https://... for a deployed backend.
 val backendUrl: String = providers.gradleProperty("backendUrl").getOrElse("http://10.0.2.2:8787")
+// CI passes production or homolog: the app then updates itself from that channel's GitHub releases; local builds don't
+val updateChannel: String = providers.gradleProperty("updateChannel").getOrElse("")
 
 val keystore = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f -> Properties().apply { f.inputStream().use(::load) } }
 
@@ -28,6 +30,7 @@ android {
         versionCode = providers.gradleProperty("versionCode").getOrElse("1").toInt()
         versionName = "0.1"
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        buildConfigField("String", "UPDATE_CHANNEL", "\"$updateChannel\"")
     }
 
     signingConfigs {

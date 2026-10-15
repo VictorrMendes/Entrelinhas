@@ -41,6 +41,9 @@ private const val MAX_DOWNLOAD = 80L * 1024 * 1024
 /** Present in a book's folder once it was parsed with links; see [App.loadBlocks]. */
 private const val PARSER_MARKER = "parsed-v2"
 
+/** GitHub allows 60 unauthenticated API calls an hour per IP; a few checks a day are plenty. */
+private const val UPDATE_CHECK_EVERY = 6 * 3600_000L
+
 class App : Application() {
     lateinit var db: Db
     lateinit var prefs: Prefs
@@ -52,6 +55,9 @@ class App : Application() {
         private set
     val speech by lazy { Speech(this) { prefs.voice(it) } }
     val notices = Notices()
+    val updater by lazy { Updater(this) }
+    var updating by mutableStateOf(false)
+        private set
     private val scope = MainScope()
 
     override fun onCreate() {
@@ -67,9 +73,54 @@ class App : Application() {
             CrashReports.upload(this@App)
             if (prefs.accountEmail != null) sync(quiet = true)
             assessLevels()
+            checkForUpdate(quiet = true)
         }
         // counters settle a moment after each change (reading time ticks, a review session), so check once things are quiet
         scope.launch { db.changes.collectLatest { delay(1500); celebrate() } }
+    }
+
+    /** [quiet]: the automatic check at start, at most every few hours, silent when there's nothing new or no connection. */
+    fun checkForUpdate(quiet: Boolean = false) {
+        if (quiet && System.currentTimeMillis() - prefs.lastUpdateCheck < UPDATE_CHECK_EVERY) return
+        scope.launch {
+            val release = try {
+                updater.check().also { prefs.lastUpdateCheck = System.currentTimeMillis() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Update", "check failed", e)
+                if (!quiet) notices.show(Notice(getString(R.string.update_check_failed), NoticeKind.ERROR))
+                return@launch
+            }
+            when {
+                release != null -> notices.show(
+                    Notice(getString(R.string.update_available, release.name), NoticeKind.INFO, getString(R.string.update_action), NoticeAction.Run { installUpdate(release) }),
+                )
+                !quiet -> notices.show(Notice(getString(R.string.up_to_date), NoticeKind.SUCCESS))
+            }
+        }
+    }
+
+    fun installUpdate(release: Release) {
+        if (updating) return
+        updating = true
+        notices.show(Notice(getString(R.string.update_downloading, release.name)))
+        scope.launch {
+            try {
+                updater.install(release)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Update", "install failed", e)
+                val message = (e as? UpdateException)?.message ?: getString(R.string.update_failed)
+                notices.show(
+                    if (e is UpdateException && !e.retry) Notice(message, NoticeKind.ERROR)
+                    else Notice(message, NoticeKind.ERROR, getString(R.string.try_again), NoticeAction.Run { installUpdate(release) }),
+                )
+            } finally {
+                updating = false
+            }
+        }
     }
 
     private var assessing = false
@@ -390,6 +441,7 @@ class Prefs(ctx: Context) {
     var accountEmail by nullableString("account_email")
     var accountName by nullableString("account_name")
     var lastSync by long("last_sync", 0L)
+    var lastUpdateCheck by long("last_update_check", 0L)
     /** Achievements already celebrated, comma separated; null until the first check. */
     var achievements by nullableString("achievements")
 
