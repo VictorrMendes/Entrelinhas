@@ -22,8 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 enum class NoticeKind { INFO, SUCCESS, ERROR }
 
@@ -45,13 +46,16 @@ class Notice(
     override val duration = if (action != null) SnackbarDuration.Long else SnackbarDuration.Short
 }
 
-/** App-wide queue, so code without a screen (imports, sync) can show notices too. */
+/**
+ * App-wide queue, so code without a screen (imports, sync, the update check) can show notices too. A channel keeps what is
+ * sent before the screen starts listening, which a SharedFlow would drop.
+ */
 class Notices {
-    private val flow = MutableSharedFlow<Notice>(extraBufferCapacity = 8)
-    val events = flow.asSharedFlow()
+    private val queue = Channel<Notice>(capacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val events = queue.receiveAsFlow()
 
     fun show(notice: Notice) {
-        flow.tryEmit(notice)
+        queue.trySend(notice)
     }
 }
 

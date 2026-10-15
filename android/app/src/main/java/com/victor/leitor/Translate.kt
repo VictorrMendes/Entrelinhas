@@ -20,7 +20,8 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class TranslateException(val code: String, message: String) : Exception(message)
+/** [serverDown]: the server, or the tunnel in front of it, failed (5xx); the offline pack can still answer. */
+class TranslateException(val code: String, message: String, val serverDown: Boolean = false) : Exception(message)
 
 data class Translated(val text: String, val offline: Boolean)
 
@@ -29,10 +30,10 @@ val LANGUAGES: List<String> by lazy { TranslateLanguage.getAllLanguages().sorted
 fun langName(tag: String): String =
     Locale.forLanguageTag(tag).getDisplayName(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
 
-/** Online through the backend; ML Kit when offline is forced in Settings, or when the network fails and the pair is downloaded. */
 /** The backend's limit for an explained text and its sentence. */
 private const val MAX_EXPLAIN = 1000
 
+/** Online through the backend; ML Kit when offline is forced in Settings, or when the network fails and the pair is downloaded. */
 class TranslateService(private val ctx: Context, private val prefs: Prefs, private val db: Db, private val backend: Backend) {
     private val clients = HashMap<String, Translator>()
     private val models = RemoteModelManager.getInstance()
@@ -100,9 +101,11 @@ class TranslateService(private val ctx: Context, private val prefs: Prefs, priva
         }
         return try {
             block(true) to false
-        } catch (e: IOException) {
+        } catch (e: Exception) {
+            if (e !is IOException && !(e is TranslateException && e.serverDown)) throw e
             if (isDownloaded(src, tgt)) block(false) to true
-            else throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+            else if (e is IOException) throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+            else throw e
         }
     }
 
@@ -121,13 +124,14 @@ class TranslateService(private val ctx: Context, private val prefs: Prefs, priva
     private suspend fun post(path: String, body: JSONObject): JSONObject = try {
         backend.json("POST", path, body)
     } catch (e: ApiException) {
-        throw TranslateException(e.code, errorMessage(e.code, e.message))
+        throw TranslateException(e.code, errorMessage(e.code, e.message), serverDown = e.status >= 500)
     }
 
     private fun errorMessage(code: String, message: String?) = when (code) {
         "LIMIT_EXCEEDED" -> ctx.getString(R.string.translation_limit)
         "RATE_LIMIT" -> ctx.getString(R.string.translation_rate_limit)
         "NOT_FOUND" -> ctx.getString(R.string.server_outdated) // the app was updated before the server
+        "HTTP_502", "HTTP_503", "HTTP_504" -> ctx.getString(R.string.server_unavailable) // the proxy's own error page, not ours
         else -> message?.takeIf { it.isNotBlank() } ?: ctx.getString(R.string.translation_online_failed)
     }
 

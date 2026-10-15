@@ -12,7 +12,7 @@ import { ApiError, fail } from './errors.ts';
 import { createMailer, type Mailer } from './mail.ts';
 import { fileRoutes } from './sync/files.ts';
 import { snapshotRoutes } from './sync/snapshot.ts';
-import { createGemini, type Model } from './translate/gemini.ts';
+import { createGemini, type Model, modelPool } from './translate/gemini.ts';
 import { createNvidia } from './translate/nvidia.ts';
 import { translateRoutes } from './translate/routes.ts';
 
@@ -42,12 +42,17 @@ export function buildApp(
     bodyLimit: 100_000,
   });
   const db = openDb(path.join(config.dataDir, 'leitor.db'));
+  const nvidia = overrides.nvidia !== undefined ? overrides.nvidia : createNvidia(config.nvidiaApiKey, config.nvidiaModel);
+  const gemini = (model: string) => createGemini(config.geminiApiKey, model);
   const deps: Deps = {
     config,
     db,
     tokens: createTokens(config.jwtSecret),
-    gemini: overrides.gemini ?? createGemini(config.geminiApiKey, config.geminiModel),
-    nvidia: overrides.nvidia !== undefined ? overrides.nvidia : createNvidia(config.nvidiaApiKey, config.nvidiaModel),
+    // Gemini answers first (best quality); NVIDIA is next in line when it is rate limited or slow, then the other Gemini models
+    gemini:
+      overrides.gemini ??
+      modelPool([gemini(config.geminiModel), nvidia, ...config.geminiFallbackModels.map(gemini)].filter((m): m is Model => m !== null)),
+    nvidia,
     mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
   };
   app.addHook('onClose', async () => db.close());
