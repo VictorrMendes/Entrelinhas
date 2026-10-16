@@ -1,6 +1,5 @@
 package com.victor.leitor
 
-import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -10,8 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -38,12 +38,16 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -61,24 +65,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Checkbox
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.io.File
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import kotlin.math.roundToInt
 
 private val BOOK_MIME_TYPES = arrayOf(
     "application/epub+zip", "application/pdf", "text/plain", "application/x-fictionbook+xml",
@@ -88,9 +92,11 @@ private val BOOK_MIME_TYPES = arrayOf(
 val CardShape = RoundedCornerShape(20.dp)
 
 @Composable
-fun Library(app: App, modifier: Modifier, explore: () -> Unit, open: (Long) -> Unit) {
+fun Library(app: App, modifier: Modifier, explore: () -> Unit, review: () -> Unit, open: (Long) -> Unit) {
     val version by app.db.changes.collectAsState()
     val books = remember(version) { app.db.books() }
+    val current = remember(books) { books.filter { it.status == Status.IN_PROGRESS }.maxByOrNull { it.lastOpenedAt ?: 0L } }
+    val due = remember(version) { app.db.dueWords().size }
     var filter by rememberSaveable { mutableIntStateOf(0) }
     var deleting by remember { mutableStateOf<Book?>(null) }
     var shelving by remember { mutableStateOf<Book?>(null) }
@@ -113,6 +119,7 @@ fun Library(app: App, modifier: Modifier, explore: () -> Unit, open: (Long) -> U
         if (app.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { StreakCard(app, version) { goalSheet = true } }
+            if (current != null || due > 0) item { ContinueCard(app, current, due, version, open, review) }
             item {
                 val labels = listOf(stringResource(R.string.filter_all), stringResource(R.string.filter_in_progress), stringResource(R.string.filter_completed)) + shelves
                 Pills(labels, if (filter >= 3 && shelf == null) 0 else filter) { filter = it }
@@ -179,6 +186,42 @@ private fun ShelvesDialog(book: Book, all: List<String>, onDismiss: () -> Unit, 
         confirmButton = { TextButton(onClick = { onSave((chosen + name.trim()).filter { it.isNotBlank() }.sorted()) }) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** The two things most worth doing next, one line each: the book read last and today's review. */
+@Composable
+private fun ContinueCard(app: App, book: Book?, due: Int, version: Int, onOpen: (Long) -> Unit, onReview: () -> Unit) {
+    Surface(shape = CardShape, color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = Modifier.fillMaxWidth()) {
+        Column {
+            book?.let { b ->
+                Row(
+                    Modifier.fillMaxWidth().clickable { onOpen(b.id) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Cover(app.coverFile(b.id), b.fileType, version, Modifier.size(36.dp, 50.dp))
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(stringResource(R.string.continue_reading), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(b.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Text("${(b.progress * 100).roundToInt()}%", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (due > 0) {
+                if (book != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClick = onReview).padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Style, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Text(pluralStringResource(R.plurals.words_due_today, due, due), Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
 @Composable

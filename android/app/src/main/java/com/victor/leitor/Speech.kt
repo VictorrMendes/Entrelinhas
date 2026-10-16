@@ -4,8 +4,10 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
-import kotlinx.coroutines.CompletableDeferred
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
 
 val SPEECH_RATES = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f)
 
@@ -29,17 +31,35 @@ class Speech(private val ctx: Context, private val voiceFor: (lang: String) -> S
 
     var rate = 1f
 
+    // utterances someone is waiting on (sayAndWait), completed when they end, fail or get cut off
+    private val waiting = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
+    private val nextId = AtomicInteger()
+
+    private fun finished(id: String) {
+        waiting.remove(id)?.complete(Unit)
+    }
+
     private fun engine(): TextToSpeech = tts ?: TextToSpeech(ctx.applicationContext) { ready.complete(it == TextToSpeech.SUCCESS) }.also { t ->
         tts = t
         t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) = Unit
             override fun onDone(utteranceId: String?) {
-                utteranceId?.let { onDone?.invoke(it) }
+                utteranceId?.let {
+                    finished(it)
+                    onDone?.invoke(it)
+                }
             }
 
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                utteranceId?.let { onDone?.invoke(it) }
+                utteranceId?.let {
+                    finished(it)
+                    onDone?.invoke(it)
+                }
+            }
+
+            override fun onStop(utteranceId: String?, interrupted: Boolean) {
+                utteranceId?.let(::finished)
             }
 
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
@@ -71,6 +91,23 @@ class Speech(private val ctx: Context, private val voiceFor: (lang: String) -> S
         }
         t.setSpeechRate(rate)
         return t.speak(text, if (queue) TextToSpeech.QUEUE_ADD else TextToSpeech.QUEUE_FLUSH, null, id) == TextToSpeech.SUCCESS
+    }
+
+    /** Speaks [text] and returns once it has been said or cut off; false at once when there's no voice for [lang]. */
+    suspend fun sayAndWait(text: String, lang: String, rate: Float = this.rate): Boolean {
+        val id = "wait${nextId.incrementAndGet()}"
+        val done = CompletableDeferred<Unit>()
+        waiting[id] = done
+        if (!speak(text, lang, id, rate = rate)) {
+            waiting.remove(id)
+            return false
+        }
+        try {
+            done.await()
+        } finally {
+            waiting.remove(id)
+        }
+        return true
     }
 
     fun stop() {

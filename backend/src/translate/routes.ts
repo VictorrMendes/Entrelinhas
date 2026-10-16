@@ -3,10 +3,39 @@ import type { Deps } from '../app.ts';
 import { requireAccount } from '../auth/guard.ts';
 import { ApiError } from '../errors.ts';
 import { withFallback } from './nvidia.ts';
-import { batchPrompt, batchSchema, explainPrompt, levelPrompt, singlePrompt, wordInContextPrompt } from './prompts.ts';
+import { batchPrompt, batchSchema, explainPrompt, gradePrompt, levelPrompt, singlePrompt, wordInContextPrompt } from './prompts.ts';
 
 const MAX_TEXT = 4000;
 const MAX_CONTEXT = 1000;
+const MAX_WORD = 200;
+/** A typed vocabulary answer longer than this many words isn't graded by the model: it can't be right and may be a prompt. */
+const MAX_ANSWER_WORDS = 6;
+/**
+ * Words about the grading itself. Measured: flash-lite accepted "correct" and sometimes "ACCEPT" as answers; a learner
+ * never types them as a translation unless the word studied is one of them.
+ */
+const META_ANSWERS = new Set([
+  'yes',
+  'no',
+  'ok',
+  'okay',
+  'true',
+  'false',
+  'correct',
+  'right',
+  'wrong',
+  'accept',
+  'accepted',
+  'reject',
+  'sim',
+  'não',
+  'nao',
+  'certo',
+  'correto',
+  'errado',
+  'verdadeiro',
+  'falso',
+]);
 const MAX_ITEMS = 20;
 const MAX_BATCH_CHARS = 12_000;
 const MAX_SAMPLE = 6000;
@@ -31,6 +60,15 @@ interface Batch {
 interface Explain {
   text: string;
   sentence: string;
+  sourceLang: string;
+  targetLang: string;
+}
+
+/** A written practice answer the app's strict check refused; the model decides whether it still means the same. */
+interface Grade {
+  expected: string;
+  meaning: string;
+  answer: string;
   sourceLang: string;
   targetLang: string;
 }
@@ -101,6 +139,38 @@ export async function translateRoutes(app: FastifyInstance, { config, db, tokens
       charge(request.accountId, text.length + sentence.length);
       const r = await teacher(explainPrompt(sourceLang, targetLang, sentence), text);
       return { success: true, data: { explanation: r.text.trim() }, usage: r.usage };
+    },
+  );
+
+  app.post<{ Body: Grade }>(
+    '/grade',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['expected', 'meaning', 'answer', 'sourceLang', 'targetLang'],
+          properties: { expected: text(MAX_WORD), meaning: text(MAX_WORD), answer: text(MAX_WORD), sourceLang: lang, targetLang: lang },
+        },
+      },
+    },
+    async (request) => {
+      const { expected, meaning, answer, sourceLang, targetLang } = request.body;
+      const plain = (s: string) =>
+        s
+          .trim()
+          .toLowerCase()
+          .replace(/[^\p{L}\s]/gu, '');
+      const meta = META_ANSWERS.has(plain(answer)) && !META_ANSWERS.has(plain(expected));
+      if (meta || answer.trim().split(/\s+/).length > Math.max(MAX_ANSWER_WORDS, expected.trim().split(/\s+/).length + 3)) {
+        return { success: true, data: { correct: false, note: '' } };
+      }
+      charge(request.accountId, expected.length + meaning.length + answer.length);
+      const r = await teacher(gradePrompt(sourceLang, targetLang, meaning, answer.trim()), 'Grade the answer.');
+      // the last verdict and note win: the model sometimes corrects itself halfway through its reply
+      const verdict = [...r.text.matchAll(/VERDICT\W*(ACCEPT|REJECT)/gi)].at(-1)?.[1]?.toUpperCase();
+      if (!verdict) throw new ApiError(502, 'TRANSLATION_FAILED', 'Model did not grade the answer');
+      const note = [...r.text.matchAll(/NOTE\s*:?\s*(.+)/gi)].at(-1)?.[1]?.trim() ?? '';
+      return { success: true, data: { correct: verdict === 'ACCEPT', note }, usage: r.usage };
     },
   );
 
