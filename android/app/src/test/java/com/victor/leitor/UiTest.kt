@@ -35,8 +35,9 @@ class UiTest {
     @Test
     fun achievementsCountWhatIsUnlockedAndShowProgress() {
         compose.setContent { MaterialTheme { Achievements(Totals(savedWords = 60, dictations = 4)) } }
-        compose.onNodeWithText("1/10").assertIsDisplayed()
-        compose.onNodeWithText("Colecionador").assertIsDisplayed()
+        compose.onNodeWithText("1/16").assertIsDisplayed()
+        // grouped by theme, the vocabulary badges sit below the streak ones, past the first screen
+        compose.onNodeWithText("Colecionador").assertExists()
         compose.onNodeWithText("4/20").assertExists()
     }
 }

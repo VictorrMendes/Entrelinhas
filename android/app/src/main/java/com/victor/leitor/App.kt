@@ -56,6 +56,7 @@ class App : Application() {
     val speech by lazy { Speech(this) { prefs.voice(it) } }
     val notices = Notices()
     val updater by lazy { Updater(this) }
+    val listen by lazy { ListenPlayer(this) }
     var updating by mutableStateOf(false)
         private set
     private val scope = MainScope()
@@ -417,6 +418,9 @@ class Prefs(ctx: Context) {
     var readerSerif by bool("reader_serif", true)
     var interlinear by bool("interlinear", true)
     var listenFirst by bool("listen_first", false)
+    var listenExamples by bool("listen_examples", true)
+    /** Best Combinar time in milliseconds; 0 until the first game. */
+    var matchBest by long("match_best", 0L)
     private var voices by string("voices", "") // "lang=voice;lang=voice"
 
     fun voice(lang: String): String? = voices.split(';').firstOrNull { it.startsWith("$lang=") }?.substringAfter('=')?.ifEmpty { null }

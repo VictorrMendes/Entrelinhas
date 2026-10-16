@@ -10,20 +10,24 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import java.io.IOException
+import java.util.Locale
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
-import java.util.Locale
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /** [serverDown]: the server, or the tunnel in front of it, failed (5xx); the offline pack can still answer. */
 class TranslateException(val code: String, message: String, val serverDown: Boolean = false) : Exception(message)
 
 data class Translated(val text: String, val offline: Boolean)
+
+/** The AI's verdict on a typed practice answer, with one short sentence saying why. */
+data class AiGrade(val correct: Boolean, val note: String)
 
 val LANGUAGES: List<String> by lazy { TranslateLanguage.getAllLanguages().sortedBy(::langName) }
 
@@ -32,6 +36,9 @@ fun langName(tag: String): String =
 
 /** The backend's limit for an explained text and its sentence. */
 private const val MAX_EXPLAIN = 1000
+
+/** The backend's limit for each field of a graded answer. */
+private const val MAX_GRADED = 200
 
 /** Online through the backend; ML Kit when offline is forced in Settings, or when the network fails and the pair is downloaded. */
 class TranslateService(private val ctx: Context, private val prefs: Prefs, private val db: Db, private val backend: Backend) {
@@ -115,6 +122,20 @@ class TranslateService(private val ctx: Context, private val prefs: Prefs, priva
         post("/explain", body).getJSONObject("data").getString("explanation")
     } catch (e: IOException) {
         throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+    }
+
+    /**
+     * Whether [answer], refused by the strict check, still means [meaning] (a synonym, another form of [expected]).
+     * Null when offline or the model fails: then the strict verdict stands.
+     */
+    suspend fun grade(expected: String, meaning: String, answer: String, src: String, tgt: String): AiGrade? = try {
+        val body = JSONObject().put("expected", expected.take(MAX_GRADED)).put("meaning", meaning.take(MAX_GRADED))
+            .put("answer", answer.trim().take(MAX_GRADED)).put("sourceLang", src).put("targetLang", tgt.ifEmpty { prefs.defaultTarget })
+        post("/grade", body).getJSONObject("data").let { AiGrade(it.getBoolean("correct"), it.optString("note")) }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
     }
 
     /** The CEFR level (A1–C2) a learner needs for a book, judged by AI from a few excerpts of it. */

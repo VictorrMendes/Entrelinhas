@@ -49,6 +49,8 @@ data class Word(
     val box: Int,
     val dueDay: Long?,
     val source: String,
+    /** The language of [translated]; empty for words saved before it was read back. */
+    val target: String = "",
 ) {
     val learned get() = box >= Leitner.MASTERED
 }
@@ -70,6 +72,7 @@ data class DayStat(
     val paragraphs: Int,
     val autoParagraphs: Int,
     val readingSeconds: Int,
+    val goalMet: Boolean = false,
 )
 
 /** Days since 1970-01-01 in the device's time zone (java.time needs API 26). */
@@ -226,14 +229,14 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
 
     fun dayStats(fromDay: Long): List<DayStat> = readableDatabase.rawQuery(
         "SELECT day, reading_active, translations_count, translated_words_count, translated_paragraphs_count, " +
-            "auto_translated_paragraphs_count, reading_seconds FROM progress_daily_stats WHERE day >= ? ORDER BY day",
+            "auto_translated_paragraphs_count, reading_seconds, goal_met FROM progress_daily_stats WHERE day >= ? ORDER BY day",
         arrayOf("$fromDay"),
     ).use { c ->
-        buildList { while (c.moveToNext()) add(DayStat(c.getLong(0), c.getInt(1) == 1, c.getInt(2), c.getInt(3), c.getInt(4), c.getInt(5), c.getInt(6))) }
+        buildList { while (c.moveToNext()) add(DayStat(c.getLong(0), c.getInt(1) == 1, c.getInt(2), c.getInt(3), c.getInt(4), c.getInt(5), c.getInt(6), c.getInt(7) == 1)) }
     }
 
-    fun booksCompletedSince(millis: Long): Int =
-        DatabaseUtils.queryNumEntries(readableDatabase, "books", "completed_at >= ?", arrayOf("$millis")).toInt()
+    /** Days with any reading, oldest first; the weekly streak counts on them. */
+    fun activeDays(): List<Long> = query("SELECT day FROM progress_daily_stats WHERE reading_active = 1 ORDER BY day") { getLong(0) }
 
     private val bookCols = "id, title, file_type, language, target_language, block_count, last_block_index, last_opened_at, completed_at, content_hash, level, shelves"
 
@@ -323,6 +326,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
             dictations = n("SELECT COALESCE(SUM(dictations_count), 0) FROM progress_daily_stats"),
             goalDays = n("SELECT COUNT(*) FROM progress_daily_stats WHERE goal_met = 1"),
             longestStreak = streak().longest,
+            longestWeeks = WeekStreak.compute(activeDays(), localDay(), firstDayOfWeek()).longest,
         )
     }
 
@@ -352,9 +356,9 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
         }, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
-    private val wordCols = "id, original_text, translated_text, book_title, example, box, due_day, source_language"
+    private val wordCols = "id, original_text, translated_text, book_title, example, box, due_day, source_language, target_language"
 
-    private fun Cursor.toWord() = Word(getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), getString(7))
+    private fun Cursor.toWord() = Word(getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), getString(7), getString(8))
 
     /** Saves a word due for review today; saving it again refreshes the translation and example but keeps its box. */
     fun saveWord(original: String, translated: String, source: String, target: String, bookId: Long, bookTitle: String, example: String?) {

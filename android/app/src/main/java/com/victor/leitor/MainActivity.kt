@@ -103,6 +103,7 @@ fun Root(app: App) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var reading by rememberSaveable { mutableStateOf<Long?>(null) }
     var exploring by rememberSaveable { mutableStateOf(false) }
+    var studying by rememberSaveable { mutableStateOf<StudyMode?>(null) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         app.notices.events.collect { notice ->
@@ -111,7 +112,7 @@ fun Root(app: App) {
                 if (snackbar.showSnackbar(notice) != SnackbarResult.ActionPerformed) return@launch
                 when (val action = notice.action) {
                     is NoticeAction.OpenBook -> { exploring = false; reading = action.id }
-                    NoticeAction.OpenVocabulary -> { reading = null; exploring = false; tab = 1 }
+                    NoticeAction.OpenVocabulary -> { reading = null; exploring = false; studying = null; tab = 1 }
                     NoticeAction.OpenProgress -> { reading = null; exploring = false; tab = 2 }
                     is NoticeAction.Run -> action.block()
                     null -> Unit
@@ -128,11 +129,12 @@ fun Root(app: App) {
                 Reader(app, bookId) { reading = null }
             }
             exploring -> FreeBooks(app, onBack = { exploring = false }) { exploring = false; reading = it }
+            studying != null -> StudyScreen(app, studying!!) { studying = null }
             else -> Scaffold(bottomBar = { BottomBar(TABS, tab) { tab = it } }) { pad ->
                 val modifier = Modifier.padding(pad).consumeWindowInsets(pad)
                 when (tab) {
-                    0 -> Library(app, modifier, explore = { exploring = true }) { reading = it }
-                    1 -> Vocabulary(app, modifier)
+                    0 -> Library(app, modifier, explore = { exploring = true }, review = { studying = StudyMode.CARDS }) { reading = it }
+                    1 -> Vocabulary(app, modifier) { studying = it }
                     2 -> Progress(app, modifier)
                     else -> Settings(app, modifier)
                 }

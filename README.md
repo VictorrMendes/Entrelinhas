@@ -295,6 +295,7 @@ Todas as rotas abaixo exigem `Authorization: Bearer <token>`. Os erros sempre v�
 | `POST /translate` | `{text, sourceLang, targetLang, context?}`; com `context` (a frase), traduz só a palavra no sentido da frase |
 | `POST /translate/batch` | `{targetLanguage, sourceLanguage?, items:[{blockId, text}]}`; usada pelo modo Entrelinhas, frase por frase |
 | `POST /explain` | `{text, sentence, sourceLang, targetLang}` → `{explanation}`; Gemini primeiro (rápido), NVIDIA de reserva |
+| `POST /grade` | `{expected, meaning, answer, sourceLang, targetLang}` → `{correct, note}`; corrige com IA uma resposta escrita que a conferência exata recusou (aceita sinônimos e outras formas da palavra). Respostas longas e palavras como "yes" ou "correct" são recusadas sem chamar o modelo |
 | `POST /level` | `{sample, language}` → `{level}` (A1–C2); NVIDIA primeiro (trabalho de fundo), Gemini de reserva |
 | `GET /sync/snapshot` | `{version, snapshot}` |
 | `PUT /sync/snapshot` | `{version, snapshot}`; responde 409 se outro aparelho enviou antes |
