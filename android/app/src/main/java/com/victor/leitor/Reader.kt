@@ -257,6 +257,11 @@ private fun ReaderContent(app: App, book: Book, blocks: List<Block>, toc: List<T
         }
     }
 
+    fun hideTranslation(i: Int) {
+        translations.remove(i)
+        app.db.deleteParagraphTranslation(book.id, i, src, tgt)
+    }
+
     fun lookUp(block: Int, start: Int, end: Int) {
         lastInteraction = System.currentTimeMillis()
         val text = blocks[block].text
@@ -419,6 +424,7 @@ private fun ReaderContent(app: App, book: Book, blocks: List<Block>, toc: List<T
                         onLongPress = { offset -> openSentence(i, offset) },
                         onSelect = { start, end -> lookUp(i, start, end) },
                         onTranslate = { translateBlock(i) },
+                        onHide = { hideTranslation(i) },
                         onLink = { target -> scope.launch { listState.scrollToItem(target) } },
                     )
                 }
@@ -541,6 +547,7 @@ private fun BlockItem(
     onLongPress: (offset: Int) -> Unit,
     onSelect: (start: Int, end: Int) -> Unit,
     onTranslate: () -> Unit,
+    onHide: () -> Unit,
     onLink: (target: Int) -> Unit,
 ) {
     val size = style.fontSize.sp
@@ -604,26 +611,34 @@ private fun BlockItem(
                 )
                 Text(lines[k], Modifier.padding(bottom = 8.dp), style = under)
             }
+            ParagraphLink(stringResource(R.string.hide_translation), Modifier.align(Alignment.End), onHide)
             return@Column
         }
         TappableText(text, textStyle, onTap = ::tap, onLongPress = ::longPress, onSelect = ::select)
         when {
             navigation -> Unit
             loading -> LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 6.dp))
-            translation != null -> Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-            ) { Text(translation.replace('\n', ' '), Modifier.padding(12.dp), style = textStyle) }
-            else -> Text(
-                stringResource(R.string.translate_paragraph),
-                Modifier.align(Alignment.End).clip(RoundedCornerShape(4.dp)).clickable(onClick = onTranslate).padding(horizontal = 6.dp, vertical = 2.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            translation != null -> {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                ) { Text(translation.replace('\n', ' '), Modifier.padding(12.dp), style = textStyle) }
+                ParagraphLink(stringResource(R.string.hide_translation), Modifier.align(Alignment.End), onHide)
+            }
+            else -> ParagraphLink(stringResource(R.string.translate_paragraph), Modifier.align(Alignment.End), onTranslate)
         }
     }
 }
+
+/** The small link under a paragraph: "traduzir", or "ocultar" once it is translated. */
+@Composable
+private fun ParagraphLink(text: String, modifier: Modifier, onClick: () -> Unit) = Text(
+    text,
+    modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.dp),
+    style = MaterialTheme.typography.labelMedium,
+    color = MaterialTheme.colorScheme.primary,
+)
 
 private fun styled(
     block: Block,

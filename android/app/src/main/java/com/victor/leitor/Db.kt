@@ -356,6 +356,14 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
         }, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
+    /** The reader hid this paragraph's translation: it no longer comes back when the book opens. */
+    fun deleteParagraphTranslation(bookId: Long, block: Int, source: String, target: String) {
+        writableDatabase.delete(
+            "paragraph_translations", "book_id = ? AND block_index = ? AND source_language = ? AND target_language = ?",
+            arrayOf("$bookId", "$block", source, target),
+        )
+    }
+
     private val wordCols = "id, original_text, translated_text, book_title, example, box, due_day, source_language, target_language"
 
     private fun Cursor.toWord() = Word(getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), getString(7), getString(8))

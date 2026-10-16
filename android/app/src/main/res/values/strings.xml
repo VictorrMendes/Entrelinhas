@@ -199,6 +199,7 @@
     <string name="saved_to_vocabulary">Salva no vocabulário</string>
     <string name="save">Salvar</string>
     <string name="translate_paragraph">文A traduzir</string>
+    <string name="hide_translation">ocultar</string>
     <string name="highlight_sentence">Destacar frase</string>
     <string name="edit_highlight">Editar destaque</string>
     <string name="note_optional">Nota (opcional)</string>
