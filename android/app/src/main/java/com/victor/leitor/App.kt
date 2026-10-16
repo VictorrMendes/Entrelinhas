@@ -55,6 +55,9 @@ class App : Application() {
         private set
     val speech by lazy { Speech(this) { prefs.voice(it) } }
     val notices = Notices()
+
+    /** A tab to show, asked from outside the screens (the home-screen widget); Root takes it and clears it. */
+    var openTab by mutableStateOf<Int?>(null)
     val updater by lazy { Updater(this) }
     val listen by lazy { ListenPlayer(this) }
     var updating by mutableStateOf(false)
@@ -77,7 +80,13 @@ class App : Application() {
             checkForUpdate(quiet = true)
         }
         // counters settle a moment after each change (reading time ticks, a review session), so check once things are quiet
-        scope.launch { db.changes.collectLatest { delay(1500); celebrate() } }
+        scope.launch {
+            db.changes.collectLatest {
+                delay(1500)
+                celebrate()
+                StreakWidget.update(this@App)
+            }
+        }
     }
 
     /** [quiet]: the automatic check at start, at most every few hours, silent when there's nothing new or no connection. */

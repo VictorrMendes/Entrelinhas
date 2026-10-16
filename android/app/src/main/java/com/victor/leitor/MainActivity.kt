@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun importFrom(intent: Intent?) {
+        intent?.getIntExtra(StreakWidget.EXTRA_OPEN_TAB, -1)?.takeIf { it >= 0 }?.let { (application as App).openTab = it }
         val uri = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.data
             Intent.ACTION_SEND -> intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
@@ -105,6 +106,15 @@ fun Root(app: App) {
     var exploring by rememberSaveable { mutableStateOf(false) }
     var studying by rememberSaveable { mutableStateOf<StudyMode?>(null) }
     val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(app.openTab) {
+        app.openTab?.let {
+            reading = null
+            exploring = false
+            studying = null
+            tab = it
+            app.openTab = null
+        }
+    }
     LaunchedEffect(Unit) {
         app.notices.events.collect { notice ->
             snackbar.currentSnackbarData?.dismiss()

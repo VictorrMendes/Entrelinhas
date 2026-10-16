@@ -133,13 +133,14 @@ private fun Question(app: App, q: PracticeQuestion, key: Int, onAnswered: (right
             v.right && v.exact -> stringResource(R.string.practice_right)
             v.right && v.note != null -> stringResource(R.string.practice_ai_accepted, answer)
             v.right -> stringResource(R.string.practice_almost, answer)
+            picked == null && v.typed == null -> stringResource(R.string.practice_shown_answer) // "Não sei"
             else -> stringResource(R.string.practice_wrong)
         },
         style = MaterialTheme.typography.titleSmall,
         color = when {
             v == null -> MaterialTheme.colorScheme.onSurfaceVariant
             v.right -> Success
-            else -> Flame
+            else -> MaterialTheme.colorScheme.error
         },
     )
 

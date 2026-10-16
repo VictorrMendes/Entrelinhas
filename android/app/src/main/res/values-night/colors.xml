@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- home-screen widget, dark -->
+    <color name="widget_background">#1D1B33</color>
+    <color name="widget_card">#2A2847</color>
+    <color name="widget_text">#F1F0FF</color>
+    <color name="widget_text_secondary">#A9A7C2</color>
+    <color name="widget_accent">#A9A6FF</color>
+    <color name="widget_flame">#F59E0B</color>
+    <color name="widget_track">#3A3858</color>
+</resources>

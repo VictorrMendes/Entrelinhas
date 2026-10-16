@@ -2,6 +2,7 @@ package com.victor.leitor
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -52,5 +53,16 @@ class HabitTest {
         assertEquals(first + 30, cells.last())
         assertEquals(3, monthCells(first, 31, monday).takeWhile { it == null }.size)
         assertNull(monthCells(first, 31, sunday).first())
+    }
+
+    @Test
+    fun theWordOfTheDayStaysAllDayAndSkipsMasteredWords() {
+        fun w(id: Long, box: Int = 0) = Word(id, "w$id", "t$id", null, null, box, null, "en")
+        val words = listOf(w(3), w(1), w(2, box = Leitner.MASTERED))
+        assertEquals(wordOfDay(words, 10), wordOfDay(words.reversed(), 10))
+        assertTrue(wordOfDay(words, 10)!!.id in setOf(1L, 3L))
+        assertNotEquals(wordOfDay(words, 10), wordOfDay(words, 11))
+        assertEquals(2L, wordOfDay(listOf(w(2, box = Leitner.MASTERED)), 5)!!.id)
+        assertNull(wordOfDay(emptyList(), 5))
     }
 }
