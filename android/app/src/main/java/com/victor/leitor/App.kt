@@ -164,6 +164,17 @@ class App : Application() {
         }
     }
 
+    /** Today's share of the queued kit words: up to newWordsPerDay a day, counting what came in earlier today. */
+    fun releaseKitWords() {
+        val today = localDay()
+        if (prefs.kitDay != today) {
+            prefs.kitDay = today
+            prefs.kitReleased = 0
+        }
+        val n = prefs.newWordsPerDay - prefs.kitReleased
+        if (n > 0) prefs.kitReleased += db.releaseKitWords(n)
+    }
+
     /** A notice for each achievement unlocked since the last check; the very first check only takes note of what is there. */
     private fun celebrate() {
         val totals = db.totals()
@@ -431,6 +442,10 @@ class Prefs(ctx: Context) {
     /** Best Combinar time in milliseconds; 0 until the first game. */
     var matchBest by long("match_best", 0L)
     private var voices by string("voices", "") // "lang=voice;lang=voice"
+    var newWordsPerDay by int("new_words_per_day", 15)
+    var addedKits by string("added_kits", "") // pack ids, comma-separated
+    var kitDay by long("kit_day", 0L)
+    var kitReleased by int("kit_released", 0)
 
     fun voice(lang: String): String? = voices.split(';').firstOrNull { it.startsWith("$lang=") }?.substringAfter('=')?.ifEmpty { null }
 

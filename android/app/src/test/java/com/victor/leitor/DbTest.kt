@@ -28,6 +28,21 @@ class DbTest {
     }
 
     @Test
+    fun aKitComesInAFewWordsADayAndSkipsKnownWords() {
+        val db = Db(RuntimeEnvironment.getApplication())
+        db.saveWord("apple", "maçã", "en", "pt", null, "Livro", null)
+        db.queueKit("Comida", listOf(KitWord("apple", "maçã", "I eat an apple."), KitWord("bread", "pão", "I like bread."), KitWord("milk", "leite", "Milk is white.")))
+        db.queueKit("Comida", listOf(KitWord("bread", "pão", "I like bread."))) // queued already
+
+        assertEquals(1, db.releaseKitWords(1))
+        assertEquals(1, db.releaseKitWords(5))
+        assertEquals(0, db.releaseKitWords(5))
+        val words = db.words().associateBy { it.original }
+        assertEquals(setOf("apple", "bread", "milk"), words.keys)
+        assertEquals("I like bread.", words.getValue("bread").example)
+    }
+
+    @Test
     fun aFinishedExerciseMeetsTodaysGoalOnce() {
         val db = Db(RuntimeEnvironment.getApplication())
         assertFalse(db.streak().metToday)

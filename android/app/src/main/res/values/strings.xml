@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Kits.kt -->
+    <string name="kits_title">Kits de palavras</string>
+    <string name="kits_hint">Pacotes prontos do nível A1 para estudar sem livros</string>
+    <string name="kits_start">Começar com um kit de palavras</string>
+    <string name="kits_per_day">Palavras novas por dia</string>
+    <string name="kit_words">%1$d palavras</string>
+    <string name="kit_add">Adicionar kit</string>
+    <string name="kit_added">Kit adicionado</string>
+    <string name="kit_added_per_day">Adicionado · %1$d palavras novas por dia</string>
     <!-- Rules.kt -->
     <string name="csv_columns">Palavra,Tradução,Exemplo,Livro</string>
     <string name="reminder_morning">Manhã (8h)</string>

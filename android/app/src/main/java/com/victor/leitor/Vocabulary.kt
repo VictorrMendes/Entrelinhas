@@ -27,6 +27,9 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material3.Button
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Headphones
@@ -99,6 +102,9 @@ fun Vocabulary(app: App, modifier: Modifier, onStudy: (StudyMode) -> Unit) {
         }
     }
 
+    // queued kit words come in a few a day
+    LaunchedEffect(Unit) { app.releaseKitWords() }
+
     Column(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth()) {
             ScreenTitle(stringResource(R.string.tab_vocabulary))
@@ -110,6 +116,7 @@ fun Vocabulary(app: App, modifier: Modifier, onStudy: (StudyMode) -> Unit) {
         }
         if (all.isEmpty()) {
             Empty(stringResource(R.string.vocabulary_empty_title), stringResource(R.string.vocabulary_empty_text), R.drawable.empty_vocabulary)
+            Button(onClick = { onStudy(StudyMode.KITS) }, Modifier.align(Alignment.CenterHorizontally)) { Text(stringResource(R.string.kits_start)) }
             return@Column
         }
         LazyColumn(contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -142,6 +149,7 @@ fun Vocabulary(app: App, modifier: Modifier, onStudy: (StudyMode) -> Unit) {
                     pluralStringResource(R.plurals.words_saved_hint, all.size, all.size),
                 ) { onStudy(StudyMode.WORDS) }
             }
+            item { ModeRow(Icons.Outlined.CollectionsBookmark, Success, stringResource(R.string.kits_title), stringResource(R.string.kits_hint)) { onStudy(StudyMode.KITS) } }
         }
     }
     dictation?.let { DictationSheet(app, it) { dictation = null } }

@@ -80,7 +80,7 @@ fun localDay(millis: Long = System.currentTimeMillis()): Long =
     Math.floorDiv(millis + java.util.TimeZone.getDefault().getOffset(millis), 86_400_000L)
 
 // Queries run on the caller's thread: the tables are small.
-class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
+class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 5) {
     /** Bumped on every write so Compose screens re-query. */
     val changes = MutableStateFlow(0)
 
@@ -178,6 +178,55 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
                 "ALTER TABLE progress_daily_stats ADD COLUMN dictations_count INTEGER NOT NULL DEFAULT 0",
             ).forEach(db::execSQL)
         }
+        if (oldVersion < 5) {
+            db.execSQL(
+                """CREATE TABLE kit_queue (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    kit_title TEXT NOT NULL,
+                    original_text TEXT NOT NULL,
+                    translated_text TEXT NOT NULL,
+                    example TEXT)""",
+            )
+        }
+    }
+
+    /** Queues a kit's words that aren't saved or queued yet; releaseKitWords brings them in a few a day. */
+    fun queueKit(title: String, words: List<KitWord>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            for (w in words) {
+                val key = w.word.trim().lowercase()
+                val known = DatabaseUtils.longForQuery(
+                    db,
+                    "SELECT (SELECT COUNT(*) FROM saved_words WHERE original_text_normalized = ? AND source_language = 'en') + " +
+                        "(SELECT COUNT(*) FROM kit_queue WHERE lower(original_text) = ?)",
+                    arrayOf(key, key),
+                ) > 0
+                if (!known) db.insert("kit_queue", null, ContentValues().apply {
+                    put("kit_title", title)
+                    put("original_text", w.word)
+                    put("translated_text", w.translation)
+                    put("example", w.example)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        changed()
+    }
+
+    /** Moves the first [n] queued kit words into the vocabulary, due today; returns how many came in. */
+    fun releaseKitWords(n: Int): Int {
+        val rows = readableDatabase.rawQuery("SELECT id, kit_title, original_text, translated_text, example FROM kit_queue ORDER BY id LIMIT ?", arrayOf("$n"))
+            .use { c -> buildList { while (c.moveToNext()) add(Triple(c.getLong(0), c.getString(1), KitWord(c.getString(2), c.getString(3), c.getString(4) ?: ""))) } }
+        rows.forEach { (id, title, w) ->
+            saveWord(w.word, w.translation, "en", "pt", null, "Kit A1 · $title", w.example.ifEmpty { null })
+            writableDatabase.delete("kit_queue", "id = ?", arrayOf("$id"))
+        }
+        if (rows.isNotEmpty()) changed()
+        return rows.size
     }
 
     private fun Cursor.longOrNull(i: Int) = if (isNull(i)) null else getLong(i)
@@ -379,7 +428,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
     private fun Cursor.toWord() = Word(getLong(0), getString(1), getString(2), getString(3), getString(4), getInt(5), longOrNull(6), getString(7), getString(8))
 
     /** Saves a word due for review today; saving it again refreshes the translation and example but keeps its box. */
-    fun saveWord(original: String, translated: String, source: String, target: String, bookId: Long, bookTitle: String, example: String?) {
+    fun saveWord(original: String, translated: String, source: String, target: String, bookId: Long?, bookTitle: String, example: String?) {
         val now = System.currentTimeMillis()
         val normalized = original.trim().lowercase()
         val db = writableDatabase

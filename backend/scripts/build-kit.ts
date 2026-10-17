@@ -44,14 +44,21 @@ function parseCsv(text: string): string[][] {
 
 const [header, ...rows] = parseCsv(readFileSync(csvPath, 'utf8'));
 const col = (name: string) => header.indexOf(name);
-const groups = new Map<string, { word: string; pos: string }[]>();
+const themed = new Map<string, { word: string; pos: string }[]>();
+const untagged = new Map<string, { word: string; pos: string }[]>();
+const seen = new Set<string>(); // a word listed under two parts of speech is one card
 for (const r of rows) {
   if (r[col('CEFR')] !== level) continue;
   const word = r[col('headword')].split('/')[0].trim();
+  if (seen.has(word.toLowerCase())) continue;
+  seen.add(word.toLowerCase());
   const pos = r[col('pos')];
-  const title = THEMES[r[col('CoreInventory 1')]] ?? BY_POS[pos] ?? 'Palavras básicas';
-  groups.set(title, [...(groups.get(title) ?? []), { word, pos }]);
+  const theme = THEMES[r[col('CoreInventory 1')]];
+  const [map, title] = theme ? [themed, theme] : [untagged, BY_POS[pos] ?? 'Palavras básicas'];
+  map.set(title, [...(map.get(title) ?? []), { word, pos }]);
 }
+// themed packs (food, home, family…) first: they're the friendliest start
+const groups = new Map([...themed, ...untagged]);
 
 const config = loadConfig();
 const gemini = (model: string) => createGemini(config.geminiApiKey, model);
