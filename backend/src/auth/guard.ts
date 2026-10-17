@@ -10,11 +10,15 @@ declare module 'fastify' {
 }
 
 export function requireAccount(db: DatabaseSync, tokens: Tokens) {
-  const exists = db.prepare('SELECT 1 FROM accounts WHERE id = ?');
+  const find = db.prepare('SELECT password_changed_at AS changed FROM accounts WHERE id = ?');
   return async (request: FastifyRequest) => {
     const match = /^Bearer (\S+)$/.exec(request.headers.authorization ?? '');
-    const id = match ? tokens.verify(match[1] as string) : null;
-    if (id === null || !exists.get(id)) throw new ApiError(401, 'UNAUTHORIZED', 'Missing or invalid token');
-    request.accountId = id;
+    const token = match ? tokens.verify(match[1] as string) : null;
+    const account = token && (find.get(token.account) as { changed: number | null } | undefined);
+    // a password change signs out every session opened before it
+    if (!token || !account || (account.changed !== null && token.issuedAt < account.changed)) {
+      throw new ApiError(401, 'UNAUTHORIZED', 'Missing or invalid token');
+    }
+    request.accountId = token.account;
   };
 }

@@ -9,7 +9,6 @@ import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.CookieManager
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,6 +22,8 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -40,6 +41,9 @@ private const val MAX_DOWNLOAD = 80L * 1024 * 1024
 /** Present in a book's folder once it was parsed with links; see [App.loadBlocks]. */
 private const val PARSER_MARKER = "parsed-v2"
 
+/** GitHub allows 60 unauthenticated API calls an hour per IP; a few checks a day are plenty. */
+private const val UPDATE_CHECK_EVERY = 6 * 3600_000L
+
 class App : Application() {
     lateinit var db: Db
     lateinit var prefs: Prefs
@@ -49,7 +53,15 @@ class App : Application() {
         private set
     var syncing by mutableStateOf(false)
         private set
-    val speech by lazy { Speech(this) }
+    val speech by lazy { Speech(this) { prefs.voice(it) } }
+    val notices = Notices()
+
+    /** A tab to show, asked from outside the screens (the home-screen widget); Root takes it and clears it. */
+    var openTab by mutableStateOf<Int?>(null)
+    val updater by lazy { Updater(this) }
+    val listen by lazy { ListenPlayer(this) }
+    var updating by mutableStateOf(false)
+        private set
     private val scope = MainScope()
 
     override fun onCreate() {
@@ -64,6 +76,115 @@ class App : Application() {
         scope.launch {
             CrashReports.upload(this@App)
             if (prefs.accountEmail != null) sync(quiet = true)
+            assessLevels()
+            checkForUpdate(quiet = true)
+        }
+        // counters settle a moment after each change (reading time ticks, a review session), so check once things are quiet
+        scope.launch {
+            db.changes.collectLatest {
+                delay(1500)
+                celebrate()
+                StreakWidget.update(this@App)
+            }
+        }
+    }
+
+    /** [quiet]: the automatic check at start, at most every few hours, silent when there's nothing new or no connection. */
+    fun checkForUpdate(quiet: Boolean = false) {
+        if (quiet && System.currentTimeMillis() - prefs.lastUpdateCheck < UPDATE_CHECK_EVERY) return
+        scope.launch {
+            val release = try {
+                updater.check().also { prefs.lastUpdateCheck = System.currentTimeMillis() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Update", "check failed", e)
+                if (!quiet) notices.show(Notice(getString(R.string.update_check_failed), NoticeKind.ERROR))
+                return@launch
+            }
+            when {
+                release != null -> notices.show(
+                    Notice(getString(R.string.update_available, release.name), NoticeKind.INFO, getString(R.string.update_action), NoticeAction.Run { installUpdate(release) }),
+                )
+                !quiet -> notices.show(Notice(getString(R.string.up_to_date), NoticeKind.SUCCESS))
+            }
+        }
+    }
+
+    fun installUpdate(release: Release) {
+        if (updating) return
+        updating = true
+        notices.show(Notice(getString(R.string.update_downloading, release.name)))
+        scope.launch {
+            try {
+                updater.install(release)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Update", "install failed", e)
+                val message = (e as? UpdateException)?.message ?: getString(R.string.update_failed)
+                notices.show(
+                    if (e is UpdateException && !e.retry) Notice(message, NoticeKind.ERROR)
+                    else Notice(message, NoticeKind.ERROR, getString(R.string.try_again), NoticeAction.Run { installUpdate(release) }),
+                )
+            } finally {
+                updating = false
+            }
+        }
+    }
+
+    private var assessing = false
+
+    /** Asks the backend, once per book, which CEFR level it needs; a failure (offline, quota) leaves the rest for later. */
+    private fun assessLevels() {
+        if (assessing) return
+        assessing = true
+        scope.launch {
+            try {
+                for (b in db.books().filter { it.level == null }) {
+                    val lang = b.language ?: continue
+                    val sample = withContext(Dispatchers.IO) { levelSample(loadBlocks(b.id)) }
+                    db.setLevel(b.id, translator.level(sample, lang))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("Level", "book level failed", e)
+            } finally {
+                assessing = false
+            }
+        }
+    }
+
+    /** Three excerpts (at 20%, 50% and 80% of the book), since openings are often easier or harder than the rest. */
+    private fun levelSample(blocks: List<Block>): String {
+        val paragraphs = blocks.filter { it.type == BlockType.PARAGRAPH }.ifEmpty { blocks }
+        return listOf(0.2, 0.5, 0.8).joinToString("\n\n[…]\n\n") { at ->
+            paragraphs.drop((paragraphs.size * at).toInt()).joinToString(" ") { it.text }.take(1500)
+        }
+    }
+
+    /** Today's share of the queued kit words: up to newWordsPerDay a day, counting what came in earlier today. */
+    fun releaseKitWords() {
+        val today = localDay()
+        if (prefs.kitDay != today) {
+            prefs.kitDay = today
+            prefs.kitReleased = 0
+        }
+        val n = prefs.newWordsPerDay - prefs.kitReleased
+        if (n > 0) prefs.kitReleased += db.releaseKitWords(n)
+    }
+
+    /** A notice for each achievement unlocked since the last check; the very first check only takes note of what is there. */
+    private fun celebrate() {
+        val totals = db.totals()
+        val unlocked = Achievement.entries.filter { it.unlocked(totals) }.map { it.name }
+        val seen = prefs.achievements?.split(',')?.toSet()
+        prefs.achievements = (seen.orEmpty() + unlocked).filter { it.isNotEmpty() }.joinToString(",")
+        if (seen == null) return
+        unlocked.filter { it !in seen }.forEach {
+            val title = getString(Achievement.valueOf(it).title)
+            notices.show(Notice(getString(R.string.achievement_unlocked, title), NoticeKind.SUCCESS, getString(R.string.see), NoticeAction.OpenProgress))
         }
     }
 
@@ -71,22 +192,23 @@ class App : Application() {
         if (syncing) return
         scope.launch {
             syncing = true
-            val message = try {
-                syncNow()
+            val notice = try {
+                Notice(syncNow(), NoticeKind.SUCCESS)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w("Sync", "sync failed", e)
-                when {
+                val message = when {
                     e is ApiException && e.code == "SESSION_EXPIRED" -> getString(R.string.sync_session_expired)
                     e is ApiException && e.code == "STORAGE_FULL" -> getString(R.string.sync_storage_full)
                     e is java.io.IOException -> getString(R.string.sync_no_connection)
                     else -> getString(R.string.sync_failed)
                 }
+                Notice(message, NoticeKind.ERROR, getString(R.string.try_again), NoticeAction.Run { sync() })
             } finally {
                 syncing = false
             }
-            if (!quiet) Toast.makeText(this@App, message, Toast.LENGTH_LONG).show()
+            if (!quiet) notices.show(notice)
         }
     }
 
@@ -117,8 +239,8 @@ class App : Application() {
     fun importBooks(uris: List<Uri>) {
         scope.launch {
             importing = true
-            val message = try { importAll(uris) } finally { importing = false }
-            Toast.makeText(this@App, message, Toast.LENGTH_LONG).show()
+            notices.show(try { importAll(uris) } finally { importing = false })
+            assessLevels()
         }
     }
 
@@ -188,9 +310,12 @@ class App : Application() {
                 importing = false
             }
             when (id) {
-                null -> Toast.makeText(this@App, getString(R.string.import_failed, fileName), Toast.LENGTH_LONG).show()
-                -1L -> Toast.makeText(this@App, getString(R.string.import_duplicate, fileName), Toast.LENGTH_LONG).show()
-                else -> onAdded(id)
+                null -> notices.show(Notice(getString(R.string.import_failed, fileName), NoticeKind.ERROR))
+                -1L -> notices.show(Notice(getString(R.string.import_duplicate, fileName)))
+                else -> {
+                    onAdded(id)
+                    assessLevels()
+                }
             }
         }
     }
@@ -206,14 +331,19 @@ class App : Application() {
         }
     }
 
-    private suspend fun importAll(uris: List<Uri>): String = withContext(Dispatchers.IO) {
+    private suspend fun importAll(uris: List<Uri>): Notice = withContext(Dispatchers.IO) {
         var added = 0
+        var lastAdded: Long? = null
         var duplicates = 0
         var failed = 0
         for (uri in uris) {
             try {
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("não foi possível ler $uri")
-                if (importBytes(uri.toString(), displayName(uri), bytes) == null) duplicates++ else added++
+                val id = importBytes(uri.toString(), displayName(uri), bytes)
+                if (id == null) duplicates++ else {
+                    added++
+                    lastAdded = id
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -221,11 +351,18 @@ class App : Application() {
                 failed++
             }
         }
-        listOfNotNull(
+        val message = listOfNotNull(
             added.takeIf { it > 0 }?.let { getString(R.string.import_added, it) },
             duplicates.takeIf { it > 0 }?.let { getString(R.string.import_duplicates, it) },
             failed.takeIf { it > 0 }?.let { getString(R.string.import_failures, it) },
         ).joinToString("\n")
+        val kind = when {
+            failed > 0 && added == 0 -> NoticeKind.ERROR
+            added > 0 -> NoticeKind.SUCCESS
+            else -> NoticeKind.INFO
+        }
+        val open = lastAdded?.takeIf { added == 1 }
+        Notice(message, kind, open?.let { getString(R.string.open) }, open?.let { NoticeAction.OpenBook(it) })
     }
 
     /** Skips front matter (title page, copyright) so language detection sees real prose. */
@@ -294,7 +431,28 @@ class Prefs(ctx: Context) {
     private val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
 
     var theme by int("theme", 0) // 0 system, 1 light, 2 dark
-    var textSize by int("text_size", 1) // 0 small, 1 medium, 2 large
+    var readingTheme by int("reading_theme", ReadingTheme.APP.ordinal)
+    var readerFontSize by int("reader_font_size", 18)
+    var lineSpacing by int("line_spacing", 1)
+    var margins by int("margins", 1)
+    var readerSerif by bool("reader_serif", true)
+    var interlinear by bool("interlinear", true)
+    var listenFirst by bool("listen_first", false)
+    var listenExamples by bool("listen_examples", true)
+    /** Best Combinar time in milliseconds; 0 until the first game. */
+    var matchBest by long("match_best", 0L)
+    private var voices by string("voices", "") // "lang=voice;lang=voice"
+    var newWordsPerDay by int("new_words_per_day", 15)
+    var addedKits by string("added_kits", "") // pack ids, comma-separated
+    var kitDay by long("kit_day", 0L)
+    var kitReleased by int("kit_released", 0)
+
+    fun voice(lang: String): String? = voices.split(';').firstOrNull { it.startsWith("$lang=") }?.substringAfter('=')?.ifEmpty { null }
+
+    /** Null goes back to the engine's default voice for [lang]. */
+    fun setVoice(lang: String, voice: String?) {
+        voices = (voices.split(';').filter { it.isNotBlank() && !it.startsWith("$lang=") } + listOfNotNull(voice?.let { "$lang=$it" })).joinToString(";")
+    }
     var useOffline by bool("use_offline", false)
     var onboarded by bool("onboarded", false)
     var dailyGoalMinutes by int("daily_goal_minutes", 5)
@@ -311,6 +469,9 @@ class Prefs(ctx: Context) {
     var accountEmail by nullableString("account_email")
     var accountName by nullableString("account_name")
     var lastSync by long("last_sync", 0L)
+    var lastUpdateCheck by long("last_update_check", 0L)
+    /** Achievements already celebrated, comma separated; null until the first check. */
+    var achievements by nullableString("achievements")
 
     private fun int(key: String, default: Int) = state(sp.getInt(key, default)) { sp.edit().putInt(key, it).apply() }
     private fun bool(key: String, default: Boolean) = state(sp.getBoolean(key, default)) { sp.edit().putBoolean(key, it).apply() }

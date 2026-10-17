@@ -1,6 +1,8 @@
 package com.victor.leitor
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -18,6 +20,12 @@ class Backend(private val prefs: Prefs) {
     suspend fun call(method: String, path: String, body: ByteArray? = null, contentType: String = JSON, authed: Boolean = true): ByteArray =
         withContext(Dispatchers.IO) {
             var (status, bytes) = exchange(method, path, body, contentType, if (authed) token() else null)
+            // a proxy in front of the server (Cloudflare, Nginx) answers 502-504 on its own during restarts and dropped connections;
+            // one retry hides those blips. Auth calls aren't repeated: a lost answer there may already have taken effect.
+            if (status in 502..504 && errorOf(bytes) == null && !path.startsWith("/auth/")) {
+                delay(1000)
+                exchange(method, path, body, contentType, if (authed) token() else null).let { status = it.first; bytes = it.second }
+            }
             if (status == 401 && authed) {
                 val hadAccount = prefs.accountEmail != null
                 signOut()
@@ -25,20 +33,38 @@ class Backend(private val prefs: Prefs) {
                 exchange(method, path, body, contentType, token()).let { status = it.first; bytes = it.second }
             }
             if (status >= 400) {
-                val err = runCatching { JSONObject(String(bytes)).optJSONObject("error") }.getOrNull()
+                Log.w("Backend", "$method $path -> $status ${String(bytes).take(300)}")
+                val err = errorOf(bytes)
                 throw ApiException(status, err?.optString("code").orEmpty().ifEmpty { "HTTP_$status" }, err?.optString("message").orEmpty())
             }
             bytes
         }
 
+    /** The `error` object of our own error responses; null for anything else, such as a proxy's error page. */
+    private fun errorOf(bytes: ByteArray): JSONObject? = runCatching { JSONObject(String(bytes)).optJSONObject("error") }.getOrNull()
+
     /** Creates the account when [name] is given, otherwise signs in. */
     suspend fun signIn(email: String, password: String, name: String? = null) {
         val body = JSONObject().put("email", email).put("password", password)
         if (name != null) body.put("name", name)
-        val data = json("POST", if (name != null) "/auth/signup" else "/auth/login", body, authed = false).getJSONObject("data")
-        prefs.token = data.getString("token")
-        prefs.accountEmail = data.getString("email")
-        prefs.accountName = if (data.isNull("name")) null else data.getString("name") // accounts made before names existed
+        adopt(json("POST", if (name != null) "/auth/signup" else "/auth/login", body, authed = false).getJSONObject("data"))
+    }
+
+    /** Emails a 6-digit code; the answer is the same whether the email has an account or not. */
+    suspend fun requestPasswordReset(email: String) {
+        json("POST", "/auth/password/forgot", JSONObject().put("email", email), authed = false)
+    }
+
+    /** Sets the new password with the emailed code and signs in; other sessions of the account stop working. */
+    suspend fun resetPassword(email: String, code: String, password: String) {
+        val body = JSONObject().put("email", email).put("code", code).put("password", password)
+        adopt(json("POST", "/auth/password/reset", body, authed = false).getJSONObject("data"))
+    }
+
+    private fun adopt(session: JSONObject) {
+        prefs.token = session.getString("token")
+        prefs.accountEmail = session.getString("email")
+        prefs.accountName = if (session.isNull("name")) null else session.getString("name") // accounts made before names existed
     }
 
     fun signOut() {

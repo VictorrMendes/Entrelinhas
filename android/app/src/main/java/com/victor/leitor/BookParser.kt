@@ -616,15 +616,40 @@ fun sentenceRange(text: String, offset: Int): IntRange {
     return start until end
 }
 
+/** Every sentence of [text], without trailing spaces. */
+fun sentenceRanges(text: String): List<IntRange> {
+    val bi = BreakIterator.getSentenceInstance().apply { setText(text) }
+    val out = ArrayList<IntRange>()
+    var start = bi.first()
+    var end = bi.next()
+    while (end != BreakIterator.DONE) {
+        var e = end
+        while (e > start && text[e - 1].isWhitespace()) e--
+        if (e > start) out += start until e
+        start = end
+        end = bi.next()
+    }
+    return out
+}
+
 fun sentenceAt(text: String, offset: Int): String = text.substring(sentenceRange(text, offset)).trim().removePrefix("• ")
 
-fun wordAt(text: String, offset: Int): String? = wordStartingAt(text, offset) ?: wordStartingAt(text, offset - 1)
+/** [start, end) of the word under a tapped offset (a tap just after its last letter counts), or null on spaces and punctuation. */
+fun wordRange(text: String, offset: Int): IntRange? = wordRangeAt(text, offset) ?: wordRangeAt(text, offset - 1)
 
-private fun wordStartingAt(text: String, offset: Int): String? {
+fun wordAt(text: String, offset: Int): String? = wordRange(text, offset)?.let { text.substring(it) }
+
+/** The nearest word before [start], to grow a selection into an expression. */
+fun previousWord(text: String, start: Int): IntRange? = (start - 1 downTo 0).firstNotNullOfOrNull { i -> wordRangeAt(text, i)?.takeIf { it.last < start } }
+
+/** The nearest word after [end] (exclusive), to grow a selection into an expression. */
+fun nextWord(text: String, end: Int): IntRange? = (end until text.length).firstNotNullOfOrNull { i -> wordRangeAt(text, i)?.takeIf { it.first >= end } }
+
+private fun wordRangeAt(text: String, offset: Int): IntRange? {
     if (offset !in text.indices) return null
     val bi = BreakIterator.getWordInstance().apply { setText(text) }
     val start = if (bi.isBoundary(offset)) offset else bi.preceding(offset)
     val end = bi.following(offset)
     if (start == BreakIterator.DONE || end == BreakIterator.DONE) return null
-    return text.substring(start, end).takeIf { w -> w.any { it.isLetter() } }
+    return (start until end).takeIf { r -> text.substring(r).any { it.isLetter() } }
 }

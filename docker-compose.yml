@@ -8,13 +8,18 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:?defina GEMINI_API_KEY no .env}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
+      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-}
       DAILY_CHAR_LIMIT: ${DAILY_CHAR_LIMIT:-}
       MAX_ACCOUNT_BYTES: ${MAX_ACCOUNT_BYTES:-}
       TRUST_PROXY: ${TRUST_PROXY:-false}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_MODEL: ${NVIDIA_MODEL:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       # banco SQLite e arquivos dos livros: é esta pasta que entra no backup do servidor
-      - ./storage:/app/data
+      - ${STORAGE_DIR:-./storage}:/app/data
     ports:
       - "${API_PORT:-8787}:8787"
     restart: unless-stopped

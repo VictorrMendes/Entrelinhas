@@ -1,15 +1,17 @@
 package com.victor.leitor
 
-import androidx.annotation.StringRes
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,45 +19,54 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -64,26 +75,18 @@ import java.util.TimeZone
 
 private const val DAY_MS = 86_400_000L
 
-private enum class Range(@StringRes val label: Int, val days: Int, val monthly: Boolean) {
-    WEEK(R.string.range_week, 7, false),
-    MONTH(R.string.range_month, 30, false),
-    HALF_YEAR(R.string.range_half_year, 182, true),
-    YEAR(R.string.range_year, 365, true),
-}
-
 /** A blank [label] is not drawn. */
 private data class Bar(val label: String, val value: Int)
 
 @Composable
 fun Progress(app: App, modifier: Modifier) {
     val version by app.db.changes.collectAsState()
-    var range by rememberSaveable { mutableStateOf(Range.WEEK) }
     val today = localDay()
-    val from = today - range.days + 1
-    val stats = remember(version, range) { app.db.dayStats(from) }
+    // tiles and details count since the start; the chart shows the last seven days
+    val stats = remember(version) { app.db.dayStats(0) }
     val streak = remember(version) { app.db.streak() }
-    val booksRead = remember(version, range) { app.db.booksCompletedSince(dayStartMillis(from)) }
-    val bars = remember(stats, range) { bars(stats, from, today, range) }
+    val bars = remember(stats) { bars(stats, today - 6, today) }
+    val totals = remember(version) { app.db.totals() }
     val primary = MaterialTheme.colorScheme.primary
 
     Column(
@@ -91,14 +94,15 @@ fun Progress(app: App, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ScreenTitle(stringResource(R.string.progress_title))
-        Segmented(Range.entries.map { stringResource(it.label) }, range.ordinal) { range = Range.entries[it] }
+        LevelCard(totals)
+        HabitCard(app, version)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             StatTile(Icons.Outlined.CalendarToday, primary, stringResource(R.string.reading_days), "${stats.count { it.active }}", Modifier.weight(1f))
             StatTile(Icons.Outlined.LocalFireDepartment, Flame, stringResource(R.string.streak), days(streak.current), Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             StatTile(Icons.Filled.TextFields, primary, stringResource(R.string.translations), "${stats.sumOf { it.translations }}", Modifier.weight(1f))
-            StatTile(Icons.AutoMirrored.Filled.MenuBook, MaterialTheme.colorScheme.onSurface, stringResource(R.string.books_read), "$booksRead", Modifier.weight(1f))
+            StatTile(Icons.AutoMirrored.Filled.MenuBook, MaterialTheme.colorScheme.onSurface, stringResource(R.string.books_read), "${totals.booksCompleted}", Modifier.weight(1f))
         }
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder) {
             Column(Modifier.padding(20.dp)) {
@@ -127,27 +131,194 @@ fun Progress(app: App, modifier: Modifier) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
+        Achievements(totals)
         Spacer(Modifier.height(8.dp))
     }
 }
 
+/** Lifetime XP and the level it reaches; the bar fills toward the next level. */
 @Composable
-private fun Segmented(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    val track = lerp(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surfaceVariant, 0.5f)
-    Row(Modifier.fillMaxWidth().clip(CircleShape).background(track).padding(4.dp)) {
-        labels.forEachIndexed { i, label ->
-            val active = i == selected
-            Box(
-                Modifier.weight(1f).height(44.dp).clip(CircleShape)
-                    .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .selectable(selected = active, role = Role.Tab) { onSelect(i) },
-                contentAlignment = Alignment.Center,
-            ) {
+fun LevelCard(t: Totals) {
+    val level = Levels.of(t.xp)
+    val from = Levels.start(level)
+    val to = Levels.start(level + 1)
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primary, contentColor = onPrimary) {
+        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.EmojiEvents, null, tint = Flame)
+                Text(stringResource(R.string.level_n, level), Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.xp_n, t.xp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(onPrimary.copy(alpha = 0.25f))) {
+                Box(Modifier.fillMaxWidth((t.xp - from).toFloat() / (to - from)).fillMaxHeight().clip(CircleShape).background(onPrimary))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.xp_to_next, to - t.xp, level + 1), style = MaterialTheme.typography.bodySmall, color = onPrimary.copy(alpha = 0.85f))
+        }
+    }
+}
+
+/** Daily and weekly streaks over a month calendar: goal days filled in amber, other reading days ringed, today outlined. */
+@Composable
+fun HabitCard(app: App, version: Int) {
+    val today = localDay()
+    val firstDow = remember { firstDayOfWeek() }
+    val streak = remember(version) { app.db.streak() }
+    val weeks = remember(version) { WeekStreak.compute(app.db.activeDays(), today, firstDow) }
+    var offset by rememberSaveable { mutableIntStateOf(0) }
+    val month = remember(offset) { monthAround(today, offset) }
+    val stats = remember(version, month) { app.db.dayStats(month.first).filter { it.day < month.first + month.length }.associateBy { it.day } }
+    val cells = remember(month, firstDow) { monthCells(month.first, month.length, firstDow) }
+    val weekdays = remember(firstDow) { weekdayInitials(firstDow) }
+
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder) {
+        Column(Modifier.padding(18.dp)) {
+            Row {
+                HabitStat(
+                    Icons.Outlined.LocalFireDepartment, Flame, pluralStringResource(R.plurals.streak_days, streak.current, streak.current),
+                    stringResource(R.string.habit_daily), Modifier.weight(1f),
+                )
+                HabitStat(
+                    Icons.Outlined.CalendarMonth, MaterialTheme.colorScheme.primary, pluralStringResource(R.plurals.streak_weeks, weeks.current, weeks.current),
+                    stringResource(if (weeks.thisWeek) R.string.habit_week_done else R.string.habit_week_open), Modifier.weight(1f),
+                )
+            }
+            HorizontalDivider(Modifier.padding(vertical = 14.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { offset-- }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.habit_previous_month)) }
+                Text(month.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                IconButton(onClick = { offset++ }, enabled = offset < 0) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.habit_next_month)) }
+            }
+            Row(Modifier.padding(top = 4.dp)) {
+                weekdays.forEach {
+                    Text(it, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+            }
+            cells.chunked(7).forEach { week ->
+                Row {
+                    week.forEach { day -> DayCell(day, day?.let { (it - month.first + 1).toInt() }, day?.let(stats::get), today, Modifier.weight(1f)) }
+                    repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Legend(Modifier.background(Flame, CircleShape), stringResource(R.string.habit_legend_goal))
+                Legend(Modifier.border(1.5.dp, Flame, CircleShape), stringResource(R.string.habit_legend_read))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitStat(icon: ImageVector, tint: Color, value: String, label: String, modifier: Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(20.dp), tint = tint)
+        }
+        Column(Modifier.padding(start = 10.dp)) {
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+        }
+    }
+}
+
+@Composable
+private fun DayCell(day: Long?, number: Int?, stat: DayStat?, today: Long, modifier: Modifier) {
+    Box(modifier.aspectRatio(1f).padding(3.dp), contentAlignment = Alignment.Center) {
+        if (day == null || number == null) return@Box
+        val goal = stat?.goalMet == true
+        val read = stat?.active == true
+        val mark = when {
+            goal -> Modifier.background(Flame, CircleShape)
+            read -> Modifier.border(1.5.dp, Flame, CircleShape)
+            day == today -> Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant, CircleShape)
+            else -> Modifier
+        }
+        Box(Modifier.fillMaxSize().then(mark), contentAlignment = Alignment.Center) {
+            Text(
+                "$number",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (day == today) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    goal -> MaterialTheme.colorScheme.onTertiary
+                    day > today -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun Legend(dot: Modifier, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(12.dp).then(dot))
+        Text(label, Modifier.padding(start = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private data class Month(val first: Long, val length: Int, val title: String)
+
+/** The month [offset] months away from the one holding [today] (a local day number). */
+private fun monthAround(today: Long, offset: Int): Month {
+    val utc = TimeZone.getTimeZone("UTC")
+    val cal = Calendar.getInstance(utc).apply {
+        timeInMillis = today * DAY_MS
+        set(Calendar.DAY_OF_MONTH, 1)
+        add(Calendar.MONTH, offset)
+    }
+    val title = SimpleDateFormat("LLLL yyyy", Locale.getDefault()).apply { timeZone = utc }.format(cal.time)
+        .replaceFirstChar { it.titlecase(Locale.getDefault()) }
+    return Month(cal.timeInMillis / DAY_MS, cal.getActualMaximum(Calendar.DAY_OF_MONTH), title)
+}
+
+/** One letter per weekday, starting at [firstDow] (0 Sunday). */
+private fun weekdayInitials(firstDow: Int): List<String> {
+    val names = DateFormatSymbols.getInstance().shortWeekdays // 1 Sunday … 7 Saturday
+    return (0 until 7).map { names[(firstDow + it) % 7 + 1].take(1).uppercase() }
+}
+
+@Composable
+fun Achievements(t: Totals) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.achievements), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                "${Achievement.entries.count { it.unlocked(t) }}/${Achievement.entries.size}",
+                style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(stringResource(R.string.xp_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AchievementGroup.entries.forEach { group ->
+            Text(stringResource(group.title), Modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Achievement.entries.filter { it.group == group }.chunked(2).forEach { pair ->
+                // IntrinsicSize gives both tiles of a row the height of the taller one
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    pair.forEach { AchievementTile(it, t, Modifier.weight(1f).fillMaxHeight()) }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AchievementTile(a: Achievement, t: Totals, modifier: Modifier) {
+    val done = a.unlocked(t)
+    val tint = if (done) Flame else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = modifier) {
+        Column(Modifier.padding(16.dp).alpha(if (done) 1f else 0.65f)) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                Icon(if (done) Icons.Outlined.EmojiEvents else Icons.Outlined.Lock, null, Modifier.size(22.dp), tint = tint)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(stringResource(a.title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(a.text), Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!done) {
                 Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    "${minOf(a.value(t), a.target)}/${a.target}", Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -258,30 +429,9 @@ private fun niceMax(v: Int): Int {
     return listOf(1, 2, 5, 10).first { it * p >= v } * p
 }
 
-private fun dayStartMillis(day: Long): Long = day * DAY_MS - TimeZone.getDefault().getOffset(day * DAY_MS)
-
-private fun bars(stats: List<DayStat>, from: Long, today: Long, range: Range): List<Bar> {
-    val utc = TimeZone.getTimeZone("UTC")
-    fun fmt(pattern: String, day: Long) = SimpleDateFormat(pattern, Locale.getDefault()).apply { timeZone = utc }.format(Date(day * DAY_MS))
+/** One bar per day from [from] to [today], labelled with its weekday. */
+private fun bars(stats: List<DayStat>, from: Long, today: Long): List<Bar> {
+    val weekday = SimpleDateFormat("EEE", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
     val byDay = stats.associate { it.day to it.translations }
-    if (!range.monthly) {
-        return (from..today).mapIndexed { i, day ->
-            // 7 days: every weekday labelled; 30 days: every 5th day plus today, so labels never collide
-            val label = when {
-                range == Range.WEEK -> fmt("EEE", day)
-                i % 5 == 0 || day == today -> fmt("d", day)
-                else -> ""
-            }
-            Bar(label, byDay[day] ?: 0)
-        }
-    }
-    val cal = Calendar.getInstance(utc)
-    val months = LinkedHashMap<Int, Pair<Long, Int>>() // year*12+month -> (first day seen, sum)
-    for (day in from..today) {
-        cal.timeInMillis = day * DAY_MS
-        val key = cal.get(Calendar.YEAR) * 12 + cal.get(Calendar.MONTH)
-        val (first, sum) = months[key] ?: (day to 0)
-        months[key] = first to sum + (byDay[day] ?: 0)
-    }
-    return months.values.map { (first, sum) -> Bar(fmt("MMM", first), sum) }
+    return (from..today).map { day -> Bar(weekday.format(Date(day * DAY_MS)), byDay[day] ?: 0) }
 }

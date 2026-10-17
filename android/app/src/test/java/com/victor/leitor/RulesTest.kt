@@ -1,6 +1,8 @@
 package com.victor.leitor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RulesTest {
@@ -33,6 +35,27 @@ class RulesTest {
     }
 
     @Test
+    fun dictationIgnoresCaseAccentsAndPunctuation() {
+        val perfect = checkDictation("Olá, mundo! Tudo bem?", "ola mundo tudo bem")
+        assertEquals(100, perfect.score)
+        assertEquals(listOf(Mark.OK, Mark.OK, Mark.OK, Mark.OK), perfect.words.map { it.mark })
+    }
+
+    @Test
+    fun dictationMarksWrongAndMissingWords() {
+        val r = checkDictation("The cold wind blew hard", "the cold went blew")
+        assertEquals(
+            listOf(
+                Marked("The", Mark.OK), Marked("cold", Mark.OK), Marked("went", Mark.WRONG), Marked("wind", Mark.MISSING),
+                Marked("blew", Mark.OK), Marked("hard", Mark.MISSING),
+            ),
+            r.words,
+        )
+        assertEquals(60, r.score)
+        assertEquals(0, checkDictation("Some words here", "").score)
+    }
+
+    @Test
     fun vocabularyCsvQuotesWhenNeeded() {
         val w = Word(1, "bright", "claro", "The \"Quiet\" Library", "A bright, cold day.", 0, 10, "en")
         val csv = vocabularyCsv(listOf(w), "Palavra,Tradução,Exemplo,Livro")
@@ -44,5 +67,17 @@ class RulesTest {
         // day 3 blank spends one shield; reaching 7 streak days returns it
         val days = listOf(1L, 2L, 4L, 5L, 6L, 7L, 8L, 9L)
         assertEquals(Streak.State(8, 8, 2, true), Streak.compute(days, today = 9))
+    }
+    @Test
+    fun xpClimbsLevelsThatGrowLonger() {
+        assertEquals(1, Levels.of(0))
+        assertEquals(1, Levels.of(99))
+        assertEquals(2, Levels.of(100))
+        assertEquals(3, Levels.of(300))
+        // 30 min + 3 words × 5 + 5 dictations × 3 + 1 goal day × 20 + 1 book × 100
+        assertEquals(180, Totals(readingMinutes = 30, savedWords = 3, dictations = 5, goalDays = 1, booksCompleted = 1).xp)
+        val t = Totals(savedWords = 50, readingMinutes = 599)
+        assertTrue(Achievement.WORDS_50.unlocked(t))
+        assertFalse(Achievement.TEN_HOURS.unlocked(t))
     }
 }

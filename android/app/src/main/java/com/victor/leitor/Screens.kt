@@ -1,6 +1,5 @@
 package com.victor.leitor
 
-import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -10,8 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -38,12 +38,16 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Style
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -66,16 +70,19 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.io.File
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import kotlin.math.roundToInt
 
 private val BOOK_MIME_TYPES = arrayOf(
     "application/epub+zip", "application/pdf", "text/plain", "application/x-fictionbook+xml",
@@ -85,17 +92,24 @@ private val BOOK_MIME_TYPES = arrayOf(
 val CardShape = RoundedCornerShape(20.dp)
 
 @Composable
-fun Library(app: App, modifier: Modifier, explore: () -> Unit, open: (Long) -> Unit) {
+fun Library(app: App, modifier: Modifier, explore: () -> Unit, review: () -> Unit, open: (Long) -> Unit) {
     val version by app.db.changes.collectAsState()
     val books = remember(version) { app.db.books() }
+    val current = remember(books) { books.filter { it.status == Status.IN_PROGRESS }.maxByOrNull { it.lastOpenedAt ?: 0L } }
+    val due = remember(version) { app.db.dueWords().size }
     var filter by rememberSaveable { mutableIntStateOf(0) }
     var deleting by remember { mutableStateOf<Book?>(null) }
+    var shelving by remember { mutableStateOf<Book?>(null) }
     var goalSheet by remember { mutableStateOf(false) }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { if (it.isNotEmpty()) app.importBooks(it) }
+    // shelves follow the three status filters; a shelf that lost its last book falls back to "all"
+    val shelves = remember(books) { books.flatMap { it.shelves }.distinct().sorted() }
+    val shelf = shelves.getOrNull(filter - 3)
     val shown = books.filter {
-        when (filter) {
-            1 -> it.status == Status.IN_PROGRESS
-            2 -> it.status == Status.COMPLETED
+        when {
+            shelf != null -> shelf in it.shelves
+            filter == 1 -> it.status == Status.IN_PROGRESS
+            filter == 2 -> it.status == Status.COMPLETED
             else -> true
         }
     }
@@ -105,7 +119,11 @@ fun Library(app: App, modifier: Modifier, explore: () -> Unit, open: (Long) -> U
         if (app.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { StreakCard(app, version) { goalSheet = true } }
-            item { Pills(listOf(stringResource(R.string.filter_all), stringResource(R.string.filter_in_progress), stringResource(R.string.filter_completed)), filter) { filter = it } }
+            if (current != null || due > 0) item { ContinueCard(app, current, due, version, open, review) }
+            item {
+                val labels = listOf(stringResource(R.string.filter_all), stringResource(R.string.filter_in_progress), stringResource(R.string.filter_completed)) + shelves
+                Pills(labels, if (filter >= 3 && shelf == null) 0 else filter) { filter = it }
+            }
             item {
                 // IntrinsicSize gives both tiles the height of the taller one
                 Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -122,15 +140,87 @@ fun Library(app: App, modifier: Modifier, explore: () -> Unit, open: (Long) -> U
                     Empty(
                         stringResource(if (books.isEmpty()) R.string.library_empty_title else R.string.library_filter_empty),
                         stringResource(R.string.library_empty_text),
+                        R.drawable.empty_library,
                     )
                 }
             }
-            items(shown, key = { it.id }) { b -> BookCard(app, b, version, onOpen = { open(b.id) }, onDelete = { deleting = b }) }
+            items(shown, key = { it.id }) { b -> BookCard(app, b, version, onOpen = { open(b.id) }, onShelves = { shelving = b }, onDelete = { deleting = b }) }
         }
     }
     if (goalSheet) GoalSheet(app, version) { goalSheet = false }
     deleting?.let { b ->
         Confirm(stringResource(R.string.delete_book_title, b.title), stringResource(R.string.delete_book_text), { deleting = null }) { app.deleteBook(b.id) }
+    }
+    shelving?.let { b ->
+        ShelvesDialog(b, shelves, onDismiss = { shelving = null }) {
+            app.db.setShelves(b.id, it)
+            shelving = null
+        }
+    }
+}
+
+@Composable
+private fun ShelvesDialog(book: Book, all: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+    var chosen by remember { mutableStateOf(book.shelves.toSet()) }
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.shelves_of, book.title), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                all.forEach { s ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { chosen = if (s in chosen) chosen - s else chosen + s },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(s in chosen, onCheckedChange = null, Modifier.padding(12.dp))
+                        Text(s, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                OutlinedTextField(
+                    name, { name = it.replace('\n', ' ').take(40) }, Modifier.fillMaxWidth().padding(top = 8.dp),
+                    label = { Text(stringResource(R.string.new_shelf)) }, singleLine = true, shape = RoundedCornerShape(14.dp),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave((chosen + name.trim()).filter { it.isNotBlank() }.sorted()) }) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** The two things most worth doing next, one line each: the book read last and today's review. */
+@Composable
+private fun ContinueCard(app: App, book: Book?, due: Int, version: Int, onOpen: (Long) -> Unit, onReview: () -> Unit) {
+    Surface(shape = CardShape, color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = Modifier.fillMaxWidth()) {
+        Column {
+            book?.let { b ->
+                Row(
+                    Modifier.fillMaxWidth().clickable { onOpen(b.id) }.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Cover(app.coverFile(b.id), b.fileType, version, Modifier.size(36.dp, 50.dp))
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(stringResource(R.string.continue_reading), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(b.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Text("${(b.progress * 100).roundToInt()}%", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (due > 0) {
+                if (book != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClick = onReview).padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Style, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
+                    Text(pluralStringResource(R.plurals.words_due_today, due, due), Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
     }
 }
 
@@ -155,7 +245,7 @@ private fun ActionTile(icon: ImageVector, title: String, subtitle: String, modif
 }
 
 @Composable
-private fun BookCard(app: App, b: Book, version: Int, onOpen: () -> Unit, onDelete: () -> Unit) {
+private fun BookCard(app: App, b: Book, version: Int, onOpen: () -> Unit, onShelves: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Surface(onClick = onOpen, shape = CardShape, color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp)) {
@@ -169,18 +259,22 @@ private fun BookCard(app: App, b: Book, version: Int, onOpen: () -> Unit, onDele
                             contentAlignment = Alignment.Center,
                         ) { Icon(Icons.Filled.MoreHoriz, stringResource(R.string.more_options), Modifier.size(20.dp)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.shelves)) }, onClick = { menu = false; onShelves() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.delete)) }, onClick = { menu = false; onDelete() })
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Badge(
-                    when (b.status) {
-                        Status.COMPLETED -> stringResource(R.string.status_completed)
-                        Status.IN_PROGRESS -> stringResource(R.string.status_in_progress)
-                        Status.READY -> stringResource(R.string.status_new)
-                    },
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Badge(
+                        when (b.status) {
+                            Status.COMPLETED -> stringResource(R.string.status_completed)
+                            Status.IN_PROGRESS -> stringResource(R.string.status_in_progress)
+                            Status.READY -> stringResource(R.string.status_new)
+                        },
+                    )
+                    b.level?.let { Badge(stringResource(R.string.level_badge, it)) }
+                }
                 Spacer(Modifier.height(12.dp))
                 Row {
                     Text(stringResource(R.string.progress_saved), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -234,14 +328,7 @@ fun Cover(file: File, fileType: String, version: Int, modifier: Modifier) {
 
 private data class Choice(val title: String, val subtitle: String)
 
-private val TEXT_SIZES = listOf(
-    R.string.size_small to R.string.size_small_hint,
-    R.string.size_medium to R.string.size_medium_hint,
-    R.string.size_large to R.string.size_large_hint,
-)
-private val SPEEDS = listOf(0.75f, 1f, 1.25f, 1.5f)
 
-private fun speedLabel(rate: Float) = "${rate}x".replace('.', ',')
 
 private val THEMES = listOf(
     R.string.theme_system to R.string.theme_system_hint,
@@ -267,12 +354,11 @@ fun Settings(app: App, modifier: Modifier) {
         ScreenTitle(stringResource(R.string.tab_settings))
         AccountSection(app)
         Section(stringResource(R.string.section_app))
-        SettingCard(stringResource(R.string.text_size), value = stringResource(TEXT_SIZES[p.textSize.coerceIn(0, 2)].first)) { dialog = "size" }
         SettingCard(stringResource(R.string.theme), value = stringResource(THEMES[p.theme.coerceIn(0, 2)].first)) { dialog = "theme" }
         Section(stringResource(R.string.section_reading))
         SettingCard(stringResource(R.string.daily_goal), value = stringResource(R.string.n_min, p.dailyGoalMinutes)) { dialog = "goal" }
         SettingCard(stringResource(R.string.daily_reminder), value = stringResource(ReminderTime.entries[p.reminder].label)) { dialog = "reminder" }
-        SettingCard(stringResource(R.string.speech_rate), value = speedLabel(p.speechRate)) { dialog = "speed" }
+        SettingCard(stringResource(R.string.speech_rate), value = rateLabel(p.speechRate)) { dialog = "speed" }
         Section(stringResource(R.string.section_translation))
         SettingCard(stringResource(R.string.default_language), value = langName(p.defaultTarget)) { dialog = "language" }
         SettingCard(stringResource(R.string.use_offline), subtitle = stringResource(R.string.use_offline_hint), checked = p.useOffline) { p.useOffline = !p.useOffline }
@@ -286,12 +372,21 @@ fun Settings(app: App, modifier: Modifier) {
         SettingCard(stringResource(R.string.delete_all_books), subtitle = stringResource(R.string.delete_all_books_hint)) { dialog = "books" }
         Section(stringResource(R.string.section_about))
         SettingCard(stringResource(R.string.about), subtitle = stringResource(R.string.about_version, BuildConfig.VERSION_NAME, BuildConfig.BACKEND_URL), onClick = null)
+        val version = "${BuildConfig.VERSION_NAME}-${BuildConfig.VERSION_CODE}"
+        SettingCard(
+            stringResource(R.string.updates_title),
+            subtitle = when {
+                !app.updater.enabled -> stringResource(R.string.updates_local, version)
+                app.updating -> stringResource(R.string.updates_busy)
+                else -> stringResource(R.string.updates_hint, version)
+            },
+            onClick = if (app.updater.enabled && !app.updating) ({ app.checkForUpdate() }) else null,
+        )
         SignOutButton(app)
         Spacer(Modifier.height(24.dp))
     }
 
     when (dialog) {
-        "size" -> ChoiceDialog(stringResource(R.string.text_size), choices(TEXT_SIZES), p.textSize, { dialog = null }) { p.textSize = it }
         "theme" -> ChoiceDialog(stringResource(R.string.theme), choices(THEMES), p.theme, { dialog = null }) { p.theme = it }
         "goal" -> ChoiceDialog(
             stringResource(R.string.daily_goal),
@@ -307,8 +402,8 @@ fun Settings(app: App, modifier: Modifier) {
             p.reminder,
             { dialog = null },
         ) { setReminder(it) }
-        "speed" -> ChoiceDialog(stringResource(R.string.speech_rate), SPEEDS.map { Choice(speedLabel(it), "") }, SPEEDS.indexOf(p.speechRate), { dialog = null }) {
-            p.speechRate = SPEEDS[it]
+        "speed" -> ChoiceDialog(stringResource(R.string.speech_rate), SPEECH_RATES.map { Choice(rateLabel(it), "") }, SPEECH_RATES.indexOf(p.speechRate), { dialog = null }) {
+            p.speechRate = SPEECH_RATES[it]
         }
         "language" -> LanguageDialog(p.defaultTarget, { dialog = null }) { p.defaultTarget = it }
         "models" -> Confirm(stringResource(R.string.delete_models_title), stringResource(R.string.delete_models_text), { dialog = null }) {
@@ -449,8 +544,9 @@ fun Confirm(title: String, text: String, onDismiss: () -> Unit, action: String =
 }
 
 @Composable
-fun Empty(title: String, text: String) {
+fun Empty(title: String, text: String, image: Int? = null) {
     Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        image?.let { Image(painterResource(it), null, Modifier.size(140.dp).padding(bottom = 12.dp)) }
         Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)

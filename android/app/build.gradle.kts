@@ -9,14 +9,16 @@ plugins {
 // signed with the debug key so they can still be installed and tested.
 // Emulator default reaches the host machine; pass -PbackendUrl=https://... for a deployed backend.
 val backendUrl: String = providers.gradleProperty("backendUrl").getOrElse("http://10.0.2.2:8787")
+// CI passes production or homolog: the app then updates itself from that channel's GitHub releases; local builds don't
+val updateChannel: String = providers.gradleProperty("updateChannel").getOrElse("")
 
 val keystore = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f -> Properties().apply { f.inputStream().use(::load) } }
 
 android {
     namespace = "com.victor.leitor"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 2
         }
     }
 
@@ -28,6 +30,7 @@ android {
         versionCode = providers.gradleProperty("versionCode").getOrElse("1").toInt()
         versionName = "0.1"
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        buildConfigField("String", "UPDATE_CHANNEL", "\"$updateChannel\"")
     }
 
     signingConfigs {
@@ -68,6 +71,9 @@ android {
             isUniversalApk = true
         }
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -88,4 +94,9 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.1") // OCR of scanned PDFs, model bundled (works offline)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     testImplementation("junit:junit:4.13.2")
+    // UI tests run on the JVM with Robolectric, so CI needs no emulator
+    testImplementation("org.robolectric:robolectric:4.16")
+    testImplementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

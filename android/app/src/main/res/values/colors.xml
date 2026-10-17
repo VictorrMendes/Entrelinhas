@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#3B3A98</color>
+    <!-- home-screen widget, light; values-night holds the dark ones -->
+    <color name="widget_background">#FDFCFF</color>
+    <color name="widget_card">#EEEDF8</color>
+    <color name="widget_text">#12111F</color>
+    <color name="widget_text_secondary">#5C5A73</color>
+    <color name="widget_accent">#3B3A98</color>
+    <color name="widget_flame">#F59E0B</color>
+    <color name="widget_track">#DDDCEA</color>
+</resources>

@@ -5,9 +5,9 @@ export interface ModelResult {
   usage: { tokens: { input: number; output: number; total: number } };
 }
 
-export type Gemini = (system: string, text: string, schema?: object) => Promise<ModelResult>;
+export type Model = (system: string, text: string, schema?: object) => Promise<ModelResult>;
 
-export function createGemini(apiKey: string | undefined, model: string): Gemini {
+export function createGemini(apiKey: string | undefined, model: string): Model {
   return async (system, text, schema) => {
     if (!apiKey) throw new ApiError(500, 'SERVER_MISCONFIGURED', 'GEMINI_API_KEY is not set');
     const request = () =>
@@ -43,4 +43,42 @@ export function createGemini(apiKey: string | undefined, model: string): Gemini 
       usage: { tokens: { input: u.promptTokenCount ?? 0, output: u.candidatesTokenCount ?? 0, total: u.totalTokenCount ?? 0 } },
     };
   };
+}
+
+/**
+ * Free-tier quotas are counted per model (15 requests a minute on flash-lite) and single calls sometimes queue for 5-10 s.
+ * Asks the first model; when it fails (e.g. 429) or hasn't answered after [hedgeMs], asks the next one as well, and keeps
+ * the first answer. Fails only when every model failed.
+ */
+export function modelPool(models: Model[], hedgeMs = 1500): Model {
+  return (...args) =>
+    new Promise((resolve, reject) => {
+      let started = 0;
+      let failed = 0;
+      let settled = false;
+      let timer: NodeJS.Timeout | undefined;
+      const next = () => {
+        clearTimeout(timer);
+        const model = models[started++];
+        if (settled || !model) return;
+        if (started < models.length) timer = setTimeout(next, hedgeMs);
+        // ponytail: the slower call isn't aborted; its answer is dropped and only costs its own model's quota
+        model(...args).then(
+          (result) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve(result);
+          },
+          (error) => {
+            if (settled) return;
+            if (++failed === models.length) {
+              settled = true;
+              reject(error);
+            } else if (started < models.length) next();
+          },
+        );
+      };
+      next();
+    });
 }

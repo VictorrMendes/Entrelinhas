@@ -1,0 +1,10 @@
+# ai-memory: memória entre sessões do projeto Entrelinhas (sem segredos aqui)
+workspace = "default"
+project = "victorrmendes-entrelinhas"
+
+[briefing]
+inject_on_session_start = true
+max_chars = 4000
+
+[capture]
+ignore_paths = ["**/.env", "**/.env.*", "**/*.jks", "**/keystore.properties", "**/*.pem", "**/*.key"]

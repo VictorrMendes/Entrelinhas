@@ -2,15 +2,18 @@ import path from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyError } from 'fastify';
+import { resetRoutes } from './auth/reset.ts';
 import { authRoutes } from './auth/routes.ts';
 import { createTokens, type Tokens } from './auth/tokens.ts';
 import type { Config } from './config.ts';
 import { crashRoutes } from './crashes/routes.ts';
 import { openDb } from './db.ts';
 import { ApiError, fail } from './errors.ts';
+import { createMailer, type Mailer } from './mail.ts';
 import { fileRoutes } from './sync/files.ts';
 import { snapshotRoutes } from './sync/snapshot.ts';
-import { createGemini, type Gemini } from './translate/gemini.ts';
+import { createGemini, type Model, modelPool } from './translate/gemini.ts';
+import { createNvidia } from './translate/nvidia.ts';
 import { translateRoutes } from './translate/routes.ts';
 
 declare module 'fastify' {
@@ -24,21 +27,33 @@ export interface Deps {
   config: Config;
   db: DatabaseSync;
   tokens: Tokens;
-  gemini: Gemini;
+  gemini: Model;
+  nvidia: Model | null;
+  mailer: Mailer | null;
 }
 
-export function buildApp(config: Config, overrides: { gemini?: Gemini; logger?: boolean } = {}) {
+export function buildApp(
+  config: Config,
+  overrides: { gemini?: Model; nvidia?: Model | null; mailer?: Mailer | null; logger?: boolean } = {},
+) {
   const app = Fastify({
     logger: overrides.logger === false ? false : { level: config.logLevel },
     trustProxy: config.trustProxy,
     bodyLimit: 100_000,
   });
   const db = openDb(path.join(config.dataDir, 'leitor.db'));
+  const nvidia = overrides.nvidia !== undefined ? overrides.nvidia : createNvidia(config.nvidiaApiKey, config.nvidiaModel);
+  const gemini = (model: string) => createGemini(config.geminiApiKey, model);
   const deps: Deps = {
     config,
     db,
     tokens: createTokens(config.jwtSecret),
-    gemini: overrides.gemini ?? createGemini(config.geminiApiKey, config.geminiModel),
+    // Gemini answers first (best quality); NVIDIA is next in line when it is rate limited or slow, then the other Gemini models
+    gemini:
+      overrides.gemini ??
+      modelPool([gemini(config.geminiModel), nvidia, ...config.geminiFallbackModels.map(gemini)].filter((m): m is Model => m !== null)),
+    nvidia,
+    mailer: overrides.mailer !== undefined ? overrides.mailer : createMailer(config),
   };
   app.addHook('onClose', async () => db.close());
 
@@ -61,6 +76,7 @@ export function buildApp(config: Config, overrides: { gemini?: Gemini; logger?: 
 
   app.register(rateLimit, { global: false });
   app.register(authRoutes, deps);
+  app.register(resetRoutes, deps);
   app.register(translateRoutes, deps);
   app.register(snapshotRoutes, deps);
   app.register(fileRoutes, deps);

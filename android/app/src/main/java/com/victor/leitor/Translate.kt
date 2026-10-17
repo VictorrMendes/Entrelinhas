@@ -10,23 +10,35 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.IOException
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
-class TranslateException(val code: String, message: String) : Exception(message)
+/** [serverDown]: the server, or the tunnel in front of it, failed (5xx); the offline pack can still answer. */
+class TranslateException(val code: String, message: String, val serverDown: Boolean = false) : Exception(message)
 
 data class Translated(val text: String, val offline: Boolean)
+
+/** The AI's verdict on a typed practice answer, with one short sentence saying why. */
+data class AiGrade(val correct: Boolean, val note: String)
 
 val LANGUAGES: List<String> by lazy { TranslateLanguage.getAllLanguages().sortedBy(::langName) }
 
 fun langName(tag: String): String =
     Locale.forLanguageTag(tag).getDisplayName(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
+
+/** The backend's limit for an explained text and its sentence. */
+private const val MAX_EXPLAIN = 1000
+
+/** The backend's limit for each field of a graded answer. */
+private const val MAX_GRADED = 200
 
 /** Online through the backend; ML Kit when offline is forced in Settings, or when the network fails and the pair is downloaded. */
 class TranslateService(private val ctx: Context, private val prefs: Prefs, private val db: Db, private val backend: Backend) {
@@ -51,12 +63,37 @@ class TranslateService(private val ctx: Context, private val prefs: Prefs, priva
         return Translated(out, offline)
     }
 
+    /** One translation per sentence, in order: what the interlinear layout shows under each line. */
+    suspend fun translateSentences(sentences: List<String>, src: String, tgt: String, bookId: Long): Translated {
+        if (src == tgt) return Translated(sentences.joinToString("\n"), false)
+        val keys = sentences.map { cacheKey(src, tgt, it, null) }
+        val cached = withContext(Dispatchers.IO) { keys.map { db.cachedTranslation(it) } }
+        val missing = sentences.indices.filter { cached[it] == null }
+        if (missing.isEmpty()) return Translated(cached.joinToString("\n"), false)
+        val (out, offline) = route(src, tgt) { online ->
+            if (online) {
+                missing.chunked(MAX_BATCH).flatMap { chunk ->
+                    val items = JSONArray().apply { chunk.forEach { put(JSONObject().put("blockId", "$it").put("text", sentences[it])) } }
+                    val req = JSONObject().put("sourceLanguage", src).put("targetLanguage", tgt).put("bookId", "$bookId").put("items", items)
+                    val arr = post("/translate/batch", req).getJSONObject("data").getJSONArray("items")
+                    (0 until arr.length()).map { i -> arr.getJSONObject(i).let { it.getString("blockId").toInt() to it.getString("translatedText") } }
+                }.toMap()
+            } else {
+                missing.associateWith { client(src, tgt).translate(sentences[it]).await() }
+            }
+        }
+        if (!offline) withContext(Dispatchers.IO) { out.forEach { (i, t) -> db.cacheTranslation(keys[i], t) } }
+        // a sentence the model skipped falls back to the original, so lines never shift
+        return Translated(sentences.indices.joinToString("\n") { (cached[it] ?: out[it] ?: sentences[it]).replace('\n', ' ') }, offline)
+    }
+
     // Bump PROMPT_VERSION when the backend prompts change, so answers from the old prompt aren't served from cache.
     private fun cacheKey(src: String, tgt: String, text: String, context: String?) =
         sha256Hex("$PROMPT_VERSION|$src|$tgt|$text|${context.orEmpty()}".toByteArray())
 
     private companion object {
         const val PROMPT_VERSION = 2
+        const val MAX_BATCH = 20
     }
 
     private suspend fun <T> route(src: String, tgt: String, block: suspend (online: Boolean) -> T): Pair<T, Boolean> {
@@ -71,21 +108,51 @@ class TranslateService(private val ctx: Context, private val prefs: Prefs, priva
         }
         return try {
             block(true) to false
-        } catch (e: IOException) {
+        } catch (e: Exception) {
+            if (e !is IOException && !(e is TranslateException && e.serverDown)) throw e
             if (isDownloaded(src, tgt)) block(false) to true
-            else throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+            else if (e is IOException) throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+            else throw e
         }
     }
+
+    /** What [text] means in [sentence], with grammar notes and an example, explained by AI in [tgt]. Needs a connection. */
+    suspend fun explain(text: String, sentence: String, src: String, tgt: String): String = try {
+        val body = JSONObject().put("text", text.take(MAX_EXPLAIN)).put("sentence", sentence.take(MAX_EXPLAIN)).put("sourceLang", src).put("targetLang", tgt)
+        post("/explain", body).getJSONObject("data").getString("explanation")
+    } catch (e: IOException) {
+        throw TranslateException("NETWORK", ctx.getString(R.string.translation_no_connection))
+    }
+
+    /**
+     * Whether [answer], refused by the strict check, still means [meaning] (a synonym, another form of [expected]).
+     * Null when offline or the model fails: then the strict verdict stands.
+     */
+    suspend fun grade(expected: String, meaning: String, answer: String, src: String, tgt: String): AiGrade? = try {
+        val body = JSONObject().put("expected", expected.take(MAX_GRADED)).put("meaning", meaning.take(MAX_GRADED))
+            .put("answer", answer.trim().take(MAX_GRADED)).put("sourceLang", src).put("targetLang", tgt.ifEmpty { prefs.defaultTarget })
+        post("/grade", body).getJSONObject("data").let { AiGrade(it.getBoolean("correct"), it.optString("note")) }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
+    /** The CEFR level (A1–C2) a learner needs for a book, judged by AI from a few excerpts of it. */
+    suspend fun level(sample: String, lang: String): String =
+        post("/level", JSONObject().put("sample", sample).put("language", lang)).getJSONObject("data").getString("level")
 
     private suspend fun post(path: String, body: JSONObject): JSONObject = try {
         backend.json("POST", path, body)
     } catch (e: ApiException) {
-        throw TranslateException(e.code, errorMessage(e.code, e.message))
+        throw TranslateException(e.code, errorMessage(e.code, e.message), serverDown = e.status >= 500)
     }
 
     private fun errorMessage(code: String, message: String?) = when (code) {
         "LIMIT_EXCEEDED" -> ctx.getString(R.string.translation_limit)
         "RATE_LIMIT" -> ctx.getString(R.string.translation_rate_limit)
+        "NOT_FOUND" -> ctx.getString(R.string.server_outdated) // the app was updated before the server
+        "HTTP_502", "HTTP_503", "HTTP_504" -> ctx.getString(R.string.server_unavailable) // the proxy's own error page, not ours
         else -> message?.takeIf { it.isNotBlank() } ?: ctx.getString(R.string.translation_online_failed)
     }
 
