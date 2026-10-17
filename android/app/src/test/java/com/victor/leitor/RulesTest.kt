@@ -26,12 +26,12 @@ class RulesTest {
     fun blankDaysSpendShieldsThenBreak() {
         // day 11 blank -> one shield spent, streak continues on day 12
         assertEquals(Streak.State(4, 4, 1, true), Streak.compute(listOf(8, 9, 10, 12), today = 12))
-        // three blank days > two shields -> restart
-        assertEquals(Streak.State(1, 3, 2, true), Streak.compute(listOf(8, 9, 10, 14), today = 14))
+        // three blank days > two shields -> restart, and the 3 lost days can be earned back
+        assertEquals(Streak.State(1, 3, 2, true, Streak.Recovery(3, 1)), Streak.compute(listOf(8, 9, 10, 14), today = 14))
         // nothing since day 10 and two whole days missed (11, 12): shields cover it
         assertEquals(Streak.State(3, 3, 0, false), Streak.compute(listOf(8, 9, 10), today = 13))
         // three whole days missed: broken
-        assertEquals(Streak.State(0, 3, 0, false), Streak.compute(listOf(8, 9, 10), today = 14))
+        assertEquals(Streak.State(0, 3, 0, false, Streak.Recovery(3, 0)), Streak.compute(listOf(8, 9, 10), today = 14))
     }
 
     @Test

@@ -25,13 +25,23 @@ object Streak {
     const val MAX_SHIELDS = 2
     const val SHIELD_EVERY = 7
 
-    data class State(val current: Int, val longest: Int, val shields: Int, val metToday: Boolean)
+    /** A broken streak comes back after this many met days in a row... */
+    const val RECOVER_DAYS = 5
+
+    /** ...started at most this many days after it broke. */
+    const val RECOVER_WITHIN = 7
+
+    /** The broken streak of [lost] days being earned back; [done] of the RECOVER_DAYS days in a row are met. */
+    data class Recovery(val lost: Int, val done: Int)
+
+    data class State(val current: Int, val longest: Int, val shields: Int, val metToday: Boolean, val recovery: Recovery? = null)
 
     /** [metDays] are ascending local days. */
     fun compute(metDays: List<Long>, today: Long): State {
         var current = 0
         var longest = 0
         var shields = 0
+        var lost = 0
         var last: Long? = null
         for (day in metDays) {
             if (day == last) continue
@@ -39,7 +49,13 @@ object Streak {
             if (current > 0 && missed != null && missed <= shields) {
                 current++
                 shields -= missed.toInt()
+                if (lost > 0 && missed > 0) lost = 0 // earning back needs every day, shields don't count
+                if (lost > 0 && current == RECOVER_DAYS) {
+                    current += lost
+                    lost = 0
+                }
             } else {
+                lost = if (current >= 2 && missed != null && missed <= RECOVER_WITHIN) current else 0
                 current = 1
                 shields = MAX_SHIELDS
             }
@@ -50,8 +66,9 @@ object Streak {
         if (last == null) return State(0, 0, 0, false)
         // blank days up to yesterday already spent their shields; today isn't over yet
         val missedNow = maxOf(0L, today - last - 1)
-        return if (missedNow > shields) State(0, longest, 0, false)
-        else State(current, longest, shields - missedNow.toInt(), last == today)
+        // broken now: meeting the goal again soon starts the earn-back
+        if (missedNow > shields) return State(0, longest, 0, false, Recovery(current, 0).takeIf { current >= 2 && missedNow <= RECOVER_WITHIN })
+        return State(current, longest, shields - missedNow.toInt(), last == today, Recovery(lost, current).takeIf { lost > 0 && missedNow == 0L })
     }
 }
 

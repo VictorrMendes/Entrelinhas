@@ -59,6 +59,12 @@ fun StreakCard(app: App, version: Int, onClick: () -> Unit) {
                     if (streak.metToday) stringResource(R.string.goal_met_today) else stringResource(R.string.goal_today_progress, read / 60, goal / 60),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                streak.recovery?.let {
+                    Text(
+                        stringResource(R.string.streak_recovery, days(it.lost), it.done, Streak.RECOVER_DAYS),
+                        style = MaterialTheme.typography.bodySmall, color = Flame, fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Box(Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))) {
                     val fraction = if (streak.metToday) 1f else (read.toFloat() / goal).coerceIn(0f, 1f)

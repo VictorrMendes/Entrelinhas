@@ -56,6 +56,24 @@ class HabitTest {
     }
 
     @Test
+    fun aBrokenStreakComesBackAfterFiveMetDaysInARow() {
+        val before = (1L..10L).toList() // a 10-day streak, then 4 blank days: more than the 2 shields
+        assertEquals(Streak.Recovery(10, 0), Streak.compute(before, 14).recovery)
+        val midway = Streak.compute(before + (15L..17L), 17)
+        assertEquals(3, midway.current)
+        assertEquals(Streak.Recovery(10, 3), midway.recovery)
+        val back = Streak.compute(before + (15L..19L), 19)
+        assertEquals(15, back.current)
+        assertNull(back.recovery)
+        // a blank day while earning back (even one a shield covers) loses it
+        val gap = Streak.compute(before + listOf(15L, 16L, 18L, 19L, 20L), 20)
+        assertEquals(5, gap.current)
+        assertNull(gap.recovery)
+        // and so does coming back too late
+        assertEquals(5, Streak.compute(before + (25L..29L), 29).current)
+    }
+
+    @Test
     fun theWordOfTheDayStaysAllDayAndSkipsMasteredWords() {
         fun w(id: Long, box: Int = 0) = Word(id, "w$id", "t$id", null, null, box, null, "en")
         val words = listOf(w(3), w(1), w(2, box = Leitner.MASTERED))

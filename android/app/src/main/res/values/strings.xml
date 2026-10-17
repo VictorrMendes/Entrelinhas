@@ -37,7 +37,8 @@
     <string name="streak_days">%1$s de ofensiva</string>
     <string name="goal_met_today">Meta de hoje concluída ✓</string>
     <string name="goal_today_progress">Hoje: %1$d de %2$d min de leitura</string>
-    <string name="streak_rules">Leia %1$d min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos.</string>
+    <string name="streak_recovery">Recupere %1$s: cumpra a meta %3$d dias seguidos (%2$d/%3$d)</string>
+    <string name="streak_rules">Leia %1$d min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos. Se a ofensiva quebrar, cumpra a meta 5 dias seguidos (começando em até uma semana) e ela volta inteira.</string>
     <string name="streak_summary">Atual: %1$s · Recorde: %2$s · Escudos: %3$d</string>
     <string name="daily_goal">Meta diária</string>
     <string name="n_min">%1$d min</string>
