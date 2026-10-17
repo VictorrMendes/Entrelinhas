@@ -85,8 +85,7 @@ fun LearnMode(app: App, onClose: () -> Unit) {
             if (question == null) {
                 PracticeSummary(app, round, combo, accolades, onAgain = { round = newRound(); step++ }, onDone = onClose)
             } else {
-                Question(app, question, key = step) { right ->
-                    combo.answer(right)
+                Question(app, question, key = step, onVerdict = combo::answer) { right ->
                     round.answer(right)
                     if (round.current == null) accolades = combo.finish(app.prefs)
                     step++
@@ -97,7 +96,7 @@ fun LearnMode(app: App, onClose: () -> Unit) {
 }
 
 @Composable
-private fun Question(app: App, q: PracticeQuestion, key: Int, onAnswered: (right: Boolean) -> Unit) {
+private fun Question(app: App, q: PracticeQuestion, key: Int, onVerdict: (right: Boolean) -> Unit, onAnswered: (right: Boolean) -> Unit) {
     val scope = rememberCoroutineScope()
     val res = LocalResources.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -108,9 +107,12 @@ private fun Question(app: App, q: PracticeQuestion, key: Int, onAnswered: (right
     val word = q.word
     val answer = if (q.stage == PracticeStage.CHOICE) word.translated.trim() else word.original
 
-    // a right answer moves on by itself; a wrong one waits for "Continuar" so the right answer gets read
+    // the combo counts the answer as soon as it's judged; a right answer moves on by itself, a wrong one waits for
+    // "Continuar" so the right answer gets read
     LaunchedEffect(verdict) {
-        if (verdict?.right == true && verdict?.exact == true) {
+        val v = verdict ?: return@LaunchedEffect
+        onVerdict(v.right)
+        if (v.right && v.exact) {
             delay(NEXT_AFTER_RIGHT_MS)
             onAnswered(true)
         }
@@ -245,10 +247,13 @@ private fun PracticeSummary(app: App, round: PracticeRound, combo: ComboCounter,
         stringResource(R.string.practice_done_title), sessionStats(round.words.size, clean, combo.seconds), accolades, combo.best,
         onMore = onAgain, onDone = onDone,
     )
-    Text(
-        stringResource(R.string.practice_done_text, clean, round.words.size),
-        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    // without a miss the 100% already says it all
+    if (clean < round.words.size) {
+        Text(
+            stringResource(R.string.practice_done_text, clean, round.words.size),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     round.words.forEach { w ->
         val missed = w.id in round.missed
         Row(verticalAlignment = Alignment.CenterVertically) {
