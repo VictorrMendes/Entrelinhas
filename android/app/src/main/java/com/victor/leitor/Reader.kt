@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -97,9 +98,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -251,6 +255,11 @@ private fun ReaderContent(app: App, book: Book, blocks: List<Block>, toc: List<T
                 .onFailure(::fail)
             loading.remove(i)
         }
+    }
+
+    fun hideTranslation(i: Int) {
+        translations.remove(i)
+        app.db.deleteParagraphTranslation(book.id, i, src, tgt)
     }
 
     fun lookUp(block: Int, start: Int, end: Int) {
@@ -413,7 +422,9 @@ private fun ReaderContent(app: App, book: Book, blocks: List<Block>, toc: List<T
                         saved = savedWords,
                         onWord = { start, end -> lookUp(i, start, end) },
                         onLongPress = { offset -> openSentence(i, offset) },
+                        onSelect = { start, end -> lookUp(i, start, end) },
                         onTranslate = { translateBlock(i) },
+                        onHide = { hideTranslation(i) },
                         onLink = { target -> scope.launch { listState.scrollToItem(target) } },
                     )
                 }
@@ -534,7 +545,9 @@ private fun BlockItem(
     saved: Set<String>,
     onWord: (start: Int, end: Int) -> Unit,
     onLongPress: (offset: Int) -> Unit,
+    onSelect: (start: Int, end: Int) -> Unit,
     onTranslate: () -> Unit,
+    onHide: () -> Unit,
     onLink: (target: Int) -> Unit,
 ) {
     val size = style.fontSize.sp
@@ -564,6 +577,10 @@ private fun BlockItem(
         if (offset >= prefix) onLongPress(offset - prefix)
     }
 
+    fun select(start: Int, end: Int) {
+        if (end > prefix) onSelect((start - prefix).coerceAtLeast(0), end - prefix)
+    }
+
     if (hidden) {
         // "ears only": the text stays veiled while it is read; a tap shows it to check what was understood
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable(onClick = onReveal)) {
@@ -588,29 +605,40 @@ private fun BlockItem(
             sentences.forEachIndexed { k, r ->
                 val from = if (k == 0) 0 else prefix + r.first
                 val to = if (k == sentences.lastIndex) text.length else prefix + sentences[k + 1].first
-                TappableText(text.subSequence(from, to), textStyle, onTap = { tap(from + it) }, onLongPress = { longPress(from + it) })
+                TappableText(
+                    text.subSequence(from, to), textStyle,
+                    onTap = { tap(from + it) }, onLongPress = { longPress(from + it) }, onSelect = { s, e -> select(from + s, from + e) },
+                )
                 Text(lines[k], Modifier.padding(bottom = 8.dp), style = under)
             }
+            ParagraphLink(stringResource(R.string.hide_translation), Modifier.align(Alignment.End), onHide)
             return@Column
         }
-        TappableText(text, textStyle, onTap = ::tap, onLongPress = ::longPress)
+        TappableText(text, textStyle, onTap = ::tap, onLongPress = ::longPress, onSelect = ::select)
         when {
             navigation -> Unit
             loading -> LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 6.dp))
-            translation != null -> Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-            ) { Text(translation.replace('\n', ' '), Modifier.padding(12.dp), style = textStyle) }
-            else -> Text(
-                stringResource(R.string.translate_paragraph),
-                Modifier.align(Alignment.End).clip(RoundedCornerShape(4.dp)).clickable(onClick = onTranslate).padding(horizontal = 6.dp, vertical = 2.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            translation != null -> {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                ) { Text(translation.replace('\n', ' '), Modifier.padding(12.dp), style = textStyle) }
+                ParagraphLink(stringResource(R.string.hide_translation), Modifier.align(Alignment.End), onHide)
+            }
+            else -> ParagraphLink(stringResource(R.string.translate_paragraph), Modifier.align(Alignment.End), onTranslate)
         }
     }
 }
+
+/** The small link under a paragraph: "traduzir", or "ocultar" once it is translated. */
+@Composable
+private fun ParagraphLink(text: String, modifier: Modifier, onClick: () -> Unit) = Text(
+    text,
+    modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.dp),
+    style = MaterialTheme.typography.labelMedium,
+    color = MaterialTheme.colorScheme.primary,
+)
 
 private fun styled(
     block: Block,
@@ -662,28 +690,52 @@ private fun styled(
 /** Case- and accent-insensitive; keeps the length of precomposed text, so match offsets still apply to the original. */
 private fun normalize(s: String) = Normalizer.normalize(s.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}"), "")
 
+/**
+ * Text that answers a tap with its offset. Holding a word and dragging marks whole words up to the finger and, on
+ * release, hands the marked range to [onSelect]; holding without dragging is [onLongPress].
+ */
 @Composable
-private fun TappableText(
+internal fun TappableText(
     text: AnnotatedString,
     style: TextStyle,
     onTap: (offset: Int) -> Unit,
     onLongPress: (Int) -> Unit,
+    onSelect: (start: Int, end: Int) -> Unit,
 ) {
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var marked by remember { mutableStateOf<IntRange?>(null) }
+    val haptics = LocalHapticFeedback.current
+    val markColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    val shown = marked?.let { m -> buildAnnotatedString { append(text); addStyle(SpanStyle(background = markColor), m.first, m.last + 1) } } ?: text
     Text(
-        text,
+        shown,
         style = style,
         onTextLayout = { layout = it },
-        modifier = Modifier.pointerInput(text) {
-            detectTapGestures(
-                onTap = { pos ->
-                    layout?.let {
-                        onTap(it.getOffsetForPosition(pos))
-                    }
-                },
-                onLongPress = { pos -> layout?.let { onLongPress(it.getOffsetForPosition(pos)) } },
-            )
-        },
+        modifier = Modifier
+            // the empty long press keeps a held finger from also counting as a tap; the detector below answers it
+            .pointerInput(text) { detectTapGestures(onTap = { pos -> layout?.let { onTap(it.getOffsetForPosition(pos)) } }, onLongPress = {}) }
+            .pointerInput(text) {
+                var pressed = 0
+                var anchor: IntRange? = null
+                fun wordAt(pos: Offset) = layout?.let { wordRange(text.text, it.getOffsetForPosition(pos)) }
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { pos ->
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        pressed = layout?.getOffsetForPosition(pos) ?: 0
+                        anchor = wordAt(pos)
+                        marked = anchor
+                    },
+                    onDrag = { change, _ ->
+                        anchor?.let { a -> wordAt(change.position)?.let { w -> marked = minOf(a.first, w.first)..maxOf(a.last, w.last) } }
+                    },
+                    onDragEnd = {
+                        val m = marked
+                        marked = null
+                        if (m == null || m == anchor) onLongPress(pressed) else onSelect(m.first, m.last + 1)
+                    },
+                    onDragCancel = { marked = null },
+                )
+            },
     )
 }
 

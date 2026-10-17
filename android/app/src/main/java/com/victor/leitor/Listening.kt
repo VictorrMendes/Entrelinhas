@@ -238,7 +238,14 @@ fun DictationSheet(app: App, sentences: List<Pair<String, String>>, onDismiss: (
             )
             val r = result
             if (r == null) {
-                Button(onClick = { result = checkDictation(sentence, typed); app.db.record(Stat.DICTATION) }, enabled = typed.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        result = checkDictation(sentence, typed)
+                        app.db.record(Stat.DICTATION)
+                        if (index == sentences.lastIndex) app.db.completeExercise() // the last sentence ends the round
+                    },
+                    enabled = typed.isNotBlank(), modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(R.string.check))
                 }
             } else {

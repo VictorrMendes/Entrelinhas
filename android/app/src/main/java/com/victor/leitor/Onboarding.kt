@@ -52,7 +52,7 @@ private val PAGES = listOf(
 
 @Composable
 fun Onboarding(app: App, onDone: () -> Unit) {
-    val pageCount = PAGES.size + 1
+    val pageCount = PAGES.size + 2
     val pager = rememberPagerState { pageCount }
     val scope = rememberCoroutineScope()
     val last = pager.currentPage == pageCount - 1
@@ -61,7 +61,13 @@ fun Onboarding(app: App, onDone: () -> Unit) {
             Box(Modifier.fillMaxWidth().height(48.dp), contentAlignment = Alignment.CenterEnd) {
                 if (!last) TextButton(onClick = { scope.launch { pager.animateScrollToPage(pageCount - 1) } }) { Text(stringResource(R.string.skip)) }
             }
-            HorizontalPager(pager, Modifier.weight(1f)) { i -> if (i < PAGES.size) PageContent(PAGES[i]) else SetupPage(app) }
+            HorizontalPager(pager, Modifier.weight(1f)) { i ->
+                when {
+                    i < PAGES.size -> PageContent(PAGES[i])
+                    i == PAGES.size -> KitPage(app)
+                    else -> SetupPage(app)
+                }
+            }
             Row(Modifier.align(Alignment.CenterHorizontally).padding(vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (0 until pageCount).forEach { i ->
                     val active = i == pager.currentPage
@@ -76,6 +82,47 @@ fun Onboarding(app: App, onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) { Text(stringResource(if (last) R.string.start else R.string.next)) }
         }
+    }
+}
+
+/** Optional: someone with no books yet starts with the level's first kit, a few words a day. */
+@Composable
+private fun KitPage(app: App) {
+    var level by remember { mutableStateOf(KIT_LEVELS.first()) }
+    var perDay by remember { mutableStateOf(app.prefs.newWordsPerDay) }
+    val first = remember(level) { loadKits(app, level).first() }
+    var added by remember { mutableStateOf(app.prefs.addedKits.split(',').contains(first.id)) }
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("🗂️", fontSize = 64.sp)
+        Spacer(Modifier.height(20.dp))
+        Text(stringResource(R.string.onboarding_kit_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+        Text(
+            stringResource(R.string.onboarding_kit_text),
+            Modifier.padding(top = 6.dp, bottom = 14.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Pills(KIT_LEVELS, KIT_LEVELS.indexOf(level)) {
+            level = KIT_LEVELS[it]
+            added = false
+        }
+        Text(stringResource(R.string.kits_per_day), Modifier.padding(top = 18.dp, bottom = 10.dp), style = MaterialTheme.typography.titleMedium)
+        Pills(NEW_WORDS_OPTIONS.map { "$it" }, NEW_WORDS_OPTIONS.indexOf(perDay)) {
+            perDay = NEW_WORDS_OPTIONS[it]
+            app.prefs.newWordsPerDay = perDay
+        }
+        Button(
+            onClick = {
+                app.db.queueKit(first.title, first.words)
+                app.prefs.addedKits = (app.prefs.addedKits.split(',').filter { it.isNotEmpty() } + first.id).joinToString(",")
+                app.releaseKitWords()
+                added = true
+            },
+            enabled = !added,
+            modifier = Modifier.padding(top = 22.dp),
+        ) { Text(if (added) stringResource(R.string.kit_added) else stringResource(R.string.onboarding_kit_add, first.title)) }
     }
 }
 

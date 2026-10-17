@@ -133,13 +133,14 @@ private fun Question(app: App, q: PracticeQuestion, key: Int, onAnswered: (right
             v.right && v.exact -> stringResource(R.string.practice_right)
             v.right && v.note != null -> stringResource(R.string.practice_ai_accepted, answer)
             v.right -> stringResource(R.string.practice_almost, answer)
+            picked == null && v.typed == null -> stringResource(R.string.practice_shown_answer) // "Não sei"
             else -> stringResource(R.string.practice_wrong)
         },
         style = MaterialTheme.typography.titleSmall,
         color = when {
             v == null -> MaterialTheme.colorScheme.onSurfaceVariant
             v.right -> Success
-            else -> Flame
+            else -> MaterialTheme.colorScheme.error
         },
     )
 
@@ -229,7 +230,10 @@ fun AnswerOption(text: String, state: Boolean?, enabled: Boolean, onClick: () ->
 @Composable
 private fun PracticeSummary(app: App, round: PracticeRound, onAgain: () -> Unit, onDone: () -> Unit) {
     // the round counts as a review: no miss moves a word up a box, a miss sends it back to today's queue
-    LaunchedEffect(round) { round.words.forEach { app.db.answer(it, known = it.id !in round.missed) } }
+    LaunchedEffect(round) {
+        round.words.forEach { app.db.answer(it, known = it.id !in round.missed) }
+        app.db.completeExercise()
+    }
     val clean = round.words.count { it.id !in round.missed }
     Text(stringResource(R.string.practice_done_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
     Text(

@@ -328,3 +328,9 @@ fun monthCells(firstDay: Long, length: Int, firstDow: Int): List<Long?> {
 /** The device's first day of the week: 0 Sunday … 6 Saturday. */
 fun firstDayOfWeek(): Int = java.util.Calendar.getInstance().firstDayOfWeek - 1
 
+/** One word for the whole [day], a different one the next day; mastered words only when nothing else is left. */
+fun wordOfDay(words: List<Word>, day: Long): Word? {
+    val pool = words.filter { !it.learned }.ifEmpty { words }.sortedBy { it.id }
+    return pool.getOrNull(Math.floorMod(day, pool.size.coerceAtLeast(1).toLong()).toInt())
+}
+

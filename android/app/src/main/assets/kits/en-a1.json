@@ -1,0 +1,6576 @@
+{
+ "level": "A1",
+ "source": "CEFR-J Vocabulary Profile 1.5 (© Tono Lab, TUFS)",
+ "packs": [
+  {
+   "id": "a1-12",
+   "title": "Hobbies e lazer 1",
+   "words": [
+    {
+     "word": "activity",
+     "pos": "noun",
+     "translation": "atividade",
+     "example": "Reading is a good activity."
+    },
+    {
+     "word": "art",
+     "pos": "noun",
+     "translation": "arte",
+     "example": "I like art class."
+    },
+    {
+     "word": "ball",
+     "pos": "noun",
+     "translation": "bola",
+     "example": "The ball is red."
+    },
+    {
+     "word": "baseball",
+     "pos": "noun",
+     "translation": "beisebol",
+     "example": "He plays baseball."
+    },
+    {
+     "word": "basketball",
+     "pos": "noun",
+     "translation": "basquete",
+     "example": "We play basketball."
+    },
+    {
+     "word": "bicycle",
+     "pos": "noun",
+     "translation": "bicicleta",
+     "example": "My bicycle is blue."
+    },
+    {
+     "word": "bike",
+     "pos": "noun",
+     "translation": "bicicleta",
+     "example": "I ride my bike."
+    },
+    {
+     "word": "camp",
+     "pos": "noun",
+     "translation": "acampamento",
+     "example": "We go to summer camp."
+    },
+    {
+     "word": "cartoon",
+     "pos": "noun",
+     "translation": "desenho animado",
+     "example": "I watch a cartoon."
+    },
+    {
+     "word": "CD",
+     "pos": "noun",
+     "translation": "CD",
+     "example": "This is a music CD."
+    },
+    {
+     "word": "cinema",
+     "pos": "noun",
+     "translation": "cinema",
+     "example": "Let's go to the cinema."
+    },
+    {
+     "word": "climb",
+     "pos": "noun",
+     "translation": "escalada",
+     "example": "That is a big climb."
+    },
+    {
+     "word": "club",
+     "pos": "noun",
+     "translation": "clube",
+     "example": "She is in the club."
+    },
+    {
+     "word": "collection",
+     "pos": "noun",
+     "translation": "coleção",
+     "example": "I have a stamp collection."
+    },
+    {
+     "word": "concert",
+     "pos": "noun",
+     "translation": "show",
+     "example": "The music concert is loud."
+    },
+    {
+     "word": "dance",
+     "pos": "noun",
+     "translation": "dança",
+     "example": "We go to a dance."
+    },
+    {
+     "word": "dancing",
+     "pos": "noun",
+     "translation": "dança",
+     "example": "Dancing is fun."
+    },
+    {
+     "word": "doll",
+     "pos": "noun",
+     "translation": "boneca",
+     "example": "She has a new doll."
+    },
+    {
+     "word": "drama",
+     "pos": "noun",
+     "translation": "teatro",
+     "example": "He likes drama class."
+    },
+    {
+     "word": "drive",
+     "pos": "noun",
+     "translation": "passeio de carro",
+     "example": "Let us take a drive."
+    },
+    {
+     "word": "driver",
+     "pos": "noun",
+     "translation": "motorista",
+     "example": "He is a bus driver."
+    },
+    {
+     "word": "drum",
+     "pos": "noun",
+     "translation": "tambor",
+     "example": "He plays the drum."
+    },
+    {
+     "word": "DVD",
+     "pos": "noun",
+     "translation": "DVD",
+     "example": "We watch a DVD."
+    },
+    {
+     "word": "event",
+     "pos": "noun",
+     "translation": "evento",
+     "example": "This is a school event."
+    },
+    {
+     "word": "festival",
+     "pos": "noun",
+     "translation": "festival",
+     "example": "The food festival is great."
+    },
+    {
+     "word": "fishing",
+     "pos": "noun",
+     "translation": "pesca",
+     "example": "Fishing is relaxing."
+    },
+    {
+     "word": "football",
+     "pos": "noun",
+     "translation": "futebol",
+     "example": "They play football today."
+    },
+    {
+     "word": "game",
+     "pos": "noun",
+     "translation": "jogo",
+     "example": "This game is fun."
+    },
+    {
+     "word": "hobby",
+     "pos": "noun",
+     "translation": "passatempo",
+     "example": "Reading is my hobby."
+    }
+   ]
+  },
+  {
+   "id": "a1-13",
+   "title": "Hobbies e lazer 2",
+   "words": [
+    {
+     "word": "holiday",
+     "pos": "noun",
+     "translation": "feriado, férias",
+     "example": "Today is a holiday."
+    },
+    {
+     "word": "kite",
+     "pos": "noun",
+     "translation": "pipa",
+     "example": "I fly a red kite."
+    },
+    {
+     "word": "match",
+     "pos": "noun",
+     "translation": "partida, jogo",
+     "example": "The football match is on."
+    },
+    {
+     "word": "music",
+     "pos": "noun",
+     "translation": "música",
+     "example": "I like pop music."
+    },
+    {
+     "word": "opera",
+     "pos": "noun",
+     "translation": "ópera",
+     "example": "She sings the opera."
+    },
+    {
+     "word": "painting",
+     "pos": "noun",
+     "translation": "pintura",
+     "example": "This painting is nice."
+    },
+    {
+     "word": "party",
+     "pos": "noun",
+     "translation": "festa",
+     "example": "We go to a party."
+    },
+    {
+     "word": "piano",
+     "pos": "noun",
+     "translation": "piano",
+     "example": "He plays the piano."
+    },
+    {
+     "word": "picnic",
+     "pos": "noun",
+     "translation": "piquenique",
+     "example": "We have a picnic."
+    },
+    {
+     "word": "picture",
+     "pos": "noun",
+     "translation": "foto, imagem",
+     "example": "Look at my picture."
+    },
+    {
+     "word": "play",
+     "pos": "noun",
+     "translation": "peça de teatro",
+     "example": "The school play is good."
+    },
+    {
+     "word": "player",
+     "pos": "noun",
+     "translation": "jogador",
+     "example": "He is a good player."
+    },
+    {
+     "word": "practice",
+     "pos": "noun",
+     "translation": "prática, treino",
+     "example": "Time for soccer practice."
+    },
+    {
+     "word": "program",
+     "pos": "noun",
+     "translation": "programa",
+     "example": "I like this TV program."
+    },
+    {
+     "word": "reader",
+     "pos": "noun",
+     "translation": "leitor",
+     "example": "She is an avid reader."
+    },
+    {
+     "word": "reading",
+     "pos": "noun",
+     "translation": "leitura",
+     "example": "Reading is my hobby."
+    },
+    {
+     "word": "run",
+     "pos": "noun",
+     "translation": "corrida",
+     "example": "I go for a run."
+    },
+    {
+     "word": "smoking",
+     "pos": "noun",
+     "translation": "fumo, fumar",
+     "example": "Smoking is not allowed."
+    },
+    {
+     "word": "soccer",
+     "pos": "noun",
+     "translation": "futebol",
+     "example": "We play soccer today."
+    },
+    {
+     "word": "song",
+     "pos": "noun",
+     "translation": "canção",
+     "example": "This is a happy song."
+    },
+    {
+     "word": "sport",
+     "pos": "noun",
+     "translation": "esporte",
+     "example": "Soccer is my sport."
+    },
+    {
+     "word": "stage",
+     "pos": "noun",
+     "translation": "palco",
+     "example": "The singer is on stage."
+    },
+    {
+     "word": "swim",
+     "pos": "noun",
+     "translation": "natação, nadar",
+     "example": "Let us take a swim."
+    },
+    {
+     "word": "swimming",
+     "pos": "noun",
+     "translation": "natação",
+     "example": "Swimming is very fun."
+    },
+    {
+     "word": "swimming pool",
+     "pos": "noun",
+     "translation": "piscina",
+     "example": "The swimming pool is cold."
+    },
+    {
+     "word": "tennis",
+     "pos": "noun",
+     "translation": "tênis",
+     "example": "They play tennis now."
+    },
+    {
+     "word": "trip",
+     "pos": "noun",
+     "translation": "viagem",
+     "example": "We take a fun trip."
+    },
+    {
+     "word": "volleyball",
+     "pos": "noun",
+     "translation": "vôlei",
+     "example": "We play volleyball outside."
+    }
+   ]
+  },
+  {
+   "id": "a1-14",
+   "title": "Trabalho e escola 1",
+   "words": [
+    {
+     "word": "actor",
+     "pos": "noun",
+     "translation": "ator",
+     "example": "He is a famous actor."
+    },
+    {
+     "word": "bee",
+     "pos": "noun",
+     "translation": "abelha",
+     "example": "I see a big bee."
+    },
+    {
+     "word": "brush",
+     "pos": "noun",
+     "translation": "escova",
+     "example": "Where is my hair brush?"
+    },
+    {
+     "word": "business",
+     "pos": "noun",
+     "translation": "negócio",
+     "example": "He has a small business."
+    },
+    {
+     "word": "class",
+     "pos": "noun",
+     "translation": "aula",
+     "example": "English class starts now."
+    },
+    {
+     "word": "classmate",
+     "pos": "noun",
+     "translation": "colega de classe",
+     "example": "She is my new classmate."
+    },
+    {
+     "word": "classroom",
+     "pos": "noun",
+     "translation": "sala de aula",
+     "example": "Our classroom is very clean."
+    },
+    {
+     "word": "college",
+     "pos": "noun",
+     "translation": "faculdade",
+     "example": "She studies at college."
+    },
+    {
+     "word": "cook",
+     "pos": "noun",
+     "translation": "cozinheiro",
+     "example": "He is a good cook."
+    },
+    {
+     "word": "cop",
+     "pos": "noun",
+     "translation": "policial",
+     "example": "The cop helps us."
+    },
+    {
+     "word": "copy",
+     "pos": "noun",
+     "translation": "cópia",
+     "example": "I need a copy of this."
+    },
+    {
+     "word": "course",
+     "pos": "noun",
+     "translation": "curso",
+     "example": "I take an English course."
+    },
+    {
+     "word": "doctor",
+     "pos": "noun",
+     "translation": "médico",
+     "example": "The doctor is very kind."
+    },
+    {
+     "word": "engineer",
+     "pos": "noun",
+     "translation": "engenheiro",
+     "example": "My father is an engineer."
+    },
+    {
+     "word": "farmer",
+     "pos": "noun",
+     "translation": "fazendeiro",
+     "example": "The farmer works hard."
+    },
+    {
+     "word": "grammar",
+     "pos": "noun",
+     "translation": "gramática",
+     "example": "Grammar is very important."
+    },
+    {
+     "word": "history",
+     "pos": "noun",
+     "translation": "história",
+     "example": "History is my favorite subject."
+    },
+    {
+     "word": "homework",
+     "pos": "noun",
+     "translation": "dever de casa",
+     "example": "I do my homework daily."
+    },
+    {
+     "word": "job",
+     "pos": "noun",
+     "translation": "trabalho",
+     "example": "She has a new job."
+    },
+    {
+     "word": "leader",
+     "pos": "noun",
+     "translation": "líder",
+     "example": "He is a good leader."
+    },
+    {
+     "word": "lesson",
+     "pos": "noun",
+     "translation": "lição",
+     "example": "This lesson is very easy."
+    },
+    {
+     "word": "machine",
+     "pos": "noun",
+     "translation": "máquina",
+     "example": "This machine is new."
+    },
+    {
+     "word": "math",
+     "pos": "noun",
+     "translation": "matemática",
+     "example": "Math class is at two."
+    },
+    {
+     "word": "musician",
+     "pos": "noun",
+     "translation": "músico",
+     "example": "He is a talented musician."
+    }
+   ]
+  },
+  {
+   "id": "a1-15",
+   "title": "Trabalho e escola 2",
+   "words": [
+    {
+     "word": "nurse",
+     "pos": "noun",
+     "translation": "enfermeiro, enfermeira",
+     "example": "The nurse helps the sick."
+    },
+    {
+     "word": "officer",
+     "pos": "noun",
+     "translation": "policial, oficial",
+     "example": "The police officer helps us."
+    },
+    {
+     "word": "owner",
+     "pos": "noun",
+     "translation": "dono, proprietário",
+     "example": "He is the store owner."
+    },
+    {
+     "word": "paint",
+     "pos": "noun",
+     "translation": "tinta",
+     "example": "I need blue paint."
+    },
+    {
+     "word": "paragraph",
+     "pos": "noun",
+     "translation": "parágrafo",
+     "example": "Read this short paragraph."
+    },
+    {
+     "word": "poem",
+     "pos": "noun",
+     "translation": "poema",
+     "example": "She wrote a nice poem."
+    },
+    {
+     "word": "reporter",
+     "pos": "noun",
+     "translation": "repórter",
+     "example": "The reporter asks good questions."
+    },
+    {
+     "word": "review",
+     "pos": "noun",
+     "translation": "análise, revisão",
+     "example": "I read a book review."
+    },
+    {
+     "word": "sailor",
+     "pos": "noun",
+     "translation": "marinheiro",
+     "example": "The sailor works on a ship."
+    },
+    {
+     "word": "science",
+     "pos": "noun",
+     "translation": "ciência",
+     "example": "Science is a cool subject."
+    },
+    {
+     "word": "scientist",
+     "pos": "noun",
+     "translation": "cientista",
+     "example": "The scientist works in a lab."
+    },
+    {
+     "word": "sentence",
+     "pos": "noun",
+     "translation": "frase",
+     "example": "Write a simple English sentence."
+    },
+    {
+     "word": "singer",
+     "pos": "noun",
+     "translation": "cantor, cantora",
+     "example": "She is a famous singer."
+    },
+    {
+     "word": "smith",
+     "pos": "noun",
+     "translation": "ferreiro",
+     "example": "The smith makes iron tools."
+    },
+    {
+     "word": "student",
+     "pos": "noun",
+     "translation": "estudante, aluno",
+     "example": "I am an English student."
+    },
+    {
+     "word": "teacher",
+     "pos": "noun",
+     "translation": "professor, professora",
+     "example": "My teacher is very nice."
+    },
+    {
+     "word": "technology",
+     "pos": "noun",
+     "translation": "tecnologia",
+     "example": "Technology helps us everyday."
+    },
+    {
+     "word": "test",
+     "pos": "noun",
+     "translation": "teste, prova",
+     "example": "We have an English test."
+    },
+    {
+     "word": "waiter",
+     "pos": "noun",
+     "translation": "garçom",
+     "example": "The waiter brings the menu."
+    },
+    {
+     "word": "waitress",
+     "pos": "noun",
+     "translation": "garçonete",
+     "example": "The waitress takes our order."
+    },
+    {
+     "word": "work",
+     "pos": "noun",
+     "translation": "trabalho",
+     "example": "I go to work now."
+    },
+    {
+     "word": "worker",
+     "pos": "noun",
+     "translation": "trabalhador",
+     "example": "He is a hard worker."
+    },
+    {
+     "word": "writer",
+     "pos": "noun",
+     "translation": "escritor, escritora",
+     "example": "She is a book writer."
+    }
+   ]
+  },
+  {
+   "id": "a1-19",
+   "title": "Família e você",
+   "words": [
+    {
+     "word": "address",
+     "pos": "noun",
+     "translation": "endereço",
+     "example": "What is your address?"
+    },
+    {
+     "word": "age",
+     "pos": "noun",
+     "translation": "idade",
+     "example": "What is your age?"
+    },
+    {
+     "word": "arm",
+     "pos": "noun",
+     "translation": "braço",
+     "example": "He has a big arm."
+    },
+    {
+     "word": "aunt",
+     "pos": "noun",
+     "translation": "tia",
+     "example": "My aunt is very nice."
+    },
+    {
+     "word": "baby",
+     "pos": "noun",
+     "translation": "bebê",
+     "example": "The baby is sleeping."
+    },
+    {
+     "word": "birth",
+     "pos": "noun",
+     "translation": "nascimento",
+     "example": "We celebrate his birth."
+    },
+    {
+     "word": "birthday",
+     "pos": "noun",
+     "translation": "aniversário",
+     "example": "Today is my birthday."
+    },
+    {
+     "word": "boy",
+     "pos": "noun",
+     "translation": "menino",
+     "example": "The boy is playing football."
+    },
+    {
+     "word": "boyfriend",
+     "pos": "noun",
+     "translation": "namorado",
+     "example": "She loves her boyfriend."
+    },
+    {
+     "word": "brother",
+     "pos": "noun",
+     "translation": "irmão",
+     "example": "I have one brother."
+    },
+    {
+     "word": "child",
+     "pos": "noun",
+     "translation": "criança",
+     "example": "The child likes apples."
+    },
+    {
+     "word": "cousin",
+     "pos": "noun",
+     "translation": "primo",
+     "example": "My cousin lives here."
+    },
+    {
+     "word": "dad",
+     "pos": "noun",
+     "translation": "papai",
+     "example": "My dad is cooking dinner."
+    },
+    {
+     "word": "daughter",
+     "pos": "noun",
+     "translation": "filha",
+     "example": "She is our daughter."
+    },
+    {
+     "word": "family",
+     "pos": "noun",
+     "translation": "família",
+     "example": "I love my family."
+    },
+    {
+     "word": "father",
+     "pos": "noun",
+     "translation": "pai",
+     "example": "His father is tall."
+    },
+    {
+     "word": "friend",
+     "pos": "noun",
+     "translation": "amigo",
+     "example": "She is my best friend."
+    },
+    {
+     "word": "girlfriend",
+     "pos": "noun",
+     "translation": "namorada",
+     "example": "He is with his girlfriend."
+    },
+    {
+     "word": "grandfather",
+     "pos": "noun",
+     "translation": "avô",
+     "example": "My grandfather is old."
+    },
+    {
+     "word": "grandma",
+     "pos": "noun",
+     "translation": "vovó",
+     "example": "Grandma makes good cake."
+    },
+    {
+     "word": "grandmother",
+     "pos": "noun",
+     "translation": "avó",
+     "example": "My grandmother is kind."
+    },
+    {
+     "word": "grandpa",
+     "pos": "noun",
+     "translation": "vovô",
+     "example": "Grandpa reads a book."
+    },
+    {
+     "word": "grandparent",
+     "pos": "noun",
+     "translation": "avô ou avó",
+     "example": "I visit my grandparent."
+    },
+    {
+     "word": "habit",
+     "pos": "noun",
+     "translation": "hábito",
+     "example": "Reading is a good habit."
+    },
+    {
+     "word": "hair",
+     "pos": "noun",
+     "translation": "cabelo",
+     "example": "She has long hair."
+    },
+    {
+     "word": "home",
+     "pos": "noun",
+     "translation": "casa",
+     "example": "I am going home."
+    },
+    {
+     "word": "husband",
+     "pos": "noun",
+     "translation": "marido",
+     "example": "Her husband is a doctor."
+    },
+    {
+     "word": "kid",
+     "pos": "noun",
+     "translation": "criança",
+     "example": "The kid is happy."
+    },
+    {
+     "word": "lady",
+     "pos": "noun",
+     "translation": "senhora",
+     "example": "That lady is very nice."
+    },
+    {
+     "word": "man",
+     "pos": "noun",
+     "translation": "homem",
+     "example": "The man is reading."
+    },
+    {
+     "word": "mom",
+     "pos": "noun",
+     "translation": "mamãe",
+     "example": "Mom is at home."
+    },
+    {
+     "word": "mother",
+     "pos": "noun",
+     "translation": "mãe",
+     "example": "My mother is kind."
+    },
+    {
+     "word": "mum",
+     "pos": "noun",
+     "translation": "mamãe",
+     "example": "Ask your mum for help."
+    },
+    {
+     "word": "name",
+     "pos": "noun",
+     "translation": "nome",
+     "example": "My name is Anna."
+    },
+    {
+     "word": "neighbor",
+     "pos": "noun",
+     "translation": "vizinho",
+     "example": "Our neighbor is friendly."
+    },
+    {
+     "word": "parent",
+     "pos": "noun",
+     "translation": "pai ou mãe",
+     "example": "One parent must come."
+    },
+    {
+     "word": "partner",
+     "pos": "noun",
+     "translation": "parceiro",
+     "example": "He works with his partner."
+    },
+    {
+     "word": "pet",
+     "pos": "noun",
+     "translation": "animal de estimação",
+     "example": "I have a pet cat."
+    },
+    {
+     "word": "sign",
+     "pos": "noun",
+     "translation": "sinal",
+     "example": "Stop at the red sign."
+    },
+    {
+     "word": "sister",
+     "pos": "noun",
+     "translation": "irmã",
+     "example": "My sister is tall."
+    },
+    {
+     "word": "son",
+     "pos": "noun",
+     "translation": "filho",
+     "example": "He is their son."
+    },
+    {
+     "word": "uncle",
+     "pos": "noun",
+     "translation": "tio",
+     "example": "My uncle lives in Rio."
+    },
+    {
+     "word": "wife",
+     "pos": "noun",
+     "translation": "esposa",
+     "example": "His wife is a teacher."
+    }
+   ]
+  },
+  {
+   "id": "a1-24",
+   "title": "Viagem e países",
+   "words": [
+    {
+     "word": "airplane",
+     "pos": "noun",
+     "translation": "avião",
+     "example": "The airplane is very big."
+    },
+    {
+     "word": "airport",
+     "pos": "noun",
+     "translation": "aeroporto",
+     "example": "We are at the airport."
+    },
+    {
+     "word": "beach",
+     "pos": "noun",
+     "translation": "praia",
+     "example": "I like the beach."
+    },
+    {
+     "word": "boat",
+     "pos": "noun",
+     "translation": "barco",
+     "example": "The boat is on the water."
+    },
+    {
+     "word": "bus",
+     "pos": "noun",
+     "translation": "ônibus",
+     "example": "I take the bus."
+    },
+    {
+     "word": "coach",
+     "pos": "noun",
+     "translation": "treinador, ônibus",
+     "example": "He is our coach."
+    },
+    {
+     "word": "cold",
+     "pos": "noun",
+     "translation": "resfriado",
+     "example": "I have a cold."
+    },
+    {
+     "word": "culture",
+     "pos": "noun",
+     "translation": "cultura",
+     "example": "I like this culture."
+    },
+    {
+     "word": "fever",
+     "pos": "noun",
+     "translation": "febre",
+     "example": "She has a fever."
+    },
+    {
+     "word": "fly",
+     "pos": "noun",
+     "translation": "mosca",
+     "example": "There is a fly here."
+    },
+    {
+     "word": "headache",
+     "pos": "noun",
+     "translation": "dor de cabeça",
+     "example": "I have a headache."
+    },
+    {
+     "word": "health",
+     "pos": "noun",
+     "translation": "saúde",
+     "example": "Health is very important."
+    },
+    {
+     "word": "hometown",
+     "pos": "noun",
+     "translation": "cidade natal",
+     "example": "This is my hometown."
+    },
+    {
+     "word": "hotel",
+     "pos": "noun",
+     "translation": "hotel",
+     "example": "The hotel is nice."
+    },
+    {
+     "word": "island",
+     "pos": "noun",
+     "translation": "ilha",
+     "example": "It is a small island."
+    },
+    {
+     "word": "jet",
+     "pos": "noun",
+     "translation": "jato",
+     "example": "A fast jet flies up."
+    },
+    {
+     "word": "king",
+     "pos": "noun",
+     "translation": "rei",
+     "example": "He is a good king."
+    },
+    {
+     "word": "language",
+     "pos": "noun",
+     "translation": "idioma, língua",
+     "example": "English is a language."
+    },
+    {
+     "word": "medicine",
+     "pos": "noun",
+     "translation": "remédio",
+     "example": "Take your medicine now."
+    },
+    {
+     "word": "mountain",
+     "pos": "noun",
+     "translation": "montanha",
+     "example": "The mountain is very high."
+    },
+    {
+     "word": "nationality",
+     "pos": "noun",
+     "translation": "nacionalidade",
+     "example": "What is your nationality?"
+    },
+    {
+     "word": "palace",
+     "pos": "noun",
+     "translation": "palácio",
+     "example": "The king lives there."
+    },
+    {
+     "word": "plan",
+     "pos": "noun",
+     "translation": "plano",
+     "example": "I have a good plan."
+    },
+    {
+     "word": "plane",
+     "pos": "noun",
+     "translation": "avião",
+     "example": "The plane is white."
+    },
+    {
+     "word": "prince",
+     "pos": "noun",
+     "translation": "príncipe",
+     "example": "The prince is young."
+    },
+    {
+     "word": "princess",
+     "pos": "noun",
+     "translation": "princesa",
+     "example": "The princess smiles."
+    },
+    {
+     "word": "ride",
+     "pos": "noun",
+     "translation": "passeio",
+     "example": "Let us take a ride."
+    },
+    {
+     "word": "sea",
+     "pos": "noun",
+     "translation": "mar",
+     "example": "The sea is blue."
+    },
+    {
+     "word": "ship",
+     "pos": "noun",
+     "translation": "navio",
+     "example": "The ship is big."
+    },
+    {
+     "word": "sir",
+     "pos": "noun",
+     "translation": "senhor",
+     "example": "Can I help you, sir?"
+    },
+    {
+     "word": "taxi",
+     "pos": "noun",
+     "translation": "táxi",
+     "example": "I need a taxi."
+    },
+    {
+     "word": "tooth",
+     "pos": "noun",
+     "translation": "dente",
+     "example": "My tooth hurts."
+    },
+    {
+     "word": "town",
+     "pos": "noun",
+     "translation": "cidade",
+     "example": "My town is quiet."
+    },
+    {
+     "word": "train",
+     "pos": "noun",
+     "translation": "trem",
+     "example": "The train is fast."
+    },
+    {
+     "word": "vacation",
+     "pos": "noun",
+     "translation": "férias",
+     "example": "I love my vacation."
+    },
+    {
+     "word": "world",
+     "pos": "noun",
+     "translation": "mundo",
+     "example": "The world is big."
+    }
+   ]
+  },
+  {
+   "id": "a1-25",
+   "title": "Casa e objetos 1",
+   "words": [
+    {
+     "word": "album",
+     "pos": "noun",
+     "translation": "álbum",
+     "example": "This is my photo album."
+    },
+    {
+     "word": "apron",
+     "pos": "noun",
+     "translation": "avental",
+     "example": "She wears a white apron."
+    },
+    {
+     "word": "bath",
+     "pos": "noun",
+     "translation": "banho",
+     "example": "I take a bath now."
+    },
+    {
+     "word": "bathroom",
+     "pos": "noun",
+     "translation": "banheiro",
+     "example": "Where is the bathroom?"
+    },
+    {
+     "word": "bed",
+     "pos": "noun",
+     "translation": "cama",
+     "example": "My bed is very soft."
+    },
+    {
+     "word": "bedroom",
+     "pos": "noun",
+     "translation": "quarto",
+     "example": "My bedroom is small."
+    },
+    {
+     "word": "bell",
+     "pos": "noun",
+     "translation": "sino",
+     "example": "The school bell rings."
+    },
+    {
+     "word": "board",
+     "pos": "noun",
+     "translation": "quadro",
+     "example": "Look at the board."
+    },
+    {
+     "word": "book",
+     "pos": "noun",
+     "translation": "livro",
+     "example": "I read a good book."
+    },
+    {
+     "word": "bowl",
+     "pos": "noun",
+     "translation": "tigela",
+     "example": "The bowl has soup."
+    },
+    {
+     "word": "box",
+     "pos": "noun",
+     "translation": "caixa",
+     "example": "The box is red."
+    },
+    {
+     "word": "bucket",
+     "pos": "noun",
+     "translation": "balde",
+     "example": "The bucket is full."
+    },
+    {
+     "word": "camera",
+     "pos": "noun",
+     "translation": "câmera",
+     "example": "I have a new camera."
+    },
+    {
+     "word": "case",
+     "pos": "noun",
+     "translation": "estojo",
+     "example": "My pen is in the case."
+    },
+    {
+     "word": "CD player",
+     "pos": "noun",
+     "translation": "toca-CDs",
+     "example": "The CD player is old."
+    },
+    {
+     "word": "chair",
+     "pos": "noun",
+     "translation": "cadeira",
+     "example": "Sit on the chair."
+    },
+    {
+     "word": "clock",
+     "pos": "noun",
+     "translation": "relógio",
+     "example": "The clock shows two."
+    },
+    {
+     "word": "cloth",
+     "pos": "noun",
+     "translation": "pano",
+     "example": "Use a cloth to clean."
+    },
+    {
+     "word": "computer",
+     "pos": "noun",
+     "translation": "computador",
+     "example": "I use my computer daily."
+    },
+    {
+     "word": "corner",
+     "pos": "noun",
+     "translation": "canto",
+     "example": "The ball is in the corner."
+    },
+    {
+     "word": "couch",
+     "pos": "noun",
+     "translation": "sofá",
+     "example": "The dog is on the couch."
+    },
+    {
+     "word": "cover",
+     "pos": "noun",
+     "translation": "capa",
+     "example": "Look at the book cover."
+    },
+    {
+     "word": "cup",
+     "pos": "noun",
+     "translation": "xícara",
+     "example": "The cup has hot tea."
+    },
+    {
+     "word": "desk",
+     "pos": "noun",
+     "translation": "escrivaninha",
+     "example": "My books are on the desk."
+    },
+    {
+     "word": "dictionary",
+     "pos": "noun",
+     "translation": "dicionário",
+     "example": "I use an English dictionary."
+    },
+    {
+     "word": "dining room",
+     "pos": "noun",
+     "translation": "sala de jantar",
+     "example": "We eat in the dining room."
+    },
+    {
+     "word": "dish",
+     "pos": "noun",
+     "translation": "prato",
+     "example": "Wash your dish, please."
+    },
+    {
+     "word": "door",
+     "pos": "noun",
+     "translation": "porta",
+     "example": "Open the door, please."
+    },
+    {
+     "word": "fan",
+     "pos": "noun",
+     "translation": "ventilador",
+     "example": "Turn on the fan."
+    },
+    {
+     "word": "file",
+     "pos": "noun",
+     "translation": "arquivo",
+     "example": "Save the file now."
+    },
+    {
+     "word": "floor",
+     "pos": "noun",
+     "translation": "chão",
+     "example": "The floor is clean."
+    },
+    {
+     "word": "garbage",
+     "pos": "noun",
+     "translation": "lixo",
+     "example": "Throw the garbage away."
+    },
+    {
+     "word": "garden",
+     "pos": "noun",
+     "translation": "jardim",
+     "example": "There are flowers in the garden."
+    },
+    {
+     "word": "gift",
+     "pos": "noun",
+     "translation": "presente",
+     "example": "I have a birthday gift."
+    },
+    {
+     "word": "glass",
+     "pos": "noun",
+     "translation": "copo",
+     "example": "I want a glass of water."
+    },
+    {
+     "word": "glasses",
+     "pos": "noun",
+     "translation": "óculos",
+     "example": "He wears black glasses."
+    },
+    {
+     "word": "guitar",
+     "pos": "noun",
+     "translation": "violão",
+     "example": "He plays the guitar well."
+    },
+    {
+     "word": "item",
+     "pos": "noun",
+     "translation": "item",
+     "example": "Add one item more."
+    },
+    {
+     "word": "key",
+     "pos": "noun",
+     "translation": "chave",
+     "example": "This is my house key."
+    },
+    {
+     "word": "kitchen",
+     "pos": "noun",
+     "translation": "cozinha",
+     "example": "Mom cooks in the kitchen."
+    }
+   ]
+  },
+  {
+   "id": "a1-26",
+   "title": "Casa e objetos 2",
+   "words": [
+    {
+     "word": "knife",
+     "pos": "noun",
+     "translation": "faca",
+     "example": "I use a knife to cut bread."
+    },
+    {
+     "word": "letter",
+     "pos": "noun",
+     "translation": "carta",
+     "example": "I wrote a letter to my friend."
+    },
+    {
+     "word": "list",
+     "pos": "noun",
+     "translation": "lista",
+     "example": "Make a shopping list, please."
+    },
+    {
+     "word": "living room",
+     "pos": "noun",
+     "translation": "sala de estar",
+     "example": "We sit in the living room."
+    },
+    {
+     "word": "magazine",
+     "pos": "noun",
+     "translation": "revista",
+     "example": "She is reading a magazine."
+    },
+    {
+     "word": "mail",
+     "pos": "noun",
+     "translation": "correio",
+     "example": "Did you check the mail?"
+    },
+    {
+     "word": "map",
+     "pos": "noun",
+     "translation": "mapa",
+     "example": "Look at the city map."
+    },
+    {
+     "word": "mobile",
+     "pos": "noun",
+     "translation": "celular",
+     "example": "He has a new mobile."
+    },
+    {
+     "word": "mobile phone",
+     "pos": "noun",
+     "translation": "telefone celular",
+     "example": "My mobile phone is ringing."
+    },
+    {
+     "word": "newspaper",
+     "pos": "noun",
+     "translation": "jornal",
+     "example": "He reads the newspaper every day."
+    },
+    {
+     "word": "note",
+     "pos": "noun",
+     "translation": "nota",
+     "example": "Write a note for me."
+    },
+    {
+     "word": "notebook",
+     "pos": "noun",
+     "translation": "caderno",
+     "example": "I write in my notebook."
+    },
+    {
+     "word": "paper",
+     "pos": "noun",
+     "translation": "papel",
+     "example": "I need a piece of paper."
+    },
+    {
+     "word": "pen",
+     "pos": "noun",
+     "translation": "caneta",
+     "example": "Can I borrow your pen?"
+    },
+    {
+     "word": "pencil",
+     "pos": "noun",
+     "translation": "lápis",
+     "example": "Draw a cat with a pencil."
+    },
+    {
+     "word": "phone",
+     "pos": "noun",
+     "translation": "telefone",
+     "example": "Answer the phone, please."
+    },
+    {
+     "word": "photo",
+     "pos": "noun",
+     "translation": "foto",
+     "example": "This is a nice photo."
+    },
+    {
+     "word": "radio",
+     "pos": "noun",
+     "translation": "rádio",
+     "example": "I listen to music on the radio."
+    },
+    {
+     "word": "room",
+     "pos": "noun",
+     "translation": "quarto",
+     "example": "This is my room."
+    },
+    {
+     "word": "saw",
+     "pos": "noun",
+     "translation": "serra",
+     "example": "He used a saw to cut wood."
+    },
+    {
+     "word": "seat",
+     "pos": "noun",
+     "translation": "assento",
+     "example": "Please take a seat."
+    },
+    {
+     "word": "shelf",
+     "pos": "noun",
+     "translation": "prateleira",
+     "example": "The book is on the shelf."
+    },
+    {
+     "word": "shower",
+     "pos": "noun",
+     "translation": "chuveiro",
+     "example": "I take a shower every morning."
+    },
+    {
+     "word": "sofa",
+     "pos": "noun",
+     "translation": "sofá",
+     "example": "The cat is on the sofa."
+    },
+    {
+     "word": "table",
+     "pos": "noun",
+     "translation": "mesa",
+     "example": "The keys are on the table."
+    },
+    {
+     "word": "telephone",
+     "pos": "noun",
+     "translation": "telefone",
+     "example": "The telephone is ringing."
+    },
+    {
+     "word": "television",
+     "pos": "noun",
+     "translation": "televisão",
+     "example": "We watch television at night."
+    },
+    {
+     "word": "toilet",
+     "pos": "noun",
+     "translation": "banheiro",
+     "example": "Where is the toilet?"
+    },
+    {
+     "word": "tool",
+     "pos": "noun",
+     "translation": "ferramenta",
+     "example": "I need a tool to fix this."
+    },
+    {
+     "word": "towel",
+     "pos": "noun",
+     "translation": "toalha",
+     "example": "Use a clean towel."
+    },
+    {
+     "word": "toy",
+     "pos": "noun",
+     "translation": "brinquedo",
+     "example": "The baby has a red toy."
+    },
+    {
+     "word": "tree",
+     "pos": "noun",
+     "translation": "árvore",
+     "example": "The tree is very tall."
+    },
+    {
+     "word": "TV",
+     "pos": "noun",
+     "translation": "TV",
+     "example": "Turn on the TV, please."
+    },
+    {
+     "word": "umbrella",
+     "pos": "noun",
+     "translation": "guarda-chuva",
+     "example": "Take your umbrella, it is raining."
+    },
+    {
+     "word": "vase",
+     "pos": "noun",
+     "translation": "vaso",
+     "example": "The flowers are in the vase."
+    },
+    {
+     "word": "video",
+     "pos": "noun",
+     "translation": "vídeo",
+     "example": "We watched a funny video."
+    },
+    {
+     "word": "wall",
+     "pos": "noun",
+     "translation": "parede",
+     "example": "The wall is white."
+    },
+    {
+     "word": "watch",
+     "pos": "noun",
+     "translation": "relógio",
+     "example": "I have a nice watch."
+    },
+    {
+     "word": "window",
+     "pos": "noun",
+     "translation": "janela",
+     "example": "Open the window, please."
+    },
+    {
+     "word": "yard",
+     "pos": "noun",
+     "translation": "quintal",
+     "example": "The dog plays in the yard."
+    }
+   ]
+  },
+  {
+   "id": "a1-27",
+   "title": "Comida e bebida 1",
+   "words": [
+    {
+     "word": "apple",
+     "pos": "noun",
+     "translation": "maçã",
+     "example": "I eat an apple."
+    },
+    {
+     "word": "banana",
+     "pos": "noun",
+     "translation": "banana",
+     "example": "She likes bananas."
+    },
+    {
+     "word": "bean",
+     "pos": "noun",
+     "translation": "feijão",
+     "example": "I like rice and beans."
+    },
+    {
+     "word": "beef",
+     "pos": "noun",
+     "translation": "carne bovina",
+     "example": "We eat beef today."
+    },
+    {
+     "word": "biscuit",
+     "pos": "noun",
+     "translation": "biscoito",
+     "example": "I want a biscuit."
+    },
+    {
+     "word": "bottle",
+     "pos": "noun",
+     "translation": "garrafa",
+     "example": "Give me that bottle."
+    },
+    {
+     "word": "bread",
+     "pos": "noun",
+     "translation": "pão",
+     "example": "I eat fresh bread."
+    },
+    {
+     "word": "breakfast",
+     "pos": "noun",
+     "translation": "café da manhã",
+     "example": "Breakfast is ready now."
+    },
+    {
+     "word": "burger",
+     "pos": "noun",
+     "translation": "hambúrguer",
+     "example": "He wants a burger."
+    },
+    {
+     "word": "butter",
+     "pos": "noun",
+     "translation": "manteiga",
+     "example": "Put butter on bread."
+    },
+    {
+     "word": "cake",
+     "pos": "noun",
+     "translation": "bolo",
+     "example": "This cake is sweet."
+    },
+    {
+     "word": "candy",
+     "pos": "noun",
+     "translation": "bala",
+     "example": "Do you want candy?"
+    },
+    {
+     "word": "cheese",
+     "pos": "noun",
+     "translation": "queijo",
+     "example": "I love yellow cheese."
+    },
+    {
+     "word": "chicken",
+     "pos": "noun",
+     "translation": "frango",
+     "example": "We eat grilled chicken."
+    },
+    {
+     "word": "chocolate",
+     "pos": "noun",
+     "translation": "chocolate",
+     "example": "She eats dark chocolate."
+    },
+    {
+     "word": "coffee",
+     "pos": "noun",
+     "translation": "café",
+     "example": "I drink hot coffee."
+    },
+    {
+     "word": "coke",
+     "pos": "noun",
+     "translation": "coca-cola",
+     "example": "He drinks cold coke."
+    },
+    {
+     "word": "cookie",
+     "pos": "noun",
+     "translation": "biscoito",
+     "example": "The cookie is sweet."
+    },
+    {
+     "word": "corn",
+     "pos": "noun",
+     "translation": "milho",
+     "example": "I like sweet corn."
+    },
+    {
+     "word": "cream",
+     "pos": "noun",
+     "translation": "creme",
+     "example": "Add cream to coffee."
+    },
+    {
+     "word": "dinner",
+     "pos": "noun",
+     "translation": "jantar",
+     "example": "Dinner is at seven."
+    },
+    {
+     "word": "drink",
+     "pos": "noun",
+     "translation": "bebida",
+     "example": "Water is my drink."
+    },
+    {
+     "word": "egg",
+     "pos": "noun",
+     "translation": "ovo",
+     "example": "I eat one egg."
+    },
+    {
+     "word": "feed",
+     "pos": "noun",
+     "translation": "alimentação",
+     "example": "The feed is ready."
+    },
+    {
+     "word": "fish",
+     "pos": "noun",
+     "translation": "peixe",
+     "example": "Fish lives in water."
+    }
+   ]
+  },
+  {
+   "id": "a1-28",
+   "title": "Comida e bebida 2",
+   "words": [
+    {
+     "word": "food",
+     "pos": "noun",
+     "translation": "comida",
+     "example": "I like good food."
+    },
+    {
+     "word": "fruit",
+     "pos": "noun",
+     "translation": "fruta",
+     "example": "Fruit is very healthy."
+    },
+    {
+     "word": "grape",
+     "pos": "noun",
+     "translation": "uva",
+     "example": "I eat a grape."
+    },
+    {
+     "word": "hamburger",
+     "pos": "noun",
+     "translation": "hambúrguer",
+     "example": "I want a hamburger."
+    },
+    {
+     "word": "ice",
+     "pos": "noun",
+     "translation": "gelo",
+     "example": "I need some ice."
+    },
+    {
+     "word": "ice cream",
+     "pos": "noun",
+     "translation": "sorvete",
+     "example": "I love ice cream."
+    },
+    {
+     "word": "juice",
+     "pos": "noun",
+     "translation": "suco",
+     "example": "Drink your orange juice."
+    },
+    {
+     "word": "lunch",
+     "pos": "noun",
+     "translation": "almoço",
+     "example": "Lunch is ready now."
+    },
+    {
+     "word": "meal",
+     "pos": "noun",
+     "translation": "refeição",
+     "example": "This is a good meal."
+    },
+    {
+     "word": "meat",
+     "pos": "noun",
+     "translation": "carne",
+     "example": "I eat some meat."
+    },
+    {
+     "word": "milk",
+     "pos": "noun",
+     "translation": "leite",
+     "example": "Cats like to drink milk."
+    },
+    {
+     "word": "orange",
+     "pos": "noun",
+     "translation": "laranja",
+     "example": "She eats an orange."
+    },
+    {
+     "word": "pizza",
+     "pos": "noun",
+     "translation": "pizza",
+     "example": "We eat hot pizza."
+    },
+    {
+     "word": "potato",
+     "pos": "noun",
+     "translation": "batata",
+     "example": "I like the potato."
+    },
+    {
+     "word": "rice",
+     "pos": "noun",
+     "translation": "arroz",
+     "example": "I eat rice today."
+    },
+    {
+     "word": "salad",
+     "pos": "noun",
+     "translation": "salada",
+     "example": "This salad is fresh."
+    },
+    {
+     "word": "sandwich",
+     "pos": "noun",
+     "translation": "sanduíche",
+     "example": "He has a sandwich."
+    },
+    {
+     "word": "soup",
+     "pos": "noun",
+     "translation": "sopa",
+     "example": "The soup is hot."
+    },
+    {
+     "word": "sugar",
+     "pos": "noun",
+     "translation": "açúcar",
+     "example": "I want no sugar."
+    },
+    {
+     "word": "tea",
+     "pos": "noun",
+     "translation": "chá",
+     "example": "She drinks hot tea."
+    },
+    {
+     "word": "tomato",
+     "pos": "noun",
+     "translation": "tomate",
+     "example": "The tomato is red."
+    },
+    {
+     "word": "turkey",
+     "pos": "noun",
+     "translation": "peru",
+     "example": "We eat turkey."
+    },
+    {
+     "word": "vegetable",
+     "pos": "noun",
+     "translation": "legume",
+     "example": "Eat every green vegetable."
+    },
+    {
+     "word": "yogurt",
+     "pos": "noun",
+     "translation": "iogurte",
+     "example": "I eat sweet yogurt."
+    }
+   ]
+  },
+  {
+   "id": "a1-29",
+   "title": "Cidade e compras 1",
+   "words": [
+    {
+     "word": "article",
+     "pos": "noun",
+     "translation": "artigo",
+     "example": "I read an article."
+    },
+    {
+     "word": "bag",
+     "pos": "noun",
+     "translation": "bolsa",
+     "example": "Where is my bag?"
+    },
+    {
+     "word": "bank",
+     "pos": "noun",
+     "translation": "banco",
+     "example": "The bank is open."
+    },
+    {
+     "word": "bar",
+     "pos": "noun",
+     "translation": "bar",
+     "example": "Let us go to the bar."
+    },
+    {
+     "word": "block",
+     "pos": "noun",
+     "translation": "quarteirão",
+     "example": "Walk one block."
+    },
+    {
+     "word": "bookstore",
+     "pos": "noun",
+     "translation": "livraria",
+     "example": "I work at a bookstore."
+    },
+    {
+     "word": "bridge",
+     "pos": "noun",
+     "translation": "ponte",
+     "example": "The bridge is old."
+    },
+    {
+     "word": "building",
+     "pos": "noun",
+     "translation": "prédio",
+     "example": "This is a big building."
+    },
+    {
+     "word": "cafe",
+     "pos": "noun",
+     "translation": "cafeteria",
+     "example": "Let us meet at the cafe."
+    },
+    {
+     "word": "car",
+     "pos": "noun",
+     "translation": "carro",
+     "example": "I have a red car."
+    },
+    {
+     "word": "card",
+     "pos": "noun",
+     "translation": "cartão",
+     "example": "This is my birthday card."
+    },
+    {
+     "word": "church",
+     "pos": "noun",
+     "translation": "igreja",
+     "example": "The church is near."
+    },
+    {
+     "word": "credit card",
+     "pos": "noun",
+     "translation": "cartão de crédito",
+     "example": "I use my credit card."
+    },
+    {
+     "word": "dollar",
+     "pos": "noun",
+     "translation": "dólar",
+     "example": "It costs one dollar."
+    },
+    {
+     "word": "factory",
+     "pos": "noun",
+     "translation": "fábrica",
+     "example": "He works in a factory."
+    },
+    {
+     "word": "farm",
+     "pos": "noun",
+     "translation": "fazenda",
+     "example": "They live on a farm."
+    },
+    {
+     "word": "field",
+     "pos": "noun",
+     "translation": "campo",
+     "example": "The cows are in the field."
+    },
+    {
+     "word": "flag",
+     "pos": "noun",
+     "translation": "bandeira",
+     "example": "Look at the flag."
+    },
+    {
+     "word": "flat",
+     "pos": "noun",
+     "translation": "apartamento",
+     "example": "I live in a small flat."
+    },
+    {
+     "word": "grass",
+     "pos": "noun",
+     "translation": "grama",
+     "example": "The grass is green."
+    },
+    {
+     "word": "ground",
+     "pos": "noun",
+     "translation": "chão",
+     "example": "The ball is on the ground."
+    },
+    {
+     "word": "hall",
+     "pos": "noun",
+     "translation": "corredor",
+     "example": "Wait in the hall."
+    },
+    {
+     "word": "hill",
+     "pos": "noun",
+     "translation": "colina",
+     "example": "We walk up the hill."
+    },
+    {
+     "word": "hole",
+     "pos": "noun",
+     "translation": "buraco",
+     "example": "There is a hole here."
+    },
+    {
+     "word": "hospital",
+     "pos": "noun",
+     "translation": "hospital",
+     "example": "The hospital is big."
+    },
+    {
+     "word": "house",
+     "pos": "noun",
+     "translation": "casa",
+     "example": "This is my house."
+    }
+   ]
+  },
+  {
+   "id": "a1-30",
+   "title": "Cidade e compras 2",
+   "words": [
+    {
+     "word": "jewelry",
+     "pos": "noun",
+     "translation": "joias",
+     "example": "She wears nice jewelry."
+    },
+    {
+     "word": "leaf",
+     "pos": "noun",
+     "translation": "folha",
+     "example": "The leaf is green."
+    },
+    {
+     "word": "library",
+     "pos": "noun",
+     "translation": "biblioteca",
+     "example": "I read at the library."
+    },
+    {
+     "word": "money",
+     "pos": "noun",
+     "translation": "dinheiro",
+     "example": "I need some money."
+    },
+    {
+     "word": "office",
+     "pos": "noun",
+     "translation": "escritório",
+     "example": "He works in an office."
+    },
+    {
+     "word": "park",
+     "pos": "noun",
+     "translation": "parque",
+     "example": "We walk in the park."
+    },
+    {
+     "word": "pay",
+     "pos": "noun",
+     "translation": "pagamento",
+     "example": "I get my pay today."
+    },
+    {
+     "word": "pool",
+     "pos": "noun",
+     "translation": "piscina",
+     "example": "The pool is cold."
+    },
+    {
+     "word": "post",
+     "pos": "noun",
+     "translation": "correio",
+     "example": "I send a post card."
+    },
+    {
+     "word": "poster",
+     "pos": "noun",
+     "translation": "pôster",
+     "example": "The poster is on the wall."
+    },
+    {
+     "word": "price",
+     "pos": "noun",
+     "translation": "preço",
+     "example": "What is the price?"
+    },
+    {
+     "word": "restaurant",
+     "pos": "noun",
+     "translation": "restaurante",
+     "example": "We eat at a restaurant."
+    },
+    {
+     "word": "river",
+     "pos": "noun",
+     "translation": "rio",
+     "example": "The river is long."
+    },
+    {
+     "word": "sale",
+     "pos": "noun",
+     "translation": "liquidação",
+     "example": "Shoes are on sale."
+    },
+    {
+     "word": "school",
+     "pos": "noun",
+     "translation": "escola",
+     "example": "I go to school."
+    },
+    {
+     "word": "shop",
+     "pos": "noun",
+     "translation": "loja",
+     "example": "I go to the shop."
+    },
+    {
+     "word": "shopping",
+     "pos": "noun",
+     "translation": "compras",
+     "example": "I like shopping."
+    },
+    {
+     "word": "station",
+     "pos": "noun",
+     "translation": "estação",
+     "example": "The train is at the station."
+    },
+    {
+     "word": "store",
+     "pos": "noun",
+     "translation": "loja",
+     "example": "The store is open."
+    },
+    {
+     "word": "street",
+     "pos": "noun",
+     "translation": "rua",
+     "example": "Cross the street safely."
+    },
+    {
+     "word": "subway",
+     "pos": "noun",
+     "translation": "metrô",
+     "example": "I take the subway."
+    },
+    {
+     "word": "supermarket",
+     "pos": "noun",
+     "translation": "supermercado",
+     "example": "We buy food at the supermarket."
+    },
+    {
+     "word": "temple",
+     "pos": "noun",
+     "translation": "templo",
+     "example": "They visit the temple."
+    },
+    {
+     "word": "theater",
+     "pos": "noun",
+     "translation": "teatro",
+     "example": "We watch a play at the theater."
+    },
+    {
+     "word": "tower",
+     "pos": "noun",
+     "translation": "torre",
+     "example": "The tower is very tall."
+    },
+    {
+     "word": "truck",
+     "pos": "noun",
+     "translation": "caminhão",
+     "example": "The big truck is red."
+    }
+   ]
+  },
+  {
+   "id": "a1-31",
+   "title": "Roupas e cores",
+   "words": [
+    {
+     "word": "band",
+     "pos": "noun",
+     "translation": "banda",
+     "example": "The band plays good music."
+    },
+    {
+     "word": "black",
+     "pos": "noun",
+     "translation": "preto",
+     "example": "Black is my favorite color."
+    },
+    {
+     "word": "blue",
+     "pos": "noun",
+     "translation": "azul",
+     "example": "The sky is blue."
+    },
+    {
+     "word": "button",
+     "pos": "noun",
+     "translation": "botão",
+     "example": "Push the red button."
+    },
+    {
+     "word": "cap",
+     "pos": "noun",
+     "translation": "boné",
+     "example": "He wears a red cap."
+    },
+    {
+     "word": "coat",
+     "pos": "noun",
+     "translation": "casaco",
+     "example": "Wear your warm coat."
+    },
+    {
+     "word": "color",
+     "pos": "noun",
+     "translation": "colorir",
+     "example": "I color the big picture."
+    },
+    {
+     "word": "dress",
+     "pos": "noun",
+     "translation": "vestido",
+     "example": "She wears a nice dress."
+    },
+    {
+     "word": "gray",
+     "pos": "adjective",
+     "translation": "cinza",
+     "example": "Gray is a quiet color."
+    },
+    {
+     "word": "green",
+     "pos": "adjective",
+     "translation": "verde",
+     "example": "The fresh grass is green."
+    },
+    {
+     "word": "hat",
+     "pos": "noun",
+     "translation": "chapéu",
+     "example": "He has a new hat."
+    },
+    {
+     "word": "jacket",
+     "pos": "noun",
+     "translation": "jaqueta",
+     "example": "My jacket is blue."
+    },
+    {
+     "word": "jeans",
+     "pos": "noun",
+     "translation": "calça jeans",
+     "example": "I wear blue jeans."
+    },
+    {
+     "word": "pants",
+     "pos": "noun",
+     "translation": "calças",
+     "example": "His pants are black."
+    },
+    {
+     "word": "pocket",
+     "pos": "noun",
+     "translation": "bolso",
+     "example": "I have a pen in my pocket."
+    },
+    {
+     "word": "purple",
+     "pos": "noun",
+     "translation": "roxo",
+     "example": "The flower is purple."
+    },
+    {
+     "word": "shirt",
+     "pos": "noun",
+     "translation": "camisa",
+     "example": "He wears a white shirt."
+    },
+    {
+     "word": "shoe",
+     "pos": "noun",
+     "translation": "sapato",
+     "example": "I lost my left shoe."
+    },
+    {
+     "word": "size",
+     "pos": "noun",
+     "translation": "tamanho",
+     "example": "What size do you wear?"
+    },
+    {
+     "word": "skirt",
+     "pos": "noun",
+     "translation": "saia",
+     "example": "She wears a red skirt."
+    },
+    {
+     "word": "trousers",
+     "pos": "noun",
+     "translation": "calças",
+     "example": "He wears dark trousers."
+    },
+    {
+     "word": "T-shirt",
+     "pos": "noun",
+     "translation": "camiseta",
+     "example": "I like this yellow T-shirt."
+    },
+    {
+     "word": "white",
+     "pos": "noun",
+     "translation": "branco",
+     "example": "The snow is very white."
+    },
+    {
+     "word": "yellow",
+     "pos": "noun",
+     "translation": "amarelo",
+     "example": "The bright sun is yellow."
+    }
+   ]
+  },
+  {
+   "id": "a1-32",
+   "title": "Mídia e cultura",
+   "words": [
+    {
+     "word": "design",
+     "pos": "noun",
+     "translation": "design",
+     "example": "I like the design."
+    },
+    {
+     "word": "email",
+     "pos": "noun",
+     "translation": "e-mail",
+     "example": "Send me an email."
+    },
+    {
+     "word": "fairy",
+     "pos": "noun",
+     "translation": "fada",
+     "example": "She is a fairy."
+    },
+    {
+     "word": "fight",
+     "pos": "noun",
+     "translation": "luta",
+     "example": "Stop the fight."
+    },
+    {
+     "word": "information",
+     "pos": "noun",
+     "translation": "informação",
+     "example": "I need more information."
+    },
+    {
+     "word": "Internet",
+     "pos": "noun",
+     "translation": "internet",
+     "example": "I use the internet."
+    },
+    {
+     "word": "message",
+     "pos": "noun",
+     "translation": "mensagem",
+     "example": "Read my message."
+    },
+    {
+     "word": "movie",
+     "pos": "noun",
+     "translation": "filme",
+     "example": "I watch a movie."
+    },
+    {
+     "word": "news",
+     "pos": "noun",
+     "translation": "notícia",
+     "example": "I watch the news."
+    },
+    {
+     "word": "Olympics",
+     "pos": "noun",
+     "translation": "Olimpíadas",
+     "example": "I watch the Olympics."
+    },
+    {
+     "word": "page",
+     "pos": "noun",
+     "translation": "página",
+     "example": "Turn the page, please."
+    },
+    {
+     "word": "pollution",
+     "pos": "noun",
+     "translation": "poluição",
+     "example": "Pollution is bad."
+    },
+    {
+     "word": "rain",
+     "pos": "noun",
+     "translation": "chuva",
+     "example": "I like the rain."
+    },
+    {
+     "word": "snow",
+     "pos": "noun",
+     "translation": "neve",
+     "example": "I like white snow."
+    },
+    {
+     "word": "speech",
+     "pos": "noun",
+     "translation": "discurso",
+     "example": "His speech was good."
+    },
+    {
+     "word": "story",
+     "pos": "noun",
+     "translation": "história",
+     "example": "Read a short story."
+    },
+    {
+     "word": "vote",
+     "pos": "noun",
+     "translation": "voto",
+     "example": "Cast your vote today."
+    },
+    {
+     "word": "war",
+     "pos": "noun",
+     "translation": "guerra",
+     "example": "War is very bad."
+    },
+    {
+     "word": "word",
+     "pos": "noun",
+     "translation": "palavra",
+     "example": "Write this word down."
+    }
+   ]
+  },
+  {
+   "id": "a1-1",
+   "title": "Palavras básicas 1",
+   "words": [
+    {
+     "word": "a",
+     "pos": "determiner",
+     "translation": "um, uma",
+     "example": "I have a cat."
+    },
+    {
+     "word": "about",
+     "pos": "preposition",
+     "translation": "sobre",
+     "example": "This is about cats."
+    },
+    {
+     "word": "above",
+     "pos": "preposition",
+     "translation": "acima de",
+     "example": "The bird is above the tree."
+    },
+    {
+     "word": "after",
+     "pos": "preposition",
+     "translation": "depois de",
+     "example": "I sleep after lunch."
+    },
+    {
+     "word": "all",
+     "pos": "determiner",
+     "translation": "tudo, todos",
+     "example": "All is good."
+    },
+    {
+     "word": "am",
+     "pos": "be-verb",
+     "translation": "sou, estou",
+     "example": "I am a student."
+    },
+    {
+     "word": "an",
+     "pos": "determiner",
+     "translation": "um, uma",
+     "example": "I want an apple."
+    },
+    {
+     "word": "and",
+     "pos": "conjunction",
+     "translation": "e",
+     "example": "I like cats and dogs."
+    },
+    {
+     "word": "another",
+     "pos": "determiner",
+     "translation": "outro, outra",
+     "example": "I want another cup."
+    },
+    {
+     "word": "any",
+     "pos": "determiner",
+     "translation": "qualquer um",
+     "example": "Any can do this."
+    },
+    {
+     "word": "anybody",
+     "pos": "pronoun",
+     "translation": "alguém",
+     "example": "Is anybody home?"
+    },
+    {
+     "word": "anyone",
+     "pos": "pronoun",
+     "translation": "alguém",
+     "example": "Does anyone know?"
+    },
+    {
+     "word": "anything",
+     "pos": "pronoun",
+     "translation": "qualquer coisa",
+     "example": "I want anything to eat."
+    },
+    {
+     "word": "are",
+     "pos": "be-verb",
+     "translation": "são, estão",
+     "example": "You are my friend."
+    },
+    {
+     "word": "around",
+     "pos": "preposition",
+     "translation": "ao redor de",
+     "example": "The cat walked around the room."
+    },
+    {
+     "word": "as",
+     "pos": "preposition",
+     "translation": "como",
+     "example": "Work as a team."
+    },
+    {
+     "word": "at",
+     "pos": "preposition",
+     "translation": "em",
+     "example": "I am at home."
+    },
+    {
+     "word": "be",
+     "pos": "be-verb",
+     "translation": "ser, estar",
+     "example": "I want to be happy."
+    },
+    {
+     "word": "because",
+     "pos": "conjunction",
+     "translation": "porque",
+     "example": "I smile because I am happy."
+    },
+    {
+     "word": "before",
+     "pos": "preposition",
+     "translation": "antes de",
+     "example": "Wash your hands before eating."
+    },
+    {
+     "word": "behind",
+     "pos": "preposition",
+     "translation": "atrás de",
+     "example": "The dog is behind the door."
+    },
+    {
+     "word": "below",
+     "pos": "preposition",
+     "translation": "abaixo de",
+     "example": "The text is below the picture."
+    },
+    {
+     "word": "beside",
+     "pos": "preposition",
+     "translation": "ao lado de",
+     "example": "Sit beside me."
+    },
+    {
+     "word": "between",
+     "pos": "preposition",
+     "translation": "entre",
+     "example": "Stand between us."
+    },
+    {
+     "word": "both",
+     "pos": "determiner",
+     "translation": "ambos",
+     "example": "I like both."
+    },
+    {
+     "word": "but",
+     "pos": "conjunction",
+     "translation": "mas",
+     "example": "I like tea, but I prefer coffee."
+    },
+    {
+     "word": "by",
+     "pos": "preposition",
+     "translation": "por, perto de",
+     "example": "The book is by the door."
+    },
+    {
+     "word": "can",
+     "pos": "modal auxiliary",
+     "translation": "poder",
+     "example": "I can swim."
+    },
+    {
+     "word": "could",
+     "pos": "modal auxiliary",
+     "translation": "podia, pudesse",
+     "example": "Could you help me?"
+    },
+    {
+     "word": "did",
+     "pos": "do-verb",
+     "translation": "fez",
+     "example": "She did her homework."
+    },
+    {
+     "word": "do",
+     "pos": "do-verb",
+     "translation": "fazer",
+     "example": "I do my homework daily."
+    },
+    {
+     "word": "does",
+     "pos": "do-verb",
+     "translation": "faz",
+     "example": "He does his work well."
+    },
+    {
+     "word": "doing",
+     "pos": "do-verb",
+     "translation": "fazendo",
+     "example": "What are you doing?"
+    },
+    {
+     "word": "each",
+     "pos": "determiner",
+     "translation": "cada um",
+     "example": "Take one each."
+    },
+    {
+     "word": "each other",
+     "pos": "pronoun",
+     "translation": "um ao outro",
+     "example": "They love each other."
+    },
+    {
+     "word": "eight",
+     "pos": "number",
+     "translation": "oito",
+     "example": "I have eight pens."
+    },
+    {
+     "word": "eighteen",
+     "pos": "number",
+     "translation": "dezoito",
+     "example": "She is eighteen years old."
+    },
+    {
+     "word": "eighty",
+     "pos": "number",
+     "translation": "oitenta",
+     "example": "He is eighty years old."
+    },
+    {
+     "word": "eleven",
+     "pos": "number",
+     "translation": "onze",
+     "example": "I have eleven books."
+    },
+    {
+     "word": "every",
+     "pos": "determiner",
+     "translation": "todo, cada",
+     "example": "Every day is a gift."
+    }
+   ]
+  },
+  {
+   "id": "a1-2",
+   "title": "Palavras básicas 2",
+   "words": [
+    {
+     "word": "everybody",
+     "pos": "pronoun",
+     "translation": "todo mundo",
+     "example": "Everybody is here today."
+    },
+    {
+     "word": "everyone",
+     "pos": "pronoun",
+     "translation": "todo mundo",
+     "example": "Everyone likes music."
+    },
+    {
+     "word": "everything",
+     "pos": "pronoun",
+     "translation": "tudo",
+     "example": "Everything is fine."
+    },
+    {
+     "word": "fifteen",
+     "pos": "number",
+     "translation": "quinze",
+     "example": "I have fifteen books."
+    },
+    {
+     "word": "fifty",
+     "pos": "number",
+     "translation": "cinquenta",
+     "example": "It costs fifty reais."
+    },
+    {
+     "word": "five",
+     "pos": "number",
+     "translation": "cinco",
+     "example": "I have five cats."
+    },
+    {
+     "word": "for",
+     "pos": "preposition",
+     "translation": "para",
+     "example": "This gift is for you."
+    },
+    {
+     "word": "forty",
+     "pos": "number",
+     "translation": "quarenta",
+     "example": "He is forty years old."
+    },
+    {
+     "word": "four",
+     "pos": "number",
+     "translation": "quatro",
+     "example": "I see four dogs."
+    },
+    {
+     "word": "fourteen",
+     "pos": "number",
+     "translation": "catorze",
+     "example": "She has fourteen pens."
+    },
+    {
+     "word": "from",
+     "pos": "preposition",
+     "translation": "de",
+     "example": "I am from Brazil."
+    },
+    {
+     "word": "good afternoon",
+     "pos": "interjection",
+     "translation": "boa tarde",
+     "example": "Good afternoon, teacher."
+    },
+    {
+     "word": "good morning",
+     "pos": "interjection",
+     "translation": "bom dia",
+     "example": "Good morning, my friend."
+    },
+    {
+     "word": "good night",
+     "pos": "interjection",
+     "translation": "boa noite",
+     "example": "Good night, sleep well."
+    },
+    {
+     "word": "had",
+     "pos": "have-verb",
+     "translation": "tinha",
+     "example": "I had a dog."
+    },
+    {
+     "word": "has",
+     "pos": "have-verb",
+     "translation": "tem",
+     "example": "She has a car."
+    },
+    {
+     "word": "have",
+     "pos": "have-verb",
+     "translation": "ter",
+     "example": "I have a cat."
+    },
+    {
+     "word": "have to",
+     "pos": "modal auxiliary",
+     "translation": "ter que",
+     "example": "I have to go now."
+    },
+    {
+     "word": "he",
+     "pos": "pronoun",
+     "translation": "ele",
+     "example": "He is my brother."
+    },
+    {
+     "word": "her",
+     "pos": "determiner",
+     "translation": "ela",
+     "example": "I see her now."
+    },
+    {
+     "word": "hers",
+     "pos": "pronoun",
+     "translation": "dela",
+     "example": "That pen is hers."
+    },
+    {
+     "word": "hi",
+     "pos": "interjection",
+     "translation": "oi",
+     "example": "Hi, how are you?"
+    },
+    {
+     "word": "him",
+     "pos": "pronoun",
+     "translation": "ele",
+     "example": "I know him well."
+    },
+    {
+     "word": "his",
+     "pos": "determiner",
+     "translation": "dele",
+     "example": "The red car is his."
+    },
+    {
+     "word": "I",
+     "pos": "pronoun",
+     "translation": "eu",
+     "example": "I am a student."
+    },
+    {
+     "word": "if",
+     "pos": "conjunction",
+     "translation": "se",
+     "example": "If it rains, stay home."
+    },
+    {
+     "word": "in",
+     "pos": "preposition",
+     "translation": "em",
+     "example": "The cat is in the box."
+    },
+    {
+     "word": "inside",
+     "pos": "preposition",
+     "translation": "dentro",
+     "example": "Stay inside the house."
+    },
+    {
+     "word": "into",
+     "pos": "preposition",
+     "translation": "para dentro",
+     "example": "Go into the room."
+    },
+    {
+     "word": "is",
+     "pos": "be-verb",
+     "translation": "é",
+     "example": "She is happy today."
+    },
+    {
+     "word": "it",
+     "pos": "pronoun",
+     "translation": "ele",
+     "example": "It is a big dog."
+    },
+    {
+     "word": "its",
+     "pos": "determiner",
+     "translation": "dele",
+     "example": "The ball is its."
+    },
+    {
+     "word": "like",
+     "pos": "preposition",
+     "translation": "como",
+     "example": "She sings like an angel."
+    },
+    {
+     "word": "lot",
+     "pos": "pronoun",
+     "translation": "muito",
+     "example": "I like it a lot."
+    },
+    {
+     "word": "'m",
+     "pos": "be-verb",
+     "translation": "sou",
+     "example": "I'm very happy."
+    },
+    {
+     "word": "many",
+     "pos": "determiner",
+     "translation": "muitos",
+     "example": "Many came to the party."
+    },
+    {
+     "word": "may",
+     "pos": "modal auxiliary",
+     "translation": "poder",
+     "example": "May I go out?"
+    },
+    {
+     "word": "me",
+     "pos": "pronoun",
+     "translation": "mim",
+     "example": "Look at me."
+    },
+    {
+     "word": "mine",
+     "pos": "pronoun",
+     "translation": "meu",
+     "example": "This pen is mine."
+    },
+    {
+     "word": "more",
+     "pos": "determiner",
+     "translation": "mais",
+     "example": "I want more water."
+    }
+   ]
+  },
+  {
+   "id": "a1-3",
+   "title": "Palavras básicas 3",
+   "words": [
+    {
+     "word": "most",
+     "pos": "determiner",
+     "translation": "a maioria",
+     "example": "Most students are here."
+    },
+    {
+     "word": "much",
+     "pos": "determiner",
+     "translation": "muito",
+     "example": "Thank you very much."
+    },
+    {
+     "word": "must",
+     "pos": "modal auxiliary",
+     "translation": "dever",
+     "example": "You must study now."
+    },
+    {
+     "word": "my",
+     "pos": "determiner",
+     "translation": "meu, minha",
+     "example": "This is my book."
+    },
+    {
+     "word": "near",
+     "pos": "preposition",
+     "translation": "perto de",
+     "example": "The school is near here."
+    },
+    {
+     "word": "need",
+     "pos": "modal auxiliary",
+     "translation": "precisar",
+     "example": "You need to go home."
+    },
+    {
+     "word": "nine",
+     "pos": "number",
+     "translation": "nove",
+     "example": "I have nine pens."
+    },
+    {
+     "word": "nineteen",
+     "pos": "number",
+     "translation": "dezenove",
+     "example": "She is nineteen years old."
+    },
+    {
+     "word": "ninety",
+     "pos": "number",
+     "translation": "noventa",
+     "example": "The book costs ninety dollars."
+    },
+    {
+     "word": "no",
+     "pos": "determiner",
+     "translation": "nenhum",
+     "example": "I have no time."
+    },
+    {
+     "word": "nothing",
+     "pos": "pronoun",
+     "translation": "nada",
+     "example": "There is nothing here."
+    },
+    {
+     "word": "of",
+     "pos": "preposition",
+     "translation": "de",
+     "example": "A cup of tea."
+    },
+    {
+     "word": "on",
+     "pos": "preposition",
+     "translation": "em cima de",
+     "example": "The book is on the table."
+    },
+    {
+     "word": "one",
+     "pos": "determiner",
+     "translation": "um",
+     "example": "I have one."
+    },
+    {
+     "word": "or",
+     "pos": "conjunction",
+     "translation": "ou",
+     "example": "Tea or coffee?"
+    },
+    {
+     "word": "other",
+     "pos": "determiner",
+     "translation": "outro",
+     "example": "I need the other book."
+    },
+    {
+     "word": "our",
+     "pos": "determiner",
+     "translation": "nosso, nossa",
+     "example": "This is our house."
+    },
+    {
+     "word": "ours",
+     "pos": "pronoun",
+     "translation": "nosso",
+     "example": "The house is ours."
+    },
+    {
+     "word": "over",
+     "pos": "preposition",
+     "translation": "sobre, acima",
+     "example": "The bird is over us."
+    },
+    {
+     "word": "past",
+     "pos": "preposition",
+     "translation": "depois de",
+     "example": "It is ten past five."
+    },
+    {
+     "word": "'re",
+     "pos": "be-verb",
+     "translation": "estamos, são",
+     "example": "We're happy today."
+    },
+    {
+     "word": "'s",
+     "pos": "be-verb",
+     "translation": "é, está",
+     "example": "He's my friend."
+    },
+    {
+     "word": "same",
+     "pos": "pronoun",
+     "translation": "mesmo",
+     "example": "We have the same car."
+    },
+    {
+     "word": "seven",
+     "pos": "number",
+     "translation": "sete",
+     "example": "I have seven cats."
+    },
+    {
+     "word": "seventeen",
+     "pos": "number",
+     "translation": "dezessete",
+     "example": "She is seventeen today."
+    },
+    {
+     "word": "seventy",
+     "pos": "number",
+     "translation": "setenta",
+     "example": "He is seventy years old."
+    },
+    {
+     "word": "she",
+     "pos": "pronoun",
+     "translation": "ela",
+     "example": "She is my teacher."
+    },
+    {
+     "word": "should",
+     "pos": "modal auxiliary",
+     "translation": "deveria",
+     "example": "You should sleep now."
+    },
+    {
+     "word": "six",
+     "pos": "number",
+     "translation": "seis",
+     "example": "I have six apples."
+    },
+    {
+     "word": "sixteen",
+     "pos": "number",
+     "translation": "dezesseis",
+     "example": "He is sixteen years old."
+    },
+    {
+     "word": "sixty",
+     "pos": "number",
+     "translation": "sessenta",
+     "example": "The bus leaves at sixty."
+    },
+    {
+     "word": "so",
+     "pos": "conjunction",
+     "translation": "então, por isso",
+     "example": "It is cold, so wear a coat."
+    },
+    {
+     "word": "some",
+     "pos": "determiner",
+     "translation": "alguns",
+     "example": "I want some."
+    },
+    {
+     "word": "someone",
+     "pos": "pronoun",
+     "translation": "alguém",
+     "example": "Someone is at the door."
+    },
+    {
+     "word": "something",
+     "pos": "pronoun",
+     "translation": "algo",
+     "example": "I need something to eat."
+    },
+    {
+     "word": "ten",
+     "pos": "number",
+     "translation": "dez",
+     "example": "I have ten fingers."
+    },
+    {
+     "word": "than",
+     "pos": "conjunction",
+     "translation": "do que",
+     "example": "More than five people."
+    },
+    {
+     "word": "that",
+     "pos": "conjunction",
+     "translation": "aquele, aquela",
+     "example": "That car is red."
+    }
+   ]
+  },
+  {
+   "id": "a1-4",
+   "title": "Palavras básicas 4",
+   "words": [
+    {
+     "word": "the",
+     "pos": "determiner",
+     "translation": "o, a, os, as",
+     "example": "The cat is black."
+    },
+    {
+     "word": "their",
+     "pos": "determiner",
+     "translation": "seu, deles",
+     "example": "This is their house."
+    },
+    {
+     "word": "them",
+     "pos": "pronoun",
+     "translation": "eles, elas, os",
+     "example": "I like them."
+    },
+    {
+     "word": "these",
+     "pos": "determiner",
+     "translation": "estes, estas",
+     "example": "These are new."
+    },
+    {
+     "word": "they",
+     "pos": "pronoun",
+     "translation": "eles, elas",
+     "example": "They are happy."
+    },
+    {
+     "word": "thirteen",
+     "pos": "number",
+     "translation": "treze",
+     "example": "I am thirteen years old."
+    },
+    {
+     "word": "thirty",
+     "pos": "number",
+     "translation": "trinta",
+     "example": "He has thirty books."
+    },
+    {
+     "word": "this",
+     "pos": "determiner",
+     "translation": "este, esta, isto",
+     "example": "This is good."
+    },
+    {
+     "word": "those",
+     "pos": "determiner",
+     "translation": "aqueles, aquelas",
+     "example": "Those are my friends."
+    },
+    {
+     "word": "three",
+     "pos": "number",
+     "translation": "três",
+     "example": "I have three cats."
+    },
+    {
+     "word": "through",
+     "pos": "preposition",
+     "translation": "através de",
+     "example": "Walk through the door."
+    },
+    {
+     "word": "to",
+     "pos": "infinitive-to",
+     "translation": "para, a",
+     "example": "Go to school."
+    },
+    {
+     "word": "twelve",
+     "pos": "number",
+     "translation": "doze",
+     "example": "It is twelve o'clock."
+    },
+    {
+     "word": "twenty",
+     "pos": "number",
+     "translation": "vinte",
+     "example": "I have twenty dollars."
+    },
+    {
+     "word": "two",
+     "pos": "number",
+     "translation": "dois, duas",
+     "example": "I have two dogs."
+    },
+    {
+     "word": "under",
+     "pos": "preposition",
+     "translation": "sob, embaixo de",
+     "example": "The cat is under the table."
+    },
+    {
+     "word": "until",
+     "pos": "preposition",
+     "translation": "até",
+     "example": "Wait here until five."
+    },
+    {
+     "word": "up",
+     "pos": "preposition",
+     "translation": "para cima",
+     "example": "Look up at the sky."
+    },
+    {
+     "word": "us",
+     "pos": "pronoun",
+     "translation": "nos, conosco",
+     "example": "She helps us."
+    },
+    {
+     "word": "was",
+     "pos": "be-verb",
+     "translation": "era, estava",
+     "example": "I was happy."
+    },
+    {
+     "word": "we",
+     "pos": "pronoun",
+     "translation": "nós",
+     "example": "We are friends."
+    },
+    {
+     "word": "welcome",
+     "pos": "interjection",
+     "translation": "bem-vindo",
+     "example": "Welcome to my home."
+    },
+    {
+     "word": "were",
+     "pos": "be-verb",
+     "translation": "éramos, estavam",
+     "example": "They were late."
+    },
+    {
+     "word": "what",
+     "pos": "determiner",
+     "translation": "o que",
+     "example": "What is your name?"
+    },
+    {
+     "word": "when",
+     "pos": "conjunction",
+     "translation": "quando",
+     "example": "When is your birthday?"
+    },
+    {
+     "word": "where",
+     "pos": "conjunction",
+     "translation": "onde",
+     "example": "Where is my bag?"
+    },
+    {
+     "word": "which",
+     "pos": "determiner",
+     "translation": "qual",
+     "example": "Which is better?"
+    },
+    {
+     "word": "who",
+     "pos": "pronoun",
+     "translation": "quem",
+     "example": "Who is that man?"
+    },
+    {
+     "word": "whose",
+     "pos": "determiner",
+     "translation": "de quem",
+     "example": "Whose is this?"
+    },
+    {
+     "word": "will",
+     "pos": "modal auxiliary",
+     "translation": "vai, irei",
+     "example": "I will help you."
+    },
+    {
+     "word": "with",
+     "pos": "preposition",
+     "translation": "com",
+     "example": "I live with my family."
+    },
+    {
+     "word": "would",
+     "pos": "modal auxiliary",
+     "translation": "gostaria",
+     "example": "I would like water."
+    },
+    {
+     "word": "you",
+     "pos": "pronoun",
+     "translation": "você, tu",
+     "example": "You are nice."
+    },
+    {
+     "word": "your",
+     "pos": "determiner",
+     "translation": "seu, sua",
+     "example": "What is your name?"
+    },
+    {
+     "word": "yours",
+     "pos": "pronoun",
+     "translation": "seu, o seu",
+     "example": "This book is yours."
+    },
+    {
+     "word": "yourself",
+     "pos": "pronoun",
+     "translation": "você mesmo",
+     "example": "Look at yourself."
+    }
+   ]
+  },
+  {
+   "id": "a1-5",
+   "title": "Advérbios 1",
+   "words": [
+    {
+     "word": "a.m.",
+     "pos": "adverb",
+     "translation": "da manhã",
+     "example": "I wake up at 7 a.m."
+    },
+    {
+     "word": "again",
+     "pos": "adverb",
+     "translation": "de novo",
+     "example": "Please say that again."
+    },
+    {
+     "word": "ago",
+     "pos": "adverb",
+     "translation": "atrás",
+     "example": "I arrived two days ago."
+    },
+    {
+     "word": "all right",
+     "pos": "adverb",
+     "translation": "tudo bem",
+     "example": "Is everything all right?"
+    },
+    {
+     "word": "almost",
+     "pos": "adverb",
+     "translation": "quase",
+     "example": "It is almost time to go."
+    },
+    {
+     "word": "alone",
+     "pos": "adverb",
+     "translation": "sozinho",
+     "example": "She lives alone."
+    },
+    {
+     "word": "along",
+     "pos": "adverb",
+     "translation": "junto, ao longo",
+     "example": "We walked along the street."
+    },
+    {
+     "word": "already",
+     "pos": "adverb",
+     "translation": "já",
+     "example": "I am already here."
+    },
+    {
+     "word": "also",
+     "pos": "adverb",
+     "translation": "também",
+     "example": "I also like apples."
+    },
+    {
+     "word": "always",
+     "pos": "adverb",
+     "translation": "sempre",
+     "example": "He is always happy."
+    },
+    {
+     "word": "away",
+     "pos": "adverb",
+     "translation": "fora, longe",
+     "example": "He is away today."
+    },
+    {
+     "word": "back",
+     "pos": "adverb",
+     "translation": "de volta",
+     "example": "I will come back soon."
+    },
+    {
+     "word": "best",
+     "pos": "adverb",
+     "translation": "melhor",
+     "example": "This is my best friend."
+    },
+    {
+     "word": "carefully",
+     "pos": "adverb",
+     "translation": "cuidadosamente",
+     "example": "Listen carefully to me."
+    },
+    {
+     "word": "down",
+     "pos": "adverb",
+     "translation": "para baixo",
+     "example": "Sit down, please."
+    },
+    {
+     "word": "early",
+     "pos": "adverb",
+     "translation": "cedo",
+     "example": "I wake up early."
+    },
+    {
+     "word": "either",
+     "pos": "adverb",
+     "translation": "também não, ou",
+     "example": "I do not like tea either."
+    },
+    {
+     "word": "else",
+     "pos": "adverb",
+     "translation": "outro, mais",
+     "example": "Do you need anything else?"
+    },
+    {
+     "word": "everywhere",
+     "pos": "adverb",
+     "translation": "em todo lugar",
+     "example": "I looked for my keys everywhere."
+    },
+    {
+     "word": "fast",
+     "pos": "adverb",
+     "translation": "rápido",
+     "example": "He runs very fast."
+    },
+    {
+     "word": "first",
+     "pos": "adverb",
+     "translation": "primeiro",
+     "example": "First, open your book."
+    },
+    {
+     "word": "hard",
+     "pos": "adverb",
+     "translation": "forte, difícil",
+     "example": "She works very hard."
+    },
+    {
+     "word": "here",
+     "pos": "adverb",
+     "translation": "aqui",
+     "example": "Come here, please."
+    },
+    {
+     "word": "how",
+     "pos": "adverb",
+     "translation": "como",
+     "example": "How are you?"
+    },
+    {
+     "word": "just",
+     "pos": "adverb",
+     "translation": "apenas",
+     "example": "I just want water."
+    },
+    {
+     "word": "late",
+     "pos": "adverb",
+     "translation": "tarde",
+     "example": "Do not be late."
+    },
+    {
+     "word": "later",
+     "pos": "adverb",
+     "translation": "mais tarde",
+     "example": "I will call you later."
+    },
+    {
+     "word": "little",
+     "pos": "adverb",
+     "translation": "um pouco",
+     "example": "I speak a little English."
+    },
+    {
+     "word": "maybe",
+     "pos": "adverb",
+     "translation": "talvez",
+     "example": "Maybe we can go tomorrow."
+    },
+    {
+     "word": "never",
+     "pos": "adverb",
+     "translation": "nunca",
+     "example": "I never eat fish."
+    }
+   ]
+  },
+  {
+   "id": "a1-6",
+   "title": "Advérbios 2",
+   "words": [
+    {
+     "word": "not",
+     "pos": "adverb",
+     "translation": "não",
+     "example": "She is not here."
+    },
+    {
+     "word": "now",
+     "pos": "adverb",
+     "translation": "agora",
+     "example": "I want to go now."
+    },
+    {
+     "word": "o'clock",
+     "pos": "adverb",
+     "translation": "em ponto",
+     "example": "It is two o'clock."
+    },
+    {
+     "word": "often",
+     "pos": "adverb",
+     "translation": "frequentemente",
+     "example": "I often read books."
+    },
+    {
+     "word": "OK",
+     "pos": "adverb",
+     "translation": "tudo bem",
+     "example": "OK, let us go."
+    },
+    {
+     "word": "once",
+     "pos": "adverb",
+     "translation": "uma vez",
+     "example": "I went there once."
+    },
+    {
+     "word": "only",
+     "pos": "adverb",
+     "translation": "apenas",
+     "example": "I have only one cat."
+    },
+    {
+     "word": "out",
+     "pos": "adverb",
+     "translation": "fora",
+     "example": "He is out now."
+    },
+    {
+     "word": "outside",
+     "pos": "adverb",
+     "translation": "lá fora",
+     "example": "It is cold outside."
+    },
+    {
+     "word": "p.m.",
+     "pos": "adverb",
+     "translation": "da tarde",
+     "example": "The class is at 3 p.m."
+    },
+    {
+     "word": "please",
+     "pos": "adverb",
+     "translation": "por favor",
+     "example": "Water, please."
+    },
+    {
+     "word": "quickly",
+     "pos": "adverb",
+     "translation": "rapidamente",
+     "example": "Run very quickly."
+    },
+    {
+     "word": "real",
+     "pos": "adverb",
+     "translation": "realmente",
+     "example": "It is real good."
+    },
+    {
+     "word": "really",
+     "pos": "adverb",
+     "translation": "realmente",
+     "example": "I am really happy."
+    },
+    {
+     "word": "right",
+     "pos": "adverb",
+     "translation": "certo",
+     "example": "Turn right here."
+    },
+    {
+     "word": "short",
+     "pos": "adverb",
+     "translation": "baixo",
+     "example": "He is short."
+    },
+    {
+     "word": "soon",
+     "pos": "adverb",
+     "translation": "em breve",
+     "example": "See you soon."
+    },
+    {
+     "word": "straight",
+     "pos": "adverb",
+     "translation": "em linha reta",
+     "example": "Go straight ahead."
+    },
+    {
+     "word": "then",
+     "pos": "adverb",
+     "translation": "então",
+     "example": "See you then."
+    },
+    {
+     "word": "there",
+     "pos": "adverb",
+     "translation": "lá",
+     "example": "Put it over there."
+    },
+    {
+     "word": "today",
+     "pos": "adverb",
+     "translation": "hoje",
+     "example": "Today is Monday."
+    },
+    {
+     "word": "together",
+     "pos": "adverb",
+     "translation": "juntos",
+     "example": "We work together."
+    },
+    {
+     "word": "tomorrow",
+     "pos": "adverb",
+     "translation": "amanhã",
+     "example": "Tomorrow is Tuesday."
+    },
+    {
+     "word": "tonight",
+     "pos": "adverb",
+     "translation": "esta noite",
+     "example": "I will rest tonight."
+    },
+    {
+     "word": "too",
+     "pos": "adverb",
+     "translation": "também",
+     "example": "I like apples too."
+    },
+    {
+     "word": "usually",
+     "pos": "adverb",
+     "translation": "usualmente",
+     "example": "I usually drink tea."
+    },
+    {
+     "word": "very",
+     "pos": "adverb",
+     "translation": "muito",
+     "example": "It is very hot."
+    },
+    {
+     "word": "well",
+     "pos": "adverb",
+     "translation": "bem",
+     "example": "She sings very well."
+    },
+    {
+     "word": "why",
+     "pos": "adverb",
+     "translation": "por que",
+     "example": "Why are you sad?"
+    },
+    {
+     "word": "yes",
+     "pos": "adverb",
+     "translation": "sim",
+     "example": "Yes, I can."
+    },
+    {
+     "word": "yesterday",
+     "pos": "adverb",
+     "translation": "ontem",
+     "example": "Yesterday was Sunday."
+    },
+    {
+     "word": "yet",
+     "pos": "adverb",
+     "translation": "ainda",
+     "example": "Not yet."
+    }
+   ]
+  },
+  {
+   "id": "a1-7",
+   "title": "Substantivos 1",
+   "words": [
+    {
+     "word": "action",
+     "pos": "noun",
+     "translation": "ação",
+     "example": "I like action movies."
+    },
+    {
+     "word": "afternoon",
+     "pos": "noun",
+     "translation": "tarde",
+     "example": "Good afternoon to you."
+    },
+    {
+     "word": "animal",
+     "pos": "noun",
+     "translation": "animal",
+     "example": "The dog is an animal."
+    },
+    {
+     "word": "answer",
+     "pos": "noun",
+     "translation": "resposta",
+     "example": "I know the answer."
+    },
+    {
+     "word": "April",
+     "pos": "noun",
+     "translation": "abril",
+     "example": "My birthday is in April."
+    },
+    {
+     "word": "August",
+     "pos": "noun",
+     "translation": "agosto",
+     "example": "School starts in August."
+    },
+    {
+     "word": "autumn",
+     "pos": "noun",
+     "translation": "outono",
+     "example": "Leaves fall in autumn."
+    },
+    {
+     "word": "bat",
+     "pos": "noun",
+     "translation": "morcego",
+     "example": "The bat flies at night."
+    },
+    {
+     "word": "bear",
+     "pos": "noun",
+     "translation": "urso",
+     "example": "I see a big bear."
+    },
+    {
+     "word": "bird",
+     "pos": "noun",
+     "translation": "pássaro",
+     "example": "The bird can sing."
+    },
+    {
+     "word": "body",
+     "pos": "noun",
+     "translation": "corpo",
+     "example": "Move your body."
+    },
+    {
+     "word": "bone",
+     "pos": "noun",
+     "translation": "osso",
+     "example": "The dog has a bone."
+    },
+    {
+     "word": "bottom",
+     "pos": "noun",
+     "translation": "fundo",
+     "example": "Look at the bottom."
+    },
+    {
+     "word": "brain",
+     "pos": "noun",
+     "translation": "cérebro",
+     "example": "Use your brain."
+    },
+    {
+     "word": "butterfly",
+     "pos": "noun",
+     "translation": "borboleta",
+     "example": "A pretty butterfly is here."
+    },
+    {
+     "word": "bye",
+     "pos": "noun",
+     "translation": "tchau",
+     "example": "Say bye to mom."
+    },
+    {
+     "word": "call",
+     "pos": "noun",
+     "translation": "ligação",
+     "example": "I got a phone call."
+    },
+    {
+     "word": "care",
+     "pos": "noun",
+     "translation": "cuidado",
+     "example": "Take care of it."
+    },
+    {
+     "word": "cat",
+     "pos": "noun",
+     "translation": "gato",
+     "example": "The cat is sleeping."
+    },
+    {
+     "word": "catch",
+     "pos": "noun",
+     "translation": "pegada",
+     "example": "Good catch!"
+    },
+    {
+     "word": "celebration",
+     "pos": "noun",
+     "translation": "celebração",
+     "example": "It is a big celebration."
+    },
+    {
+     "word": "change",
+     "pos": "noun",
+     "translation": "mudança",
+     "example": "We need a change."
+    },
+    {
+     "word": "character",
+     "pos": "noun",
+     "translation": "personagem",
+     "example": "He is my favorite character."
+    },
+    {
+     "word": "check",
+     "pos": "noun",
+     "translation": "verificação",
+     "example": "Let us take a check."
+    },
+    {
+     "word": "circle",
+     "pos": "noun",
+     "translation": "círculo",
+     "example": "Draw a red circle."
+    },
+    {
+     "word": "city",
+     "pos": "noun",
+     "translation": "cidade",
+     "example": "I live in this city."
+    },
+    {
+     "word": "clothes",
+     "pos": "noun",
+     "translation": "roupas",
+     "example": "I need new clothes."
+    },
+    {
+     "word": "cloud",
+     "pos": "noun",
+     "translation": "nuvem",
+     "example": "I see a white cloud."
+    },
+    {
+     "word": "code",
+     "pos": "noun",
+     "translation": "código",
+     "example": "Enter the secret code."
+    },
+    {
+     "word": "contest",
+     "pos": "noun",
+     "translation": "concurso",
+     "example": "I want to win the contest."
+    },
+    {
+     "word": "conversation",
+     "pos": "noun",
+     "translation": "conversa",
+     "example": "We have a nice conversation."
+    },
+    {
+     "word": "cow",
+     "pos": "noun",
+     "translation": "vaca",
+     "example": "The cow eats grass."
+    },
+    {
+     "word": "cry",
+     "pos": "noun",
+     "translation": "choro",
+     "example": "I hear a baby cry."
+    },
+    {
+     "word": "daddy",
+     "pos": "noun",
+     "translation": "papai",
+     "example": "Daddy is at home."
+    },
+    {
+     "word": "date",
+     "pos": "noun",
+     "translation": "data",
+     "example": "What is the date today?"
+    },
+    {
+     "word": "day",
+     "pos": "noun",
+     "translation": "dia",
+     "example": "It is a sunny day."
+    },
+    {
+     "word": "December",
+     "pos": "noun",
+     "translation": "dezembro",
+     "example": "Christmas is in December."
+    },
+    {
+     "word": "difference",
+     "pos": "noun",
+     "translation": "diferença",
+     "example": "Can you see the difference?"
+    },
+    {
+     "word": "dig",
+     "pos": "noun",
+     "translation": "cavada",
+     "example": "Give the dirt a dig."
+    },
+    {
+     "word": "dog",
+     "pos": "noun",
+     "translation": "cachorro",
+     "example": "My dog is friendly."
+    },
+    {
+     "word": "dream",
+     "pos": "noun",
+     "translation": "sonho",
+     "example": "I had a good dream."
+    },
+    {
+     "word": "ear",
+     "pos": "noun",
+     "translation": "orelha",
+     "example": "He has a big ear."
+    },
+    {
+     "word": "end",
+     "pos": "noun",
+     "translation": "fim",
+     "example": "This is the end."
+    },
+    {
+     "word": "evening",
+     "pos": "noun",
+     "translation": "noite",
+     "example": "Good evening, my friend."
+    }
+   ]
+  },
+  {
+   "id": "a1-8",
+   "title": "Substantivos 2",
+   "words": [
+    {
+     "word": "example",
+     "pos": "noun",
+     "translation": "exemplo",
+     "example": "This is a good example."
+    },
+    {
+     "word": "excuse",
+     "pos": "noun",
+     "translation": "desculpa",
+     "example": "That is a bad excuse."
+    },
+    {
+     "word": "eye",
+     "pos": "noun",
+     "translation": "olho",
+     "example": "She has a blue eye."
+    },
+    {
+     "word": "face",
+     "pos": "noun",
+     "translation": "rosto",
+     "example": "Wash your face."
+    },
+    {
+     "word": "favorite",
+     "pos": "noun",
+     "translation": "favorito",
+     "example": "Blue is my favorite."
+    },
+    {
+     "word": "February",
+     "pos": "noun",
+     "translation": "fevereiro",
+     "example": "My birthday is in February."
+    },
+    {
+     "word": "feeling",
+     "pos": "noun",
+     "translation": "sentimento",
+     "example": "I have a good feeling."
+    },
+    {
+     "word": "finish",
+     "pos": "noun",
+     "translation": "fim",
+     "example": "We are at the finish."
+    },
+    {
+     "word": "fire",
+     "pos": "noun",
+     "translation": "fogo",
+     "example": "The fire is hot."
+    },
+    {
+     "word": "flower",
+     "pos": "noun",
+     "translation": "flor",
+     "example": "The flower is red."
+    },
+    {
+     "word": "foreigner",
+     "pos": "noun",
+     "translation": "estrangeiro",
+     "example": "He is a foreigner."
+    },
+    {
+     "word": "form",
+     "pos": "noun",
+     "translation": "formulário",
+     "example": "Please sign this form."
+    },
+    {
+     "word": "Friday",
+     "pos": "noun",
+     "translation": "sexta-feira",
+     "example": "Today is Friday."
+    },
+    {
+     "word": "frog",
+     "pos": "noun",
+     "translation": "sapo",
+     "example": "The frog is green."
+    },
+    {
+     "word": "fun",
+     "pos": "noun",
+     "translation": "diversão",
+     "example": "Games are fun."
+    },
+    {
+     "word": "future",
+     "pos": "noun",
+     "translation": "futuro",
+     "example": "Think about the future."
+    },
+    {
+     "word": "ghost",
+     "pos": "noun",
+     "translation": "fantasma",
+     "example": "I saw a ghost."
+    },
+    {
+     "word": "girl",
+     "pos": "noun",
+     "translation": "menina",
+     "example": "The girl is reading."
+    },
+    {
+     "word": "goal",
+     "pos": "noun",
+     "translation": "meta",
+     "example": "My goal is to learn."
+    },
+    {
+     "word": "grade",
+     "pos": "noun",
+     "translation": "nota",
+     "example": "I got a good grade."
+    },
+    {
+     "word": "group",
+     "pos": "noun",
+     "translation": "grupo",
+     "example": "We are a group."
+    },
+    {
+     "word": "guest",
+     "pos": "noun",
+     "translation": "convidado",
+     "example": "She is our guest."
+    },
+    {
+     "word": "guy",
+     "pos": "noun",
+     "translation": "cara",
+     "example": "He is a nice guy."
+    },
+    {
+     "word": "haircut",
+     "pos": "noun",
+     "translation": "corte de cabelo",
+     "example": "I need a haircut."
+    },
+    {
+     "word": "half",
+     "pos": "noun",
+     "translation": "metade",
+     "example": "Give me half."
+    },
+    {
+     "word": "hand",
+     "pos": "noun",
+     "translation": "mão",
+     "example": "Wash your hand."
+    },
+    {
+     "word": "head",
+     "pos": "noun",
+     "translation": "cabeça",
+     "example": "My head hurts."
+    },
+    {
+     "word": "heart",
+     "pos": "noun",
+     "translation": "coração",
+     "example": "My heart is happy."
+    },
+    {
+     "word": "hello",
+     "pos": "noun",
+     "translation": "olá",
+     "example": "Say hello to him."
+    },
+    {
+     "word": "hold",
+     "pos": "noun",
+     "translation": "aperto",
+     "example": "Keep a good hold."
+    },
+    {
+     "word": "hope",
+     "pos": "noun",
+     "translation": "esperança",
+     "example": "Never lose hope."
+    },
+    {
+     "word": "horse",
+     "pos": "noun",
+     "translation": "cavalo",
+     "example": "The horse is big."
+    },
+    {
+     "word": "hour",
+     "pos": "noun",
+     "translation": "hora",
+     "example": "Wait one hour."
+    },
+    {
+     "word": "hurry",
+     "pos": "noun",
+     "translation": "pressa",
+     "example": "There is no hurry."
+    },
+    {
+     "word": "idea",
+     "pos": "noun",
+     "translation": "ideia",
+     "example": "That is a good idea."
+    },
+    {
+     "word": "interview",
+     "pos": "noun",
+     "translation": "entrevista",
+     "example": "I have an interview today."
+    },
+    {
+     "word": "interviewer",
+     "pos": "noun",
+     "translation": "entrevistador",
+     "example": "The interviewer is nice."
+    },
+    {
+     "word": "January",
+     "pos": "noun",
+     "translation": "janeiro",
+     "example": "January is the first month."
+    },
+    {
+     "word": "July",
+     "pos": "noun",
+     "translation": "julho",
+     "example": "July is very hot."
+    },
+    {
+     "word": "June",
+     "pos": "noun",
+     "translation": "junho",
+     "example": "School ends in June."
+    },
+    {
+     "word": "kick",
+     "pos": "noun",
+     "translation": "chute",
+     "example": "That was a strong kick."
+    },
+    {
+     "word": "kind",
+     "pos": "noun",
+     "translation": "tipo",
+     "example": "What kind of car is this?"
+    },
+    {
+     "word": "kiss",
+     "pos": "noun",
+     "translation": "beijo",
+     "example": "Give me a kiss."
+    },
+    {
+     "word": "knee",
+     "pos": "noun",
+     "translation": "joelho",
+     "example": "I hurt my knee."
+    },
+    {
+     "word": "last name",
+     "pos": "noun",
+     "translation": "sobrenome",
+     "example": "What is your last name?"
+    }
+   ]
+  },
+  {
+   "id": "a1-9",
+   "title": "Substantivos 3",
+   "words": [
+    {
+     "word": "leg",
+     "pos": "noun",
+     "translation": "perna",
+     "example": "My leg hurts."
+    },
+    {
+     "word": "life",
+     "pos": "noun",
+     "translation": "vida",
+     "example": "Life is good."
+    },
+    {
+     "word": "light",
+     "pos": "noun",
+     "translation": "luz",
+     "example": "Turn on the light."
+    },
+    {
+     "word": "lily",
+     "pos": "noun",
+     "translation": "lírio",
+     "example": "She likes the lily."
+    },
+    {
+     "word": "line",
+     "pos": "noun",
+     "translation": "linha",
+     "example": "Draw a line here."
+    },
+    {
+     "word": "lion",
+     "pos": "noun",
+     "translation": "leão",
+     "example": "The lion is big."
+    },
+    {
+     "word": "look",
+     "pos": "noun",
+     "translation": "olhada",
+     "example": "Have a look."
+    },
+    {
+     "word": "love",
+     "pos": "noun",
+     "translation": "amor",
+     "example": "Love is important."
+    },
+    {
+     "word": "luck",
+     "pos": "noun",
+     "translation": "sorte",
+     "example": "Good luck to you."
+    },
+    {
+     "word": "March",
+     "pos": "noun",
+     "translation": "março",
+     "example": "My birthday is in March."
+    },
+    {
+     "word": "matter",
+     "pos": "noun",
+     "translation": "assunto",
+     "example": "It is a private matter."
+    },
+    {
+     "word": "meeting",
+     "pos": "noun",
+     "translation": "reunião",
+     "example": "The meeting is at ten."
+    },
+    {
+     "word": "memory",
+     "pos": "noun",
+     "translation": "memória",
+     "example": "I have a good memory."
+    },
+    {
+     "word": "mind",
+     "pos": "noun",
+     "translation": "mente",
+     "example": "Keep it in mind."
+    },
+    {
+     "word": "minute",
+     "pos": "noun",
+     "translation": "minuto",
+     "example": "Wait one minute."
+    },
+    {
+     "word": "Miss",
+     "pos": "noun",
+     "translation": "senhorita",
+     "example": "Good morning, Miss."
+    },
+    {
+     "word": "moment",
+     "pos": "noun",
+     "translation": "momento",
+     "example": "Just a moment."
+    },
+    {
+     "word": "mommy",
+     "pos": "noun",
+     "translation": "mamãe",
+     "example": "Where is mommy?"
+    },
+    {
+     "word": "Monday",
+     "pos": "noun",
+     "translation": "segunda-feira",
+     "example": "Today is Monday."
+    },
+    {
+     "word": "monkey",
+     "pos": "noun",
+     "translation": "macaco",
+     "example": "The monkey eats a banana."
+    },
+    {
+     "word": "month",
+     "pos": "noun",
+     "translation": "mês",
+     "example": "January is the first month."
+    },
+    {
+     "word": "moon",
+     "pos": "noun",
+     "translation": "lua",
+     "example": "The moon is bright."
+    },
+    {
+     "word": "morning",
+     "pos": "noun",
+     "translation": "manhã",
+     "example": "Good morning."
+    },
+    {
+     "word": "mouse",
+     "pos": "noun",
+     "translation": "rato",
+     "example": "I see a little mouse."
+    },
+    {
+     "word": "mouth",
+     "pos": "noun",
+     "translation": "boca",
+     "example": "Open your mouth."
+    },
+    {
+     "word": "move",
+     "pos": "noun",
+     "translation": "movimento",
+     "example": "Make a move."
+    },
+    {
+     "word": "Mr.",
+     "pos": "noun",
+     "translation": "senhor",
+     "example": "Hello, Mr. Smith."
+    },
+    {
+     "word": "Mrs.",
+     "pos": "noun",
+     "translation": "senhora",
+     "example": "Hello, Mrs. Davis."
+    },
+    {
+     "word": "neck",
+     "pos": "noun",
+     "translation": "pescoço",
+     "example": "My neck is cold."
+    },
+    {
+     "word": "night",
+     "pos": "noun",
+     "translation": "noite",
+     "example": "Good night."
+    },
+    {
+     "word": "noise",
+     "pos": "noun",
+     "translation": "barulho",
+     "example": "I hear a loud noise."
+    },
+    {
+     "word": "nose",
+     "pos": "noun",
+     "translation": "nariz",
+     "example": "Touch your nose."
+    },
+    {
+     "word": "November",
+     "pos": "noun",
+     "translation": "novembro",
+     "example": "Thanksgiving is in November."
+    },
+    {
+     "word": "number",
+     "pos": "noun",
+     "translation": "número",
+     "example": "What is your number?"
+    },
+    {
+     "word": "October",
+     "pos": "noun",
+     "translation": "outubro",
+     "example": "Halloween is in October."
+    },
+    {
+     "word": "order",
+     "pos": "noun",
+     "translation": "pedido",
+     "example": "I want to take an order."
+    },
+    {
+     "word": "pair",
+     "pos": "noun",
+     "translation": "par",
+     "example": "I have a pair of shoes."
+    },
+    {
+     "word": "pardon",
+     "pos": "noun",
+     "translation": "perdão",
+     "example": "Pardon me."
+    },
+    {
+     "word": "peace",
+     "pos": "noun",
+     "translation": "paz",
+     "example": "We want peace."
+    },
+    {
+     "word": "people",
+     "pos": "noun",
+     "translation": "pessoas",
+     "example": "Many people are here."
+    },
+    {
+     "word": "period",
+     "pos": "noun",
+     "translation": "período",
+     "example": "This is a short period."
+    },
+    {
+     "word": "person",
+     "pos": "noun",
+     "translation": "pessoa",
+     "example": "She is a nice person."
+    },
+    {
+     "word": "piece",
+     "pos": "noun",
+     "translation": "pedaço",
+     "example": "I want a piece of cake."
+    },
+    {
+     "word": "pig",
+     "pos": "noun",
+     "translation": "porco",
+     "example": "The pig is in the mud."
+    }
+   ]
+  },
+  {
+   "id": "a1-10",
+   "title": "Substantivos 4",
+   "words": [
+    {
+     "word": "place",
+     "pos": "noun",
+     "translation": "lugar",
+     "example": "This is a nice place."
+    },
+    {
+     "word": "pleasure",
+     "pos": "noun",
+     "translation": "prazer",
+     "example": "It is a great pleasure."
+    },
+    {
+     "word": "point",
+     "pos": "noun",
+     "translation": "ponto",
+     "example": "Good point."
+    },
+    {
+     "word": "pop",
+     "pos": "noun",
+     "translation": "estouro",
+     "example": "I heard a loud pop."
+    },
+    {
+     "word": "present",
+     "pos": "noun",
+     "translation": "presente",
+     "example": "I have a present for you."
+    },
+    {
+     "word": "problem",
+     "pos": "noun",
+     "translation": "problema",
+     "example": "No problem at all."
+    },
+    {
+     "word": "quarter",
+     "pos": "noun",
+     "translation": "quarto",
+     "example": "It is a quarter past two."
+    },
+    {
+     "word": "question",
+     "pos": "noun",
+     "translation": "pergunta",
+     "example": "I have a question."
+    },
+    {
+     "word": "rabbit",
+     "pos": "noun",
+     "translation": "coelho",
+     "example": "The rabbit is fast."
+    },
+    {
+     "word": "rat",
+     "pos": "noun",
+     "translation": "rato",
+     "example": "I saw a rat."
+    },
+    {
+     "word": "reason",
+     "pos": "noun",
+     "translation": "razão",
+     "example": "Give me a reason."
+    },
+    {
+     "word": "result",
+     "pos": "noun",
+     "translation": "resultado",
+     "example": "Check the result."
+    },
+    {
+     "word": "ribbon",
+     "pos": "noun",
+     "translation": "fita",
+     "example": "She has a red ribbon."
+    },
+    {
+     "word": "role",
+     "pos": "noun",
+     "translation": "papel",
+     "example": "Everyone has a role."
+    },
+    {
+     "word": "rose",
+     "pos": "noun",
+     "translation": "rosa",
+     "example": "The rose is red."
+    },
+    {
+     "word": "row",
+     "pos": "noun",
+     "translation": "fileira",
+     "example": "Sit in the first row."
+    },
+    {
+     "word": "rule",
+     "pos": "noun",
+     "translation": "regra",
+     "example": "Follow the rule."
+    },
+    {
+     "word": "ruler",
+     "pos": "noun",
+     "translation": "régua",
+     "example": "I need a ruler."
+    },
+    {
+     "word": "Saturday",
+     "pos": "noun",
+     "translation": "sábado",
+     "example": "Today is Saturday."
+    },
+    {
+     "word": "section",
+     "pos": "noun",
+     "translation": "seção",
+     "example": "Read this section."
+    },
+    {
+     "word": "self",
+     "pos": "noun",
+     "translation": "eu",
+     "example": "Be your true self."
+    },
+    {
+     "word": "September",
+     "pos": "noun",
+     "translation": "setembro",
+     "example": "My birthday is in September."
+    },
+    {
+     "word": "shake",
+     "pos": "noun",
+     "translation": "chacoalhada",
+     "example": "Give it a shake."
+    },
+    {
+     "word": "sheep",
+     "pos": "noun",
+     "translation": "ovelha",
+     "example": "The sheep is white."
+    },
+    {
+     "word": "shoulder",
+     "pos": "noun",
+     "translation": "ombro",
+     "example": "He hurt his shoulder."
+    },
+    {
+     "word": "side",
+     "pos": "noun",
+     "translation": "lado",
+     "example": "Stand by my side."
+    },
+    {
+     "word": "sight",
+     "pos": "noun",
+     "translation": "visão",
+     "example": "It is a lovely sight."
+    },
+    {
+     "word": "site",
+     "pos": "noun",
+     "translation": "site",
+     "example": "Visit our new site."
+    },
+    {
+     "word": "skill",
+     "pos": "noun",
+     "translation": "habilidade",
+     "example": "Reading is a key skill."
+    },
+    {
+     "word": "sky",
+     "pos": "noun",
+     "translation": "céu",
+     "example": "The sky is blue."
+    },
+    {
+     "word": "smell",
+     "pos": "noun",
+     "translation": "cheiro",
+     "example": "I like this smell."
+    },
+    {
+     "word": "smile",
+     "pos": "noun",
+     "translation": "sorriso",
+     "example": "She has a nice smile."
+    },
+    {
+     "word": "smoke",
+     "pos": "noun",
+     "translation": "fumaça",
+     "example": "I see black smoke."
+    },
+    {
+     "word": "snake",
+     "pos": "noun",
+     "translation": "cobra",
+     "example": "The snake is long."
+    },
+    {
+     "word": "spell",
+     "pos": "noun",
+     "translation": "feitiço",
+     "example": "He cast a spell."
+    },
+    {
+     "word": "spot",
+     "pos": "noun",
+     "translation": "lugar",
+     "example": "This is a good spot."
+    },
+    {
+     "word": "spring",
+     "pos": "noun",
+     "translation": "primavera",
+     "example": "Spring is coming."
+    },
+    {
+     "word": "spy",
+     "pos": "noun",
+     "translation": "espião",
+     "example": "He is a secret spy."
+    },
+    {
+     "word": "stand",
+     "pos": "noun",
+     "translation": "banca",
+     "example": "Buy it at the stand."
+    },
+    {
+     "word": "star",
+     "pos": "noun",
+     "translation": "estrela",
+     "example": "I see a bright star."
+    },
+    {
+     "word": "start",
+     "pos": "noun",
+     "translation": "início",
+     "example": "It is a fresh start."
+    },
+    {
+     "word": "stone",
+     "pos": "noun",
+     "translation": "pedra",
+     "example": "That is a big stone."
+    },
+    {
+     "word": "stop",
+     "pos": "noun",
+     "translation": "parada",
+     "example": "The bus is at the stop."
+    },
+    {
+     "word": "subject",
+     "pos": "noun",
+     "translation": "assunto",
+     "example": "Math is my favorite subject."
+    },
+    {
+     "word": "suggestion",
+     "pos": "noun",
+     "translation": "sugestão",
+     "example": "I have a suggestion."
+    }
+   ]
+  },
+  {
+   "id": "a1-11",
+   "title": "Substantivos 5",
+   "words": [
+    {
+     "word": "sum",
+     "pos": "noun",
+     "translation": "soma",
+     "example": "The sum is ten."
+    },
+    {
+     "word": "summer",
+     "pos": "noun",
+     "translation": "verão",
+     "example": "Summer is very hot."
+    },
+    {
+     "word": "sun",
+     "pos": "noun",
+     "translation": "sol",
+     "example": "The sun is bright."
+    },
+    {
+     "word": "Sunday",
+     "pos": "noun",
+     "translation": "domingo",
+     "example": "Sunday is a holiday."
+    },
+    {
+     "word": "sunshine",
+     "pos": "noun",
+     "translation": "luz do sol",
+     "example": "I like the sunshine."
+    },
+    {
+     "word": "surf",
+     "pos": "noun",
+     "translation": "surfe",
+     "example": "He likes to surf."
+    },
+    {
+     "word": "surprise",
+     "pos": "noun",
+     "translation": "surpresa",
+     "example": "What a nice surprise!"
+    },
+    {
+     "word": "survey",
+     "pos": "noun",
+     "translation": "pesquisa",
+     "example": "Please take this survey."
+    },
+    {
+     "word": "team",
+     "pos": "noun",
+     "translation": "equipe",
+     "example": "Our team is good."
+    },
+    {
+     "word": "thanks",
+     "pos": "noun",
+     "translation": "obrigado",
+     "example": "Thanks for your help."
+    },
+    {
+     "word": "thing",
+     "pos": "noun",
+     "translation": "coisa",
+     "example": "It is a new thing."
+    },
+    {
+     "word": "throw",
+     "pos": "noun",
+     "translation": "arremesso",
+     "example": "That was a good throw."
+    },
+    {
+     "word": "Thursday",
+     "pos": "noun",
+     "translation": "quinta-feira",
+     "example": "Today is Thursday."
+    },
+    {
+     "word": "ticket",
+     "pos": "noun",
+     "translation": "bilhete",
+     "example": "I have a bus ticket."
+    },
+    {
+     "word": "tiger",
+     "pos": "noun",
+     "translation": "tigre",
+     "example": "The tiger is big."
+    },
+    {
+     "word": "time",
+     "pos": "noun",
+     "translation": "tempo",
+     "example": "What time is it?"
+    },
+    {
+     "word": "top",
+     "pos": "noun",
+     "translation": "topo",
+     "example": "He is at the top."
+    },
+    {
+     "word": "topic",
+     "pos": "noun",
+     "translation": "tópico",
+     "example": "This is a good topic."
+    },
+    {
+     "word": "touch",
+     "pos": "noun",
+     "translation": "toque",
+     "example": "Do not touch that."
+    },
+    {
+     "word": "try",
+     "pos": "noun",
+     "translation": "tentativa",
+     "example": "Give it a try."
+    },
+    {
+     "word": "tube",
+     "pos": "noun",
+     "translation": "tubo",
+     "example": "It is a plastic tube."
+    },
+    {
+     "word": "Tuesday",
+     "pos": "noun",
+     "translation": "terça-feira",
+     "example": "Tuesday is a work day."
+    },
+    {
+     "word": "turn",
+     "pos": "noun",
+     "translation": "vez",
+     "example": "It is your turn."
+    },
+    {
+     "word": "type",
+     "pos": "noun",
+     "translation": "tipo",
+     "example": "What type of dog is it?"
+    },
+    {
+     "word": "underline",
+     "pos": "noun",
+     "translation": "sublinhado",
+     "example": "See the red underline."
+    },
+    {
+     "word": "visit",
+     "pos": "noun",
+     "translation": "visita",
+     "example": "We have a visit today."
+    },
+    {
+     "word": "wake",
+     "pos": "noun",
+     "translation": "despertar",
+     "example": "I need an early wake."
+    },
+    {
+     "word": "walk",
+     "pos": "noun",
+     "translation": "caminhada",
+     "example": "Let us take a walk."
+    },
+    {
+     "word": "wash",
+     "pos": "noun",
+     "translation": "lavagem",
+     "example": "My car needs a wash."
+    },
+    {
+     "word": "water",
+     "pos": "noun",
+     "translation": "água",
+     "example": "I want some water."
+    },
+    {
+     "word": "way",
+     "pos": "noun",
+     "translation": "caminho",
+     "example": "This is the right way."
+    },
+    {
+     "word": "weather",
+     "pos": "noun",
+     "translation": "clima",
+     "example": "The weather is nice."
+    },
+    {
+     "word": "Wednesday",
+     "pos": "noun",
+     "translation": "quarta-feira",
+     "example": "Wednesday is the middle day."
+    },
+    {
+     "word": "week",
+     "pos": "noun",
+     "translation": "semana",
+     "example": "There are seven days in a week."
+    },
+    {
+     "word": "weekend",
+     "pos": "noun",
+     "translation": "fim de semana",
+     "example": "I love the weekend."
+    },
+    {
+     "word": "wheel",
+     "pos": "noun",
+     "translation": "roda",
+     "example": "The car has four wheels."
+    },
+    {
+     "word": "wind",
+     "pos": "noun",
+     "translation": "vento",
+     "example": "The wind is cold."
+    },
+    {
+     "word": "winter",
+     "pos": "noun",
+     "translation": "inverno",
+     "example": "Winter is very cold."
+    },
+    {
+     "word": "wish",
+     "pos": "noun",
+     "translation": "desejo",
+     "example": "Make a birthday wish."
+    },
+    {
+     "word": "woman",
+     "pos": "noun",
+     "translation": "mulher",
+     "example": "She is a kind woman."
+    },
+    {
+     "word": "worry",
+     "pos": "noun",
+     "translation": "preocupação",
+     "example": "Do not have a worry."
+    },
+    {
+     "word": "year",
+     "pos": "noun",
+     "translation": "ano",
+     "example": "This year is 2024."
+    },
+    {
+     "word": "zoo",
+     "pos": "noun",
+     "translation": "zoológico",
+     "example": "We saw monkeys at the zoo."
+    }
+   ]
+  },
+  {
+   "id": "a1-16",
+   "title": "Verbos 1",
+   "words": [
+    {
+     "word": "add",
+     "pos": "verb",
+     "translation": "adicionar",
+     "example": "Please add some sugar."
+    },
+    {
+     "word": "agree",
+     "pos": "verb",
+     "translation": "concordar",
+     "example": "I agree with you."
+    },
+    {
+     "word": "arrive",
+     "pos": "verb",
+     "translation": "chegar",
+     "example": "We arrive at noon."
+    },
+    {
+     "word": "ask",
+     "pos": "verb",
+     "translation": "perguntar",
+     "example": "Ask a question, please."
+    },
+    {
+     "word": "become",
+     "pos": "verb",
+     "translation": "tornar-se",
+     "example": "She wants to become a doctor."
+    },
+    {
+     "word": "begin",
+     "pos": "verb",
+     "translation": "começar",
+     "example": "The class will begin now."
+    },
+    {
+     "word": "believe",
+     "pos": "verb",
+     "translation": "acreditar",
+     "example": "I believe in you."
+    },
+    {
+     "word": "blow",
+     "pos": "verb",
+     "translation": "soprar",
+     "example": "Blow out the candles."
+    },
+    {
+     "word": "borrow",
+     "pos": "verb",
+     "translation": "pegar emprestado",
+     "example": "Can I borrow a pen?"
+    },
+    {
+     "word": "break",
+     "pos": "verb",
+     "translation": "quebrar",
+     "example": "Do not break the glass."
+    },
+    {
+     "word": "breathe",
+     "pos": "verb",
+     "translation": "respirar",
+     "example": "Breathe in deeply."
+    },
+    {
+     "word": "bring",
+     "pos": "verb",
+     "translation": "trazer",
+     "example": "Bring your book here."
+    },
+    {
+     "word": "build",
+     "pos": "verb",
+     "translation": "construir",
+     "example": "They build a new house."
+    },
+    {
+     "word": "buy",
+     "pos": "verb",
+     "translation": "comprar",
+     "example": "I want to buy fruit."
+    },
+    {
+     "word": "carry",
+     "pos": "verb",
+     "translation": "carregar",
+     "example": "Can you carry this bag?"
+    },
+    {
+     "word": "celebrate",
+     "pos": "verb",
+     "translation": "celebrar",
+     "example": "We celebrate my birthday."
+    },
+    {
+     "word": "choose",
+     "pos": "verb",
+     "translation": "escolher",
+     "example": "Choose a red apple."
+    },
+    {
+     "word": "clean",
+     "pos": "verb",
+     "translation": "limpar",
+     "example": "Clean your room now."
+    },
+    {
+     "word": "close",
+     "pos": "verb",
+     "translation": "fechar",
+     "example": "Please close the door."
+    },
+    {
+     "word": "collect",
+     "pos": "verb",
+     "translation": "coletar",
+     "example": "I collect old stamps."
+    },
+    {
+     "word": "come",
+     "pos": "verb",
+     "translation": "vir",
+     "example": "Come here, please."
+    },
+    {
+     "word": "cut",
+     "pos": "verb",
+     "translation": "cortar",
+     "example": "Cut the paper here."
+    },
+    {
+     "word": "describe",
+     "pos": "verb",
+     "translation": "descrever",
+     "example": "Describe your new dog."
+    },
+    {
+     "word": "discuss",
+     "pos": "verb",
+     "translation": "discutir",
+     "example": "Let us discuss this plan."
+    },
+    {
+     "word": "draw",
+     "pos": "verb",
+     "translation": "desenhar",
+     "example": "I can draw a cat."
+    },
+    {
+     "word": "drop",
+     "pos": "verb",
+     "translation": "deixar cair",
+     "example": "Do not drop the cup."
+    },
+    {
+     "word": "eat",
+     "pos": "verb",
+     "translation": "comer",
+     "example": "We eat an apple."
+    },
+    {
+     "word": "enjoy",
+     "pos": "verb",
+     "translation": "aproveitar",
+     "example": "I enjoy this music."
+    },
+    {
+     "word": "exercise",
+     "pos": "verb",
+     "translation": "exercitar-se",
+     "example": "I exercise every morning."
+    },
+    {
+     "word": "feel",
+     "pos": "verb",
+     "translation": "sentir",
+     "example": "I feel very happy."
+    },
+    {
+     "word": "fill",
+     "pos": "verb",
+     "translation": "encher",
+     "example": "Fill the cup with water."
+    },
+    {
+     "word": "find",
+     "pos": "verb",
+     "translation": "encontrar",
+     "example": "I cannot find my keys."
+    },
+    {
+     "word": "focus",
+     "pos": "verb",
+     "translation": "focar",
+     "example": "Focus on the test."
+    },
+    {
+     "word": "forget",
+     "pos": "verb",
+     "translation": "esquecer",
+     "example": "Do not forget your hat."
+    },
+    {
+     "word": "get",
+     "pos": "verb",
+     "translation": "obter",
+     "example": "Get a pen, please."
+    },
+    {
+     "word": "give",
+     "pos": "verb",
+     "translation": "dar",
+     "example": "Give me the book."
+    }
+   ]
+  },
+  {
+   "id": "a1-17",
+   "title": "Verbos 2",
+   "words": [
+    {
+     "word": "go",
+     "pos": "verb",
+     "translation": "ir",
+     "example": "I go to school."
+    },
+    {
+     "word": "greet",
+     "pos": "verb",
+     "translation": "cumprimentar",
+     "example": "I greet my teacher."
+    },
+    {
+     "word": "grow",
+     "pos": "verb",
+     "translation": "crescer",
+     "example": "Plants grow fast."
+    },
+    {
+     "word": "guess",
+     "pos": "verb",
+     "translation": "adivinhar",
+     "example": "Guess the number."
+    },
+    {
+     "word": "happen",
+     "pos": "verb",
+     "translation": "acontecer",
+     "example": "What will happen?"
+    },
+    {
+     "word": "hear",
+     "pos": "verb",
+     "translation": "ouvir",
+     "example": "I hear a song."
+    },
+    {
+     "word": "help",
+     "pos": "verb",
+     "translation": "ajudar",
+     "example": "Please help me."
+    },
+    {
+     "word": "hide",
+     "pos": "verb",
+     "translation": "esconder",
+     "example": "They hide the toy."
+    },
+    {
+     "word": "hurt",
+     "pos": "verb",
+     "translation": "machucar",
+     "example": "My leg hurts."
+    },
+    {
+     "word": "imagine",
+     "pos": "verb",
+     "translation": "imaginar",
+     "example": "Imagine a big cat."
+    },
+    {
+     "word": "introduce",
+     "pos": "verb",
+     "translation": "apresentar",
+     "example": "Let me introduce myself."
+    },
+    {
+     "word": "join",
+     "pos": "verb",
+     "translation": "participar",
+     "example": "Join the club."
+    },
+    {
+     "word": "judge",
+     "pos": "verb",
+     "translation": "julgar",
+     "example": "Do not judge."
+    },
+    {
+     "word": "jump",
+     "pos": "verb",
+     "translation": "pular",
+     "example": "Dogs can jump."
+    },
+    {
+     "word": "keep",
+     "pos": "verb",
+     "translation": "guardar",
+     "example": "Keep the change."
+    },
+    {
+     "word": "kill",
+     "pos": "verb",
+     "translation": "matar",
+     "example": "Plants need water."
+    },
+    {
+     "word": "know",
+     "pos": "verb",
+     "translation": "saber",
+     "example": "I know your name."
+    },
+    {
+     "word": "laugh",
+     "pos": "verb",
+     "translation": "rir",
+     "example": "They laugh a lot."
+    },
+    {
+     "word": "learn",
+     "pos": "verb",
+     "translation": "aprender",
+     "example": "I learn English."
+    },
+    {
+     "word": "leave",
+     "pos": "verb",
+     "translation": "sair",
+     "example": "I leave at eight."
+    },
+    {
+     "word": "let",
+     "pos": "verb",
+     "translation": "deixar",
+     "example": "Let me go."
+    },
+    {
+     "word": "listen",
+     "pos": "verb",
+     "translation": "ouvir",
+     "example": "Listen to music."
+    },
+    {
+     "word": "live",
+     "pos": "verb",
+     "translation": "morar",
+     "example": "I live in Brazil."
+    },
+    {
+     "word": "make",
+     "pos": "verb",
+     "translation": "fazer",
+     "example": "Make a cake."
+    },
+    {
+     "word": "mean",
+     "pos": "verb",
+     "translation": "significar",
+     "example": "What does this mean?"
+    },
+    {
+     "word": "meet",
+     "pos": "verb",
+     "translation": "conhecer",
+     "example": "Nice to meet you."
+    },
+    {
+     "word": "open",
+     "pos": "verb",
+     "translation": "abrir",
+     "example": "Open the door."
+    },
+    {
+     "word": "pick",
+     "pos": "verb",
+     "translation": "pegar",
+     "example": "Pick a card."
+    },
+    {
+     "word": "pray",
+     "pos": "verb",
+     "translation": "orar",
+     "example": "They pray at night."
+    },
+    {
+     "word": "push",
+     "pos": "verb",
+     "translation": "empurrar",
+     "example": "Push the door."
+    },
+    {
+     "word": "put",
+     "pos": "verb",
+     "translation": "colocar",
+     "example": "Put it here."
+    },
+    {
+     "word": "read",
+     "pos": "verb",
+     "translation": "ler",
+     "example": "I read a book."
+    },
+    {
+     "word": "remember",
+     "pos": "verb",
+     "translation": "lembrar",
+     "example": "Remember my name."
+    }
+   ]
+  },
+  {
+   "id": "a1-18",
+   "title": "Verbos 3",
+   "words": [
+    {
+     "word": "repeat",
+     "pos": "verb",
+     "translation": "repetir",
+     "example": "Please repeat that word."
+    },
+    {
+     "word": "ring",
+     "pos": "verb",
+     "translation": "tocar",
+     "example": "The phone will ring now."
+    },
+    {
+     "word": "save",
+     "pos": "verb",
+     "translation": "salvar",
+     "example": "Save your work now."
+    },
+    {
+     "word": "say",
+     "pos": "verb",
+     "translation": "dizer",
+     "example": "What do you say?"
+    },
+    {
+     "word": "see",
+     "pos": "verb",
+     "translation": "ver",
+     "example": "I see a big cat."
+    },
+    {
+     "word": "sell",
+     "pos": "verb",
+     "translation": "vender",
+     "example": "They sell fresh fruit."
+    },
+    {
+     "word": "set",
+     "pos": "verb",
+     "translation": "colocar",
+     "example": "Set the table, please."
+    },
+    {
+     "word": "share",
+     "pos": "verb",
+     "translation": "compartilhar",
+     "example": "Please share your food."
+    },
+    {
+     "word": "show",
+     "pos": "verb",
+     "translation": "mostrar",
+     "example": "Show me your book."
+    },
+    {
+     "word": "sing",
+     "pos": "verb",
+     "translation": "cantar",
+     "example": "I like to sing songs."
+    },
+    {
+     "word": "sit",
+     "pos": "verb",
+     "translation": "sentar",
+     "example": "Please sit on this chair."
+    },
+    {
+     "word": "sleep",
+     "pos": "verb",
+     "translation": "dormir",
+     "example": "I sleep at ten o'clock."
+    },
+    {
+     "word": "solve",
+     "pos": "verb",
+     "translation": "resolver",
+     "example": "Can you solve this?"
+    },
+    {
+     "word": "speak",
+     "pos": "verb",
+     "translation": "falar",
+     "example": "I speak a little English."
+    },
+    {
+     "word": "spend",
+     "pos": "verb",
+     "translation": "gastar",
+     "example": "I spend time with friends."
+    },
+    {
+     "word": "stay",
+     "pos": "verb",
+     "translation": "ficar",
+     "example": "Stay here with me."
+    },
+    {
+     "word": "step",
+     "pos": "verb",
+     "translation": "dar um passo",
+     "example": "Step to the left."
+    },
+    {
+     "word": "study",
+     "pos": "verb",
+     "translation": "estudar",
+     "example": "I study English every day."
+    },
+    {
+     "word": "take",
+     "pos": "verb",
+     "translation": "pegar",
+     "example": "Take your bag with you."
+    },
+    {
+     "word": "talk",
+     "pos": "verb",
+     "translation": "conversar",
+     "example": "We talk every morning."
+    },
+    {
+     "word": "teach",
+     "pos": "verb",
+     "translation": "ensinar",
+     "example": "I teach English to kids."
+    },
+    {
+     "word": "tell",
+     "pos": "verb",
+     "translation": "contar",
+     "example": "Tell me a story."
+    },
+    {
+     "word": "thank",
+     "pos": "verb",
+     "translation": "agradecer",
+     "example": "I thank you for help."
+    },
+    {
+     "word": "think",
+     "pos": "verb",
+     "translation": "pensar",
+     "example": "I think it is good."
+    },
+    {
+     "word": "travel",
+     "pos": "verb",
+     "translation": "viajar",
+     "example": "I travel by plane."
+    },
+    {
+     "word": "use",
+     "pos": "verb",
+     "translation": "usar",
+     "example": "Use a pen, please."
+    },
+    {
+     "word": "wait",
+     "pos": "verb",
+     "translation": "esperar",
+     "example": "Wait for me here."
+    },
+    {
+     "word": "want",
+     "pos": "verb",
+     "translation": "querer",
+     "example": "I want a cold drink."
+    },
+    {
+     "word": "wear",
+     "pos": "verb",
+     "translation": "vestir",
+     "example": "I wear a blue shirt."
+    },
+    {
+     "word": "win",
+     "pos": "verb",
+     "translation": "ganhar",
+     "example": "We want to win today."
+    },
+    {
+     "word": "write",
+     "pos": "verb",
+     "translation": "escrever",
+     "example": "Write your name here."
+    }
+   ]
+  },
+  {
+   "id": "a1-20",
+   "title": "Adjetivos 1",
+   "words": [
+    {
+     "word": "afraid",
+     "pos": "adjective",
+     "translation": "com medo",
+     "example": "I am afraid of dogs."
+    },
+    {
+     "word": "angry",
+     "pos": "adjective",
+     "translation": "zangado",
+     "example": "He is very angry today."
+    },
+    {
+     "word": "awake",
+     "pos": "adjective",
+     "translation": "acordado",
+     "example": "Are you awake?"
+    },
+    {
+     "word": "bad",
+     "pos": "adjective",
+     "translation": "ruim",
+     "example": "This is a bad movie."
+    },
+    {
+     "word": "beautiful",
+     "pos": "adjective",
+     "translation": "bonito",
+     "example": "She has a beautiful cat."
+    },
+    {
+     "word": "better",
+     "pos": "adjective",
+     "translation": "melhor",
+     "example": "Today I feel better."
+    },
+    {
+     "word": "big",
+     "pos": "adjective",
+     "translation": "grande",
+     "example": "They live in a big house."
+    },
+    {
+     "word": "blank",
+     "pos": "adjective",
+     "translation": "em branco",
+     "example": "The page is blank."
+    },
+    {
+     "word": "boring",
+     "pos": "adjective",
+     "translation": "chato",
+     "example": "This book is boring."
+    },
+    {
+     "word": "bright",
+     "pos": "adjective",
+     "translation": "brilhante",
+     "example": "The sun is bright."
+    },
+    {
+     "word": "broken",
+     "pos": "adjective",
+     "translation": "quebrado",
+     "example": "The chair is broken."
+    },
+    {
+     "word": "brown",
+     "pos": "adjective",
+     "translation": "marrom",
+     "example": "My shoes are brown."
+    },
+    {
+     "word": "busy",
+     "pos": "adjective",
+     "translation": "ocupado",
+     "example": "I am busy now."
+    },
+    {
+     "word": "careful",
+     "pos": "adjective",
+     "translation": "cuidadoso",
+     "example": "Be careful with that."
+    },
+    {
+     "word": "clever",
+     "pos": "adjective",
+     "translation": "esperto",
+     "example": "The boy is clever."
+    },
+    {
+     "word": "closed",
+     "pos": "adjective",
+     "translation": "fechado",
+     "example": "The shop is closed."
+    },
+    {
+     "word": "cloudy",
+     "pos": "adjective",
+     "translation": "nublado",
+     "example": "Today is cloudy."
+    },
+    {
+     "word": "cool",
+     "pos": "adjective",
+     "translation": "legal",
+     "example": "Your bike is cool."
+    },
+    {
+     "word": "correct",
+     "pos": "adjective",
+     "translation": "correto",
+     "example": "Your answer is correct."
+    },
+    {
+     "word": "cute",
+     "pos": "adjective",
+     "translation": "fofo",
+     "example": "The puppy is cute."
+    },
+    {
+     "word": "dark",
+     "pos": "adjective",
+     "translation": "escuro",
+     "example": "It is dark outside."
+    },
+    {
+     "word": "dear",
+     "pos": "adjective",
+     "translation": "querido",
+     "example": "Dear mom, I love you."
+    },
+    {
+     "word": "delicious",
+     "pos": "adjective",
+     "translation": "delicioso",
+     "example": "The cake is delicious."
+    },
+    {
+     "word": "different",
+     "pos": "adjective",
+     "translation": "diferente",
+     "example": "We have different books."
+    },
+    {
+     "word": "difficult",
+     "pos": "adjective",
+     "translation": "difícil",
+     "example": "English is not difficult."
+    },
+    {
+     "word": "dirty",
+     "pos": "adjective",
+     "translation": "sujo",
+     "example": "Your hands are dirty."
+    },
+    {
+     "word": "dry",
+     "pos": "adjective",
+     "translation": "seco",
+     "example": "The towel is dry."
+    },
+    {
+     "word": "due",
+     "pos": "adjective",
+     "translation": "vencido",
+     "example": "The rent is due today."
+    },
+    {
+     "word": "easy",
+     "pos": "adjective",
+     "translation": "fácil",
+     "example": "This test is easy."
+    },
+    {
+     "word": "elementary",
+     "pos": "adjective",
+     "translation": "elementar",
+     "example": "This is elementary math."
+    }
+   ]
+  },
+  {
+   "id": "a1-21",
+   "title": "Adjetivos 2",
+   "words": [
+    {
+     "word": "everyday",
+     "pos": "adjective",
+     "translation": "cotidiano",
+     "example": "This is my everyday bag."
+    },
+    {
+     "word": "excellent",
+     "pos": "adjective",
+     "translation": "excelente",
+     "example": "That is an excellent idea."
+    },
+    {
+     "word": "excited",
+     "pos": "adjective",
+     "translation": "animado",
+     "example": "I am excited to go."
+    },
+    {
+     "word": "exciting",
+     "pos": "adjective",
+     "translation": "empolgante",
+     "example": "The game was very exciting."
+    },
+    {
+     "word": "expensive",
+     "pos": "adjective",
+     "translation": "caro",
+     "example": "This watch is very expensive."
+    },
+    {
+     "word": "fair",
+     "pos": "adjective",
+     "translation": "justo",
+     "example": "The teacher is very fair."
+    },
+    {
+     "word": "false",
+     "pos": "adjective",
+     "translation": "falso",
+     "example": "His answer was false."
+    },
+    {
+     "word": "famous",
+     "pos": "adjective",
+     "translation": "famoso",
+     "example": "She is a famous singer."
+    },
+    {
+     "word": "fat",
+     "pos": "adjective",
+     "translation": "gordo",
+     "example": "The cat is big and fat."
+    },
+    {
+     "word": "fine",
+     "pos": "adjective",
+     "translation": "bem",
+     "example": "I am fine, thank you."
+    },
+    {
+     "word": "foggy",
+     "pos": "adjective",
+     "translation": "nebuloso",
+     "example": "It is a foggy morning."
+    },
+    {
+     "word": "following",
+     "pos": "adjective",
+     "translation": "seguinte",
+     "example": "Read the following sentence."
+    },
+    {
+     "word": "foreign",
+     "pos": "adjective",
+     "translation": "estrangeiro",
+     "example": "He speaks a foreign language."
+    },
+    {
+     "word": "free",
+     "pos": "adjective",
+     "translation": "livre",
+     "example": "Are you free tonight?"
+    },
+    {
+     "word": "front",
+     "pos": "adjective",
+     "translation": "frontal",
+     "example": "Wait in the front room."
+    },
+    {
+     "word": "full",
+     "pos": "adjective",
+     "translation": "cheio",
+     "example": "The glass is full."
+    },
+    {
+     "word": "funny",
+     "pos": "adjective",
+     "translation": "engraçado",
+     "example": "The clown is very funny."
+    },
+    {
+     "word": "glad",
+     "pos": "adjective",
+     "translation": "contente",
+     "example": "I am glad to help."
+    },
+    {
+     "word": "gold",
+     "pos": "adjective",
+     "translation": "dourado",
+     "example": "She has a gold ring."
+    },
+    {
+     "word": "good",
+     "pos": "adjective",
+     "translation": "bom",
+     "example": "This is a good book."
+    },
+    {
+     "word": "great",
+     "pos": "adjective",
+     "translation": "ótimo",
+     "example": "We had a great time."
+    },
+    {
+     "word": "handsome",
+     "pos": "adjective",
+     "translation": "bonito",
+     "example": "He is a handsome man."
+    },
+    {
+     "word": "happy",
+     "pos": "adjective",
+     "translation": "feliz",
+     "example": "The children are happy."
+    },
+    {
+     "word": "healthy",
+     "pos": "adjective",
+     "translation": "saudável",
+     "example": "Apples are healthy food."
+    },
+    {
+     "word": "heavy",
+     "pos": "adjective",
+     "translation": "pesado",
+     "example": "This box is heavy."
+    },
+    {
+     "word": "high",
+     "pos": "adjective",
+     "translation": "alto",
+     "example": "That is a high mountain."
+    },
+    {
+     "word": "hot",
+     "pos": "adjective",
+     "translation": "quente",
+     "example": "The coffee is hot."
+    },
+    {
+     "word": "hungry",
+     "pos": "adjective",
+     "translation": "com fome",
+     "example": "I am very hungry now."
+    },
+    {
+     "word": "ideal",
+     "pos": "adjective",
+     "translation": "ideal",
+     "example": "This is the ideal place."
+    },
+    {
+     "word": "important",
+     "pos": "adjective",
+     "translation": "importante",
+     "example": "This is an important test."
+    },
+    {
+     "word": "interested",
+     "pos": "adjective",
+     "translation": "interessado",
+     "example": "I am interested in art."
+    },
+    {
+     "word": "interesting",
+     "pos": "adjective",
+     "translation": "interessante",
+     "example": "This movie is interesting."
+    }
+   ]
+  },
+  {
+   "id": "a1-22",
+   "title": "Adjetivos 3",
+   "words": [
+    {
+     "word": "large",
+     "pos": "adjective",
+     "translation": "grande",
+     "example": "She has a large dog."
+    },
+    {
+     "word": "lazy",
+     "pos": "adjective",
+     "translation": "preguiçoso",
+     "example": "The cat is lazy."
+    },
+    {
+     "word": "left",
+     "pos": "adjective",
+     "translation": "esquerdo",
+     "example": "Turn left here please."
+    },
+    {
+     "word": "living",
+     "pos": "adjective",
+     "translation": "vivo",
+     "example": "My grandparents are living."
+    },
+    {
+     "word": "lonely",
+     "pos": "adjective",
+     "translation": "solitário",
+     "example": "He feels very lonely."
+    },
+    {
+     "word": "long",
+     "pos": "adjective",
+     "translation": "longo",
+     "example": "She has long hair."
+    },
+    {
+     "word": "lovely",
+     "pos": "adjective",
+     "translation": "adorável",
+     "example": "What a lovely day!"
+    },
+    {
+     "word": "lucky",
+     "pos": "adjective",
+     "translation": "sortudo",
+     "example": "You are so lucky."
+    },
+    {
+     "word": "merry",
+     "pos": "adjective",
+     "translation": "feliz",
+     "example": "Have a merry Christmas."
+    },
+    {
+     "word": "middle",
+     "pos": "adjective",
+     "translation": "do meio",
+     "example": "Sit in the middle."
+    },
+    {
+     "word": "new",
+     "pos": "adjective",
+     "translation": "novo",
+     "example": "I bought a new car."
+    },
+    {
+     "word": "nice",
+     "pos": "adjective",
+     "translation": "legal",
+     "example": "She is a nice person."
+    },
+    {
+     "word": "off",
+     "pos": "adjective",
+     "translation": "desligado",
+     "example": "The light is off."
+    },
+    {
+     "word": "old",
+     "pos": "adjective",
+     "translation": "velho",
+     "example": "My grandfather is old."
+    },
+    {
+     "word": "own",
+     "pos": "adjective",
+     "translation": "próprio",
+     "example": "This is my own room."
+    },
+    {
+     "word": "personal",
+     "pos": "adjective",
+     "translation": "pessoal",
+     "example": "This is a personal letter."
+    },
+    {
+     "word": "pink",
+     "pos": "adjective",
+     "translation": "rosa",
+     "example": "She wears a pink shirt."
+    },
+    {
+     "word": "poor",
+     "pos": "adjective",
+     "translation": "pobre",
+     "example": "He helps poor people."
+    },
+    {
+     "word": "pretty",
+     "pos": "adjective",
+     "translation": "bonita",
+     "example": "That is a pretty flower."
+    },
+    {
+     "word": "quiet",
+     "pos": "adjective",
+     "translation": "silencioso",
+     "example": "Please be quiet now."
+    },
+    {
+     "word": "rainy",
+     "pos": "adjective",
+     "translation": "chuvoso",
+     "example": "Today is a rainy day."
+    },
+    {
+     "word": "ready",
+     "pos": "adjective",
+     "translation": "pronto",
+     "example": "Are you ready yet?"
+    },
+    {
+     "word": "red",
+     "pos": "adjective",
+     "translation": "vermelho",
+     "example": "I have a red pen."
+    },
+    {
+     "word": "rich",
+     "pos": "adjective",
+     "translation": "rico",
+     "example": "He is a rich man."
+    },
+    {
+     "word": "rude",
+     "pos": "adjective",
+     "translation": "educado",
+     "example": "Do not be rude."
+    },
+    {
+     "word": "sad",
+     "pos": "adjective",
+     "translation": "triste",
+     "example": "The movie is sad."
+    }
+   ]
+  },
+  {
+   "id": "a1-23",
+   "title": "Adjetivos 4",
+   "words": [
+    {
+     "word": "second",
+     "pos": "adjective",
+     "translation": "segundo",
+     "example": "This is my second car."
+    },
+    {
+     "word": "shy",
+     "pos": "adjective",
+     "translation": "tímido",
+     "example": "She is very shy."
+    },
+    {
+     "word": "sick",
+     "pos": "adjective",
+     "translation": "doente",
+     "example": "The dog is sick."
+    },
+    {
+     "word": "slow",
+     "pos": "adjective",
+     "translation": "lento",
+     "example": "The turtle is slow."
+    },
+    {
+     "word": "small",
+     "pos": "adjective",
+     "translation": "pequeno",
+     "example": "I have a small cat."
+    },
+    {
+     "word": "smart",
+     "pos": "adjective",
+     "translation": "esperto, inteligente",
+     "example": "You are a smart student."
+    },
+    {
+     "word": "snowy",
+     "pos": "adjective",
+     "translation": "nevado",
+     "example": "It is a snowy day."
+    },
+    {
+     "word": "social",
+     "pos": "adjective",
+     "translation": "social",
+     "example": "He is a social person."
+    },
+    {
+     "word": "sorry",
+     "pos": "adjective",
+     "translation": "com pena, desculpa",
+     "example": "I am sorry."
+    },
+    {
+     "word": "special",
+     "pos": "adjective",
+     "translation": "especial",
+     "example": "Today is a special day."
+    },
+    {
+     "word": "still",
+     "pos": "adjective",
+     "translation": "quieto, imóvel",
+     "example": "Please stand still."
+    },
+    {
+     "word": "strange",
+     "pos": "adjective",
+     "translation": "estranho",
+     "example": "That is a strange noise."
+    },
+    {
+     "word": "strict",
+     "pos": "adjective",
+     "translation": "rigoroso, estrito",
+     "example": "My teacher is strict."
+    },
+    {
+     "word": "strong",
+     "pos": "adjective",
+     "translation": "forte",
+     "example": "He is very strong."
+    },
+    {
+     "word": "successful",
+     "pos": "adjective",
+     "translation": "bem-sucedido",
+     "example": "She is a successful doctor."
+    },
+    {
+     "word": "sunny",
+     "pos": "adjective",
+     "translation": "ensolarado",
+     "example": "It is a sunny morning."
+    },
+    {
+     "word": "super",
+     "pos": "adjective",
+     "translation": "super",
+     "example": "This is super good."
+    },
+    {
+     "word": "sure",
+     "pos": "adjective",
+     "translation": "certo, seguro",
+     "example": "Are you sure?"
+    },
+    {
+     "word": "sweet",
+     "pos": "adjective",
+     "translation": "doce",
+     "example": "This apple is sweet."
+    },
+    {
+     "word": "tall",
+     "pos": "adjective",
+     "translation": "alto",
+     "example": "My dad is tall."
+    },
+    {
+     "word": "terrible",
+     "pos": "adjective",
+     "translation": "terrível",
+     "example": "The weather is terrible."
+    },
+    {
+     "word": "thick",
+     "pos": "adjective",
+     "translation": "grosso, espesso",
+     "example": "This book is thick."
+    },
+    {
+     "word": "thin",
+     "pos": "adjective",
+     "translation": "magro, fino",
+     "example": "The paper is thin."
+    },
+    {
+     "word": "tight",
+     "pos": "adjective",
+     "translation": "apertado",
+     "example": "These shoes are tight."
+    },
+    {
+     "word": "tired",
+     "pos": "adjective",
+     "translation": "cansado",
+     "example": "I am very tired."
+    },
+    {
+     "word": "true",
+     "pos": "adjective",
+     "translation": "verdadeiro",
+     "example": "That story is true."
+    },
+    {
+     "word": "ugly",
+     "pos": "adjective",
+     "translation": "feio",
+     "example": "That bug is ugly."
+    },
+    {
+     "word": "warm",
+     "pos": "adjective",
+     "translation": "quente, morno",
+     "example": "The water is warm."
+    },
+    {
+     "word": "wonderful",
+     "pos": "adjective",
+     "translation": "maravilhoso",
+     "example": "It is a wonderful day."
+    },
+    {
+     "word": "wrong",
+     "pos": "adjective",
+     "translation": "errado",
+     "example": "My answer is wrong."
+    },
+    {
+     "word": "young",
+     "pos": "adjective",
+     "translation": "jovem",
+     "example": "She is a young girl."
+    }
+   ]
+  }
+ ]
+}

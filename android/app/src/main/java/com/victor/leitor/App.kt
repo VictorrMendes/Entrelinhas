@@ -55,6 +55,9 @@ class App : Application() {
         private set
     val speech by lazy { Speech(this) { prefs.voice(it) } }
     val notices = Notices()
+
+    /** A tab to show, asked from outside the screens (the home-screen widget); Root takes it and clears it. */
+    var openTab by mutableStateOf<Int?>(null)
     val updater by lazy { Updater(this) }
     val listen by lazy { ListenPlayer(this) }
     var updating by mutableStateOf(false)
@@ -77,7 +80,13 @@ class App : Application() {
             checkForUpdate(quiet = true)
         }
         // counters settle a moment after each change (reading time ticks, a review session), so check once things are quiet
-        scope.launch { db.changes.collectLatest { delay(1500); celebrate() } }
+        scope.launch {
+            db.changes.collectLatest {
+                delay(1500)
+                celebrate()
+                StreakWidget.update(this@App)
+            }
+        }
     }
 
     /** [quiet]: the automatic check at start, at most every few hours, silent when there's nothing new or no connection. */
@@ -153,6 +162,17 @@ class App : Application() {
         return listOf(0.2, 0.5, 0.8).joinToString("\n\n[…]\n\n") { at ->
             paragraphs.drop((paragraphs.size * at).toInt()).joinToString(" ") { it.text }.take(1500)
         }
+    }
+
+    /** Today's share of the queued kit words: up to newWordsPerDay a day, counting what came in earlier today. */
+    fun releaseKitWords() {
+        val today = localDay()
+        if (prefs.kitDay != today) {
+            prefs.kitDay = today
+            prefs.kitReleased = 0
+        }
+        val n = prefs.newWordsPerDay - prefs.kitReleased
+        if (n > 0) prefs.kitReleased += db.releaseKitWords(n)
     }
 
     /** A notice for each achievement unlocked since the last check; the very first check only takes note of what is there. */
@@ -422,6 +442,10 @@ class Prefs(ctx: Context) {
     /** Best Combinar time in milliseconds; 0 until the first game. */
     var matchBest by long("match_best", 0L)
     private var voices by string("voices", "") // "lang=voice;lang=voice"
+    var newWordsPerDay by int("new_words_per_day", 15)
+    var addedKits by string("added_kits", "") // pack ids, comma-separated
+    var kitDay by long("kit_day", 0L)
+    var kitReleased by int("kit_released", 0)
 
     fun voice(lang: String): String? = voices.split(';').firstOrNull { it.startsWith("$lang=") }?.substringAfter('=')?.ifEmpty { null }
 
