@@ -381,6 +381,8 @@
     <string name="practice_wrong">Errado. Ela volta mais tarde nesta rodada.</string>
     <string name="practice_shown_answer">Essa é a resposta. Ela volta mais tarde nesta rodada.</string>
     <string name="practice_dont_know">Não sei</string>
+    <string name="combo_streak">🔥 %1$d seguidas</string>
+    <string name="combo_lost">Combo de %1$d perdido</string>
     <string name="practice_continue">Continuar</string>
     <string name="practice_done_title">Rodada concluída!</string>
     <string name="practice_done_text">%1$d de %2$d palavras sem nenhum erro. As que você errou voltam para a revisão de hoje.</string>

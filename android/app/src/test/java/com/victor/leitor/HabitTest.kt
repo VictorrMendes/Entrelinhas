@@ -79,6 +79,16 @@ class HabitTest {
     }
 
     @Test
+    fun aRoundEarnsPerfectFastAndANewComboRecord() {
+        assertEquals(listOf(Accolade.PERFECT, Accolade.FAST, Accolade.COMBO_RECORD), sessionAccolades(5, 0, 30, 5, 4))
+        // a miss, one second too slow and only tying the record
+        assertEquals(emptyList<Accolade>(), sessionAccolades(5, 1, 31, 4, 4))
+        // a new best under COMBO_MIN isn't a combo
+        assertEquals(emptyList<Accolade>(), sessionAccolades(10, 8, 100, 2, 0))
+        assertEquals(emptyList<Accolade>(), sessionAccolades(0, 0, 0, 0, 0))
+    }
+
+    @Test
     fun theWordOfTheDayStaysAllDayAndSkipsMasteredWords() {
         fun w(id: Long, box: Int = 0) = Word(id, "w$id", "t$id", null, null, box, null, "en")
         val words = listOf(w(3), w(1), w(2, box = Leitner.MASTERED))

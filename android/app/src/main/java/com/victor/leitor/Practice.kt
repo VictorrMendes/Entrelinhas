@@ -69,19 +69,25 @@ fun LearnMode(app: App, onClose: () -> Unit) {
     var round by remember { mutableStateOf(newRound()) }
     // the round is a plain object; this counter makes the screen read it again after every answer
     var step by remember { mutableIntStateOf(0) }
+    val combo = remember(round) { ComboCounter() }
 
     Column(Modifier.fillMaxSize()) {
         StudyTopBar(stringResource(R.string.mode_learn), onClose)
         val question = round.current
-        if (question != null) StudyProgress(round.done, round.total)
+        if (question != null) {
+            StudyProgress(round.done, round.total)
+            ComboBadge(combo)
+        }
         Column(
             Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (question == null) {
+                LaunchedEffect(round) { combo.finish(app.prefs) }
                 PracticeSummary(app, round, onAgain = { round = newRound(); step++ }, onDone = onClose)
             } else {
                 Question(app, question, key = step) { right ->
+                    combo.answer(right)
                     round.answer(right)
                     step++
                 }

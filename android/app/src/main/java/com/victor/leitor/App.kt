@@ -447,6 +447,8 @@ class Prefs(ctx: Context) {
     var listenExamples by bool("listen_examples", true)
     /** Best Combinar time in milliseconds; 0 until the first game. */
     var matchBest by long("match_best", 0L)
+    /** Most right answers in a row in one Aprender or Avaliar round. */
+    var bestCombo by int("best_combo", 0)
     private var voices by string("voices", "") // "lang=voice;lang=voice"
     var newWordsPerDay by int("new_words_per_day", 15)
     var addedKits by string("added_kits", "") // pack ids, comma-separated

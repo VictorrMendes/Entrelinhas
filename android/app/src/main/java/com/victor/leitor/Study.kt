@@ -131,6 +131,50 @@ fun StudyProgress(done: Int, total: Int) {
     )
 }
 
+/** Right answers in a row during a round, the round's best, and a combo that just broke (to say so). */
+class ComboCounter {
+    var current by mutableIntStateOf(0)
+        private set
+    var best by mutableIntStateOf(0)
+        private set
+    var lost by mutableIntStateOf(0)
+        private set
+    private var answers = 0
+    private var misses = 0
+    private val startedAt = SystemClock.elapsedRealtime()
+
+    fun answer(right: Boolean) {
+        answers++
+        if (right) {
+            current++
+            best = maxOf(best, current)
+            lost = 0
+        } else {
+            misses++
+            lost = if (current >= COMBO_MIN) current else 0
+            current = 0
+        }
+    }
+
+    /** The round's accolades; a new best combo becomes the record. Call once, when the round ends. */
+    fun finish(prefs: Prefs): List<Accolade> =
+        sessionAccolades(answers, misses, (SystemClock.elapsedRealtime() - startedAt) / 1000, best, prefs.bestCombo)
+            .also { if (best > prefs.bestCombo) prefs.bestCombo = best }
+}
+
+@Composable
+fun ComboBadge(combo: ComboCounter) {
+    val text = when {
+        combo.current >= COMBO_MIN -> stringResource(R.string.combo_streak, combo.current)
+        combo.lost > 0 -> stringResource(R.string.combo_lost, combo.lost)
+        else -> return
+    }
+    Text(
+        text, Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
+        color = if (combo.current > 0) Flame else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 // ---------------------------------------------------------------- Cartões
 
 /**
@@ -328,6 +372,7 @@ private fun TestMode(app: App, onClose: () -> Unit) {
     val answers = remember { mutableStateListOf<String>() }
     // written answers the strict check refused, as graded by the AI, by question index
     val graded = remember { mutableStateMapOf<Int, AiGrade>() }
+    val combo = remember(questions) { ComboCounter() }
 
     Column(Modifier.fillMaxSize()) {
         val title = stringResource(R.string.mode_test)
@@ -341,8 +386,10 @@ private fun TestMode(app: App, onClose: () -> Unit) {
             }
             TestStep.TAKING -> {
                 StudyProgress(answers.size, questions.size)
+                ComboBadge(combo)
                 key(answers.size) {
                     TestQuestionView(app, questions[answers.size]) { answer, ai ->
+                        combo.answer(questions[answers.size].isRight(answer) || ai?.correct == true)
                         ai?.let { graded[answers.size] = it }
                         answers += answer
                         if (answers.size == questions.size) step = TestStep.RESULTS
@@ -350,7 +397,10 @@ private fun TestMode(app: App, onClose: () -> Unit) {
                 }
             }
             TestStep.RESULTS -> {
-                LaunchedEffect(Unit) { app.db.completeExercise() }
+                LaunchedEffect(Unit) {
+                    app.db.completeExercise()
+                    combo.finish(app.prefs)
+                }
                 TestResults(questions, answers, graded, onNew = { step = TestStep.SETUP }, onClose = onClose)
             }
         }

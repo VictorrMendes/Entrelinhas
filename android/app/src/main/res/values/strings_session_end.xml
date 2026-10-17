@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SessionEnd.kt -->
+    <string name="session_end_more">Mais 5 min</string>
+    <string name="session_end_done">Concluir</string>
+
+    <string name="session_end_emoji_perfect">🎯</string>
+    <string name="session_end_perfect_1">Sem erros!</string>
+    <string name="session_end_perfect_2">Rodada perfeita!</string>
+    <string name="session_end_perfect_3">Nenhum deslize. Impecável!</string>
+
+    <string name="session_end_emoji_fast">⚡</string>
+    <string name="session_end_fast_1">Rápido como um raio</string>
+    <string name="session_end_fast_2">Que velocidade!</string>
+    <string name="session_end_fast_3">Respostas na ponta da língua</string>
+
+    <string name="session_end_emoji_combo">🔥</string>
+    <string name="session_end_combo_1">Novo recorde: %1$d seguidas</string>
+    <string name="session_end_combo_2">%1$d seguidas! Seu melhor combo</string>
+    <string name="session_end_combo_3">Recorde batido: %1$d seguidas</string>
+</resources>

@@ -72,6 +72,21 @@ object Streak {
     }
 }
 
+/** What a finished exercise round earned, shown on its end screen. */
+enum class Accolade { PERFECT, FAST, COMBO_RECORD }
+
+// ponytail: one pace for every mode; tune per mode if "rápido" comes too easy or too hard
+const val FAST_SECONDS_PER_ANSWER = 6
+
+/** A combo counts from this many right answers in a row. */
+const val COMBO_MIN = 3
+
+fun sessionAccolades(answers: Int, misses: Int, seconds: Long, bestCombo: Int, previousRecord: Int): List<Accolade> = buildList {
+    if (answers > 0 && misses == 0) add(Accolade.PERFECT)
+    if (answers > 0 && seconds <= answers.toLong() * FAST_SECONDS_PER_ANSWER) add(Accolade.FAST)
+    if (bestCombo >= COMBO_MIN && bestCombo > previousRecord) add(Accolade.COMBO_RECORD)
+}
+
 /** Anki-ready CSV: Anki reads the `#` header lines; spreadsheets just show them as text rows. */
 fun vocabularyCsv(words: List<Word>, columns: String): String = buildString {
     append("#separator:Comma\n#html:false\n#columns:$columns\n")
