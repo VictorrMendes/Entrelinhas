@@ -2,6 +2,8 @@ package com.victor.leitor
 
 import android.app.Application
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,5 +25,15 @@ class DbTest {
 
         assertEquals(mapOf(4 to "mundo"), db.paragraphTranslations(book, "en", "pt"))
         assertEquals(mapOf(3 to "hola"), db.paragraphTranslations(book, "en", "es"))
+    }
+
+    @Test
+    fun aFinishedExerciseMeetsTodaysGoalOnce() {
+        val db = Db(RuntimeEnvironment.getApplication())
+        assertFalse(db.streak().metToday)
+        assertTrue(db.completeExercise())
+        assertFalse(db.completeExercise()) // already met: no second celebration
+        assertTrue(db.streak().metToday)
+        assertEquals(1, db.streak().current)
     }
 }

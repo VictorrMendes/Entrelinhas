@@ -218,6 +218,16 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 4) {
         return justMet
     }
 
+    /** A finished exercise (cards, learn, test, dictation) also meets today's goal; true exactly when this call met it. */
+    fun completeExercise(): Boolean {
+        val day = ensureToday()
+        val db = writableDatabase
+        val justMet = DatabaseUtils.longForQuery(db, "SELECT goal_met = 0 FROM progress_daily_stats WHERE day = ?", arrayOf("$day")) == 1L
+        db.execSQL("UPDATE progress_daily_stats SET reading_active = 1, goal_met = 1 WHERE day = ?", arrayOf<Any>(day))
+        changed()
+        return justMet
+    }
+
     fun todayReadingSeconds(): Int =
         DatabaseUtils.longForQuery(readableDatabase, "SELECT COALESCE(SUM(reading_seconds), 0) FROM progress_daily_stats WHERE day = ?", arrayOf("${localDay()}")).toInt()
 

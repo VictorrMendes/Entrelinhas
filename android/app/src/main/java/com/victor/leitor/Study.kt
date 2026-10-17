@@ -168,6 +168,7 @@ private fun CardsMode(app: App, onClose: () -> Unit) {
         StudyProgress(known, total)
         val word = queue.firstOrNull()
         if (word == null) {
+            if (total > 0) LaunchedEffect(Unit) { app.db.completeExercise() }
             StudyDone(
                 title = stringResource(R.string.cards_done_title),
                 text = stringResource(R.string.cards_done_text, known, learning.size),
@@ -346,7 +347,10 @@ private fun TestMode(app: App, onClose: () -> Unit) {
                     }
                 }
             }
-            TestStep.RESULTS -> TestResults(questions, answers, graded, onNew = { step = TestStep.SETUP }, onClose = onClose)
+            TestStep.RESULTS -> {
+                LaunchedEffect(Unit) { app.db.completeExercise() }
+                TestResults(questions, answers, graded, onNew = { step = TestStep.SETUP }, onClose = onClose)
+            }
         }
     }
 }

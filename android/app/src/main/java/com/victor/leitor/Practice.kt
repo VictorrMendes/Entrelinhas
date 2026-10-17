@@ -230,7 +230,10 @@ fun AnswerOption(text: String, state: Boolean?, enabled: Boolean, onClick: () ->
 @Composable
 private fun PracticeSummary(app: App, round: PracticeRound, onAgain: () -> Unit, onDone: () -> Unit) {
     // the round counts as a review: no miss moves a word up a box, a miss sends it back to today's queue
-    LaunchedEffect(round) { round.words.forEach { app.db.answer(it, known = it.id !in round.missed) } }
+    LaunchedEffect(round) {
+        round.words.forEach { app.db.answer(it, known = it.id !in round.missed) }
+        app.db.completeExercise()
+    }
     val clean = round.words.count { it.id !in round.missed }
     Text(stringResource(R.string.practice_done_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
     Text(
