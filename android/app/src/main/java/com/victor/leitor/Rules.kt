@@ -1,5 +1,6 @@
 package com.victor.leitor
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import java.security.MessageDigest
 import java.text.Normalizer
@@ -170,23 +171,26 @@ enum class AchievementGroup(@StringRes val title: Int) {
     READING(R.string.ach_group_reading),
 }
 
-enum class Achievement(@StringRes val title: Int, @StringRes val text: Int, val target: Int, val group: AchievementGroup, val value: (Totals) -> Int) {
-    FIRST_GOAL(R.string.ach_first_goal, R.string.ach_first_goal_text, 1, AchievementGroup.STREAKS, { it.goalDays }),
-    STREAK_3(R.string.ach_streak_3, R.string.ach_streak_3_text, 3, AchievementGroup.STREAKS, { it.longestStreak }),
-    WEEK_STREAK(R.string.ach_week_streak, R.string.ach_week_streak_text, 7, AchievementGroup.STREAKS, { it.longestStreak }),
-    MONTH_STREAK(R.string.ach_month_streak, R.string.ach_month_streak_text, 30, AchievementGroup.STREAKS, { it.longestStreak }),
-    STREAK_100(R.string.ach_streak_100, R.string.ach_streak_100_text, 100, AchievementGroup.STREAKS, { it.longestStreak }),
-    WEEKS_4(R.string.ach_weeks_4, R.string.ach_weeks_4_text, 4, AchievementGroup.STREAKS, { it.longestWeeks }),
-    WEEKS_12(R.string.ach_weeks_12, R.string.ach_weeks_12_text, 12, AchievementGroup.STREAKS, { it.longestWeeks }),
-    WORDS_50(R.string.ach_words_50, R.string.ach_words_50_text, 50, AchievementGroup.VOCABULARY, { it.savedWords }),
-    WORDS_250(R.string.ach_words_250, R.string.ach_words_250_text, 250, AchievementGroup.VOCABULARY, { it.savedWords }),
-    LEARNED_25(R.string.ach_learned_25, R.string.ach_learned_25_text, 25, AchievementGroup.VOCABULARY, { it.learnedWords }),
-    LEARNED_100(R.string.ach_learned_100, R.string.ach_learned_100_text, 100, AchievementGroup.VOCABULARY, { it.learnedWords }),
-    DICTATIONS_20(R.string.ach_dictations, R.string.ach_dictations_text, 20, AchievementGroup.VOCABULARY, { it.dictations }),
-    FIRST_BOOK(R.string.ach_first_book, R.string.ach_first_book_text, 1, AchievementGroup.READING, { it.booksCompleted }),
-    FIVE_BOOKS(R.string.ach_five_books, R.string.ach_five_books_text, 5, AchievementGroup.READING, { it.booksCompleted }),
-    TEN_HOURS(R.string.ach_ten_hours, R.string.ach_ten_hours_text, 10, AchievementGroup.READING, { it.readingMinutes / 60 }),
-    FIFTY_HOURS(R.string.ach_fifty_hours, R.string.ach_fifty_hours_text, 50, AchievementGroup.READING, { it.readingMinutes / 60 }),
+/** [art] comes from assets/ through android/scripts/import_art.py. */
+enum class Achievement(
+    @StringRes val title: Int, @StringRes val text: Int, @DrawableRes val art: Int, val target: Int, val group: AchievementGroup, val value: (Totals) -> Int,
+) {
+    FIRST_GOAL(R.string.ach_first_goal, R.string.ach_first_goal_text, R.drawable.ach_first_goal, 1, AchievementGroup.STREAKS, { it.goalDays }),
+    STREAK_3(R.string.ach_streak_3, R.string.ach_streak_3_text, R.drawable.ach_streak_3, 3, AchievementGroup.STREAKS, { it.longestStreak }),
+    WEEK_STREAK(R.string.ach_week_streak, R.string.ach_week_streak_text, R.drawable.ach_week_streak, 7, AchievementGroup.STREAKS, { it.longestStreak }),
+    MONTH_STREAK(R.string.ach_month_streak, R.string.ach_month_streak_text, R.drawable.ach_month_streak, 30, AchievementGroup.STREAKS, { it.longestStreak }),
+    STREAK_100(R.string.ach_streak_100, R.string.ach_streak_100_text, R.drawable.ach_streak_100, 100, AchievementGroup.STREAKS, { it.longestStreak }),
+    WEEKS_4(R.string.ach_weeks_4, R.string.ach_weeks_4_text, R.drawable.ach_weeks_4, 4, AchievementGroup.STREAKS, { it.longestWeeks }),
+    WEEKS_12(R.string.ach_weeks_12, R.string.ach_weeks_12_text, R.drawable.ach_weeks_12, 12, AchievementGroup.STREAKS, { it.longestWeeks }),
+    WORDS_50(R.string.ach_words_50, R.string.ach_words_50_text, R.drawable.ach_words_50, 50, AchievementGroup.VOCABULARY, { it.savedWords }),
+    WORDS_250(R.string.ach_words_250, R.string.ach_words_250_text, R.drawable.ach_words_250, 250, AchievementGroup.VOCABULARY, { it.savedWords }),
+    LEARNED_25(R.string.ach_learned_25, R.string.ach_learned_25_text, R.drawable.ach_learned_25, 25, AchievementGroup.VOCABULARY, { it.learnedWords }),
+    LEARNED_100(R.string.ach_learned_100, R.string.ach_learned_100_text, R.drawable.ach_learned_100, 100, AchievementGroup.VOCABULARY, { it.learnedWords }),
+    DICTATIONS_20(R.string.ach_dictations, R.string.ach_dictations_text, R.drawable.ach_dictations, 20, AchievementGroup.VOCABULARY, { it.dictations }),
+    FIRST_BOOK(R.string.ach_first_book, R.string.ach_first_book_text, R.drawable.ach_first_book, 1, AchievementGroup.READING, { it.booksCompleted }),
+    FIVE_BOOKS(R.string.ach_five_books, R.string.ach_five_books_text, R.drawable.ach_five_books, 5, AchievementGroup.READING, { it.booksCompleted }),
+    TEN_HOURS(R.string.ach_ten_hours, R.string.ach_ten_hours_text, R.drawable.ach_ten_hours, 10, AchievementGroup.READING, { it.readingMinutes / 60 }),
+    FIFTY_HOURS(R.string.ach_fifty_hours, R.string.ach_fifty_hours_text, R.drawable.ach_fifty_hours, 50, AchievementGroup.READING, { it.readingMinutes / 60 }),
     ;
 
     fun unlocked(t: Totals) = value(t) >= target
