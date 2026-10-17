@@ -1,7 +1,8 @@
 name: iOS
 
-# Build de simulador do iPhone (não precisa de assinatura): vira artefato e, com o secret APPETIZE_API_TOKEN, sobe para o
-# Appetize, onde o app roda no navegador. O mesmo bundle id atualiza sempre o mesmo app lá.
+# Dois builds sem assinatura:
+# - simulador: vira artefato e, com o secret APPETIZE_API_TOKEN, sobe para o Appetize (o mesmo bundle id atualiza o mesmo app);
+# - aparelho: o .ipa vai para o pré-release fixo ios-latest, que o iPhone baixa e o SideStore assina com o Apple ID da pessoa.
 on:
   push:
     paths: [android/shared/**, android/build.gradle.kts, android/settings.gradle.kts, android/gradle/**, ios/**, .github/workflows/ios.yml]
@@ -15,10 +16,12 @@ permissions:
   contents: read
 
 jobs:
-  simulator:
-    name: Simulator build
+  build:
+    name: Simulator and device builds
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      contents: write # the ios-latest pre-release
     env:
       APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
 
@@ -60,3 +63,25 @@ jobs:
         run: |
           curl -sS --fail-with-body https://api.appetize.io/v2/builds -H "X-API-KEY: $APPETIZE_API_TOKEN" \
             -F "file=@$RUNNER_TEMP/Entrelinhas.zip" -F platform=ios --form-string "note=${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
+
+      - name: Device build
+        working-directory: ios
+        run: |
+          xcodebuild -project Entrelinhas.xcodeproj -scheme Entrelinhas -sdk iphoneos -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO -derivedDataPath build
+
+      # an .ipa is the .app inside a Payload folder, zipped
+      - name: Package .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R ios/build/Build/Products/Debug-iphoneos/Entrelinhas.app "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa" && zip -qr "$RUNNER_TEMP/Entrelinhas.ipa" Payload
+
+      # one fixed link the iPhone can download without signing in to GitHub
+      - name: Publish to the ios-latest pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ios-latest >/dev/null 2>&1 || gh release create ios-latest --prerelease --title "iPhone (teste)" \
+            --notes "Build de teste do iPhone, sem assinatura: instale com o SideStore. Atualizado a cada build do workflow iOS."
+          gh release upload ios-latest "$RUNNER_TEMP/Entrelinhas.ipa" --clobber
