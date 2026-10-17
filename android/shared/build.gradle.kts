@@ -16,9 +16,9 @@ kotlin {
         }
         minSdk = 24
     }
-    // Appetize and the iPhone simulators on Apple Silicon run arm64; iosArm64 (real devices) comes with sideloading
-    iosSimulatorArm64 {
-        binaries.framework {
+    // iosArm64: real iPhones (sideloaded); iosSimulatorArm64: Appetize and simulators on Apple Silicon
+    listOf(iosArm64(), iosSimulatorArm64()).forEach {
+        it.binaries.framework {
             baseName = "Shared"
             isStatic = true
         }
