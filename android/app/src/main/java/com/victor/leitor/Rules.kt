@@ -1,5 +1,6 @@
 package com.victor.leitor
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import java.security.MessageDigest
 import java.text.Normalizer
@@ -25,13 +26,23 @@ object Streak {
     const val MAX_SHIELDS = 2
     const val SHIELD_EVERY = 7
 
-    data class State(val current: Int, val longest: Int, val shields: Int, val metToday: Boolean)
+    /** A broken streak comes back after this many met days in a row... */
+    const val RECOVER_DAYS = 5
+
+    /** ...started at most this many days after it broke. */
+    const val RECOVER_WITHIN = 7
+
+    /** The broken streak of [lost] days being earned back; [done] of the RECOVER_DAYS days in a row are met. */
+    data class Recovery(val lost: Int, val done: Int)
+
+    data class State(val current: Int, val longest: Int, val shields: Int, val metToday: Boolean, val recovery: Recovery? = null)
 
     /** [metDays] are ascending local days. */
     fun compute(metDays: List<Long>, today: Long): State {
         var current = 0
         var longest = 0
         var shields = 0
+        var lost = 0
         var last: Long? = null
         for (day in metDays) {
             if (day == last) continue
@@ -39,7 +50,13 @@ object Streak {
             if (current > 0 && missed != null && missed <= shields) {
                 current++
                 shields -= missed.toInt()
+                if (lost > 0 && missed > 0) lost = 0 // earning back needs every day, shields don't count
+                if (lost > 0 && current == RECOVER_DAYS) {
+                    current += lost
+                    lost = 0
+                }
             } else {
+                lost = if (current >= 2 && missed != null && missed <= RECOVER_WITHIN) current else 0
                 current = 1
                 shields = MAX_SHIELDS
             }
@@ -50,9 +67,25 @@ object Streak {
         if (last == null) return State(0, 0, 0, false)
         // blank days up to yesterday already spent their shields; today isn't over yet
         val missedNow = maxOf(0L, today - last - 1)
-        return if (missedNow > shields) State(0, longest, 0, false)
-        else State(current, longest, shields - missedNow.toInt(), last == today)
+        // broken now: meeting the goal again soon starts the earn-back
+        if (missedNow > shields) return State(0, longest, 0, false, Recovery(current, 0).takeIf { current >= 2 && missedNow <= RECOVER_WITHIN })
+        return State(current, longest, shields - missedNow.toInt(), last == today, Recovery(lost, current).takeIf { lost > 0 && missedNow == 0L })
     }
+}
+
+/** What a finished exercise round earned, shown on its end screen. */
+enum class Accolade { PERFECT, FAST, COMBO_RECORD }
+
+// ponytail: one pace for every mode; tune per mode if "rápido" comes too easy or too hard
+const val FAST_SECONDS_PER_ANSWER = 6
+
+/** A combo counts from this many right answers in a row. */
+const val COMBO_MIN = 3
+
+fun sessionAccolades(answers: Int, misses: Int, seconds: Long, bestCombo: Int, previousRecord: Int): List<Accolade> = buildList {
+    if (answers > 0 && misses == 0) add(Accolade.PERFECT)
+    if (answers > 0 && seconds <= answers.toLong() * FAST_SECONDS_PER_ANSWER) add(Accolade.FAST)
+    if (bestCombo >= COMBO_MIN && bestCombo > previousRecord) add(Accolade.COMBO_RECORD)
 }
 
 /** Anki-ready CSV: Anki reads the `#` header lines; spreadsheets just show them as text rows. */
@@ -138,23 +171,26 @@ enum class AchievementGroup(@StringRes val title: Int) {
     READING(R.string.ach_group_reading),
 }
 
-enum class Achievement(@StringRes val title: Int, @StringRes val text: Int, val target: Int, val group: AchievementGroup, val value: (Totals) -> Int) {
-    FIRST_GOAL(R.string.ach_first_goal, R.string.ach_first_goal_text, 1, AchievementGroup.STREAKS, { it.goalDays }),
-    STREAK_3(R.string.ach_streak_3, R.string.ach_streak_3_text, 3, AchievementGroup.STREAKS, { it.longestStreak }),
-    WEEK_STREAK(R.string.ach_week_streak, R.string.ach_week_streak_text, 7, AchievementGroup.STREAKS, { it.longestStreak }),
-    MONTH_STREAK(R.string.ach_month_streak, R.string.ach_month_streak_text, 30, AchievementGroup.STREAKS, { it.longestStreak }),
-    STREAK_100(R.string.ach_streak_100, R.string.ach_streak_100_text, 100, AchievementGroup.STREAKS, { it.longestStreak }),
-    WEEKS_4(R.string.ach_weeks_4, R.string.ach_weeks_4_text, 4, AchievementGroup.STREAKS, { it.longestWeeks }),
-    WEEKS_12(R.string.ach_weeks_12, R.string.ach_weeks_12_text, 12, AchievementGroup.STREAKS, { it.longestWeeks }),
-    WORDS_50(R.string.ach_words_50, R.string.ach_words_50_text, 50, AchievementGroup.VOCABULARY, { it.savedWords }),
-    WORDS_250(R.string.ach_words_250, R.string.ach_words_250_text, 250, AchievementGroup.VOCABULARY, { it.savedWords }),
-    LEARNED_25(R.string.ach_learned_25, R.string.ach_learned_25_text, 25, AchievementGroup.VOCABULARY, { it.learnedWords }),
-    LEARNED_100(R.string.ach_learned_100, R.string.ach_learned_100_text, 100, AchievementGroup.VOCABULARY, { it.learnedWords }),
-    DICTATIONS_20(R.string.ach_dictations, R.string.ach_dictations_text, 20, AchievementGroup.VOCABULARY, { it.dictations }),
-    FIRST_BOOK(R.string.ach_first_book, R.string.ach_first_book_text, 1, AchievementGroup.READING, { it.booksCompleted }),
-    FIVE_BOOKS(R.string.ach_five_books, R.string.ach_five_books_text, 5, AchievementGroup.READING, { it.booksCompleted }),
-    TEN_HOURS(R.string.ach_ten_hours, R.string.ach_ten_hours_text, 10, AchievementGroup.READING, { it.readingMinutes / 60 }),
-    FIFTY_HOURS(R.string.ach_fifty_hours, R.string.ach_fifty_hours_text, 50, AchievementGroup.READING, { it.readingMinutes / 60 }),
+/** [art] comes from assets/ through android/scripts/import_art.py. */
+enum class Achievement(
+    @StringRes val title: Int, @StringRes val text: Int, @DrawableRes val art: Int, val target: Int, val group: AchievementGroup, val value: (Totals) -> Int,
+) {
+    FIRST_GOAL(R.string.ach_first_goal, R.string.ach_first_goal_text, R.drawable.ach_first_goal, 1, AchievementGroup.STREAKS, { it.goalDays }),
+    STREAK_3(R.string.ach_streak_3, R.string.ach_streak_3_text, R.drawable.ach_streak_3, 3, AchievementGroup.STREAKS, { it.longestStreak }),
+    WEEK_STREAK(R.string.ach_week_streak, R.string.ach_week_streak_text, R.drawable.ach_week_streak, 7, AchievementGroup.STREAKS, { it.longestStreak }),
+    MONTH_STREAK(R.string.ach_month_streak, R.string.ach_month_streak_text, R.drawable.ach_month_streak, 30, AchievementGroup.STREAKS, { it.longestStreak }),
+    STREAK_100(R.string.ach_streak_100, R.string.ach_streak_100_text, R.drawable.ach_streak_100, 100, AchievementGroup.STREAKS, { it.longestStreak }),
+    WEEKS_4(R.string.ach_weeks_4, R.string.ach_weeks_4_text, R.drawable.ach_weeks_4, 4, AchievementGroup.STREAKS, { it.longestWeeks }),
+    WEEKS_12(R.string.ach_weeks_12, R.string.ach_weeks_12_text, R.drawable.ach_weeks_12, 12, AchievementGroup.STREAKS, { it.longestWeeks }),
+    WORDS_50(R.string.ach_words_50, R.string.ach_words_50_text, R.drawable.ach_words_50, 50, AchievementGroup.VOCABULARY, { it.savedWords }),
+    WORDS_250(R.string.ach_words_250, R.string.ach_words_250_text, R.drawable.ach_words_250, 250, AchievementGroup.VOCABULARY, { it.savedWords }),
+    LEARNED_25(R.string.ach_learned_25, R.string.ach_learned_25_text, R.drawable.ach_learned_25, 25, AchievementGroup.VOCABULARY, { it.learnedWords }),
+    LEARNED_100(R.string.ach_learned_100, R.string.ach_learned_100_text, R.drawable.ach_learned_100, 100, AchievementGroup.VOCABULARY, { it.learnedWords }),
+    DICTATIONS_20(R.string.ach_dictations, R.string.ach_dictations_text, R.drawable.ach_dictations, 20, AchievementGroup.VOCABULARY, { it.dictations }),
+    FIRST_BOOK(R.string.ach_first_book, R.string.ach_first_book_text, R.drawable.ach_first_book, 1, AchievementGroup.READING, { it.booksCompleted }),
+    FIVE_BOOKS(R.string.ach_five_books, R.string.ach_five_books_text, R.drawable.ach_five_books, 5, AchievementGroup.READING, { it.booksCompleted }),
+    TEN_HOURS(R.string.ach_ten_hours, R.string.ach_ten_hours_text, R.drawable.ach_ten_hours, 10, AchievementGroup.READING, { it.readingMinutes / 60 }),
+    FIFTY_HOURS(R.string.ach_fifty_hours, R.string.ach_fifty_hours_text, R.drawable.ach_fifty_hours, 50, AchievementGroup.READING, { it.readingMinutes / 60 }),
     ;
 
     fun unlocked(t: Totals) = value(t) >= target

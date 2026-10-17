@@ -1,6 +1,7 @@
 package com.victor.leitor
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -54,9 +56,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -303,14 +308,24 @@ fun Achievements(t: Totals) {
     }
 }
 
+private val Grayscale = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) })
+
 @Composable
 private fun AchievementTile(a: Achievement, t: Totals, modifier: Modifier) {
     val done = a.unlocked(t)
-    val tint = if (done) Flame else MaterialTheme.colorScheme.onSurfaceVariant
     Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = modifier) {
         Column(Modifier.padding(16.dp).alpha(if (done) 1f else 0.65f)) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                Icon(if (done) Icons.Outlined.EmojiEvents else Icons.Outlined.Lock, null, Modifier.size(22.dp), tint = tint)
+            // a locked one shows its art in gray, with a padlock
+            Box {
+                Image(painterResource(a.art), null, Modifier.size(72.dp).clip(RoundedCornerShape(16.dp)), colorFilter = if (done) null else Grayscale)
+                if (!done) {
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).offset(6.dp, 6.dp).size(26.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Outlined.Lock, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
             Text(stringResource(a.title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)

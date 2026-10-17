@@ -16,3 +16,6 @@ storage/*
 backend/data/
 # ajustes locais do compose (ex.: porta só em loopback no servidor)
 docker-compose.override.yml
+AGENTS.md
+CLAUDE.MD
+docs
