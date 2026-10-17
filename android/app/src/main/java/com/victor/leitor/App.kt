@@ -177,6 +177,12 @@ class App : Application() {
 
     /** A notice for each achievement unlocked since the last check; the very first check only takes note of what is there. */
     private fun celebrate() {
+        // a streak goal reached: celebrate it and aim at the next one (7 → 14 → 30)
+        val goal = prefs.streakGoal
+        if (goal > 0 && db.streak().current >= goal) {
+            notices.show(Notice(getString(R.string.streak_goal_reached, goal), NoticeKind.SUCCESS))
+            prefs.streakGoal = STREAK_GOALS.firstOrNull { it > goal } ?: 0
+        }
         val totals = db.totals()
         val unlocked = Achievement.entries.filter { it.unlocked(totals) }.map { it.name }
         val seen = prefs.achievements?.split(',')?.toSet()
@@ -441,6 +447,8 @@ class Prefs(ctx: Context) {
     var listenExamples by bool("listen_examples", true)
     /** Best Combinar time in milliseconds; 0 until the first game. */
     var matchBest by long("match_best", 0L)
+    /** Most right answers in a row in one Aprender or Avaliar round. */
+    var bestCombo by int("best_combo", 0)
     private var voices by string("voices", "") // "lang=voice;lang=voice"
     var newWordsPerDay by int("new_words_per_day", 15)
     var addedKits by string("added_kits", "") // pack ids, comma-separated
@@ -456,6 +464,7 @@ class Prefs(ctx: Context) {
     var useOffline by bool("use_offline", false)
     var onboarded by bool("onboarded", false)
     var dailyGoalMinutes by int("daily_goal_minutes", 5)
+    var streakGoal by int("streak_goal", STREAK_GOALS.first()) // days; 0 once every goal is behind
     var reminder by int("reminder", ReminderTime.OFF.ordinal)
     var speechRate by float("speech_rate", 1f)
     var defaultTarget by string("default_target", Locale.getDefault().language.takeIf { TranslateLanguage.fromLanguageTag(it) != null } ?: "en")

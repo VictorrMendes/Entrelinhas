@@ -1,0 +1,28 @@
+# XcodeGen spec: CI turns it into Entrelinhas.xcodeproj on macOS (`xcodegen` in this folder), so no Mac is needed here.
+# The UI is Kotlin: the build phase compiles android/shared into Shared.framework and links it.
+name: Entrelinhas
+options:
+  bundleIdPrefix: com.victor
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  Entrelinhas:
+    type: application
+    platform: iOS
+    sources: [Entrelinhas]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.victor.leitor
+        INFOPLIST_FILE: Entrelinhas/Info.plist
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../android/shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS: ["$(inherited)", "-framework", "Shared"]
+        # the Gradle build phase reads and writes outside the sandbox Xcode gives scripts
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    preBuildScripts:
+      - name: Compile Kotlin
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/../android"
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode

@@ -56,6 +56,39 @@ class HabitTest {
     }
 
     @Test
+    fun aBrokenStreakComesBackAfterFiveMetDaysInARow() {
+        val before = (1L..10L).toList() // a 10-day streak, then 4 blank days: more than the 2 shields
+        assertEquals(Streak.Recovery(10, 0), Streak.compute(before, 14).recovery)
+        val midway = Streak.compute(before + (15L..17L), 17)
+        assertEquals(3, midway.current)
+        assertEquals(Streak.Recovery(10, 3), midway.recovery)
+        val back = Streak.compute(before + (15L..19L), 19)
+        assertEquals(15, back.current)
+        assertNull(back.recovery)
+        // a blank day while earning back (even one a shield covers) loses it
+        val gap = Streak.compute(before + listOf(15L, 16L, 18L, 19L, 20L), 20)
+        assertEquals(5, gap.current)
+        assertNull(gap.recovery)
+        // and so does coming back too late
+        assertEquals(5, Streak.compute(before + (25L..29L), 29).current)
+    }
+
+    @Test
+    fun theFlameEvolvesWithEachStreakGoalReached() {
+        assertEquals(listOf(0, 1, 1, 2, 3, 3), listOf(0, 7, 13, 14, 30, 120).map(::flameLevel))
+    }
+
+    @Test
+    fun aRoundEarnsPerfectFastAndANewComboRecord() {
+        assertEquals(listOf(Accolade.PERFECT, Accolade.FAST, Accolade.COMBO_RECORD), sessionAccolades(5, 0, 30, 5, 4))
+        // a miss, one second too slow and only tying the record
+        assertEquals(emptyList<Accolade>(), sessionAccolades(5, 1, 31, 4, 4))
+        // a new best under COMBO_MIN isn't a combo
+        assertEquals(emptyList<Accolade>(), sessionAccolades(10, 8, 100, 2, 0))
+        assertEquals(emptyList<Accolade>(), sessionAccolades(0, 0, 0, 0, 0))
+    }
+
+    @Test
     fun theWordOfTheDayStaysAllDayAndSkipsMasteredWords() {
         fun w(id: Long, box: Int = 0) = Word(id, "w$id", "t$id", null, null, box, null, "en")
         val words = listOf(w(3), w(1), w(2, box = Leitner.MASTERED))

@@ -24,3 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Entrelinhas"
 include(":app")
+// code shared by the Android and iPhone apps
+include(":shared")

@@ -37,7 +37,12 @@
     <string name="streak_days">%1$s de ofensiva</string>
     <string name="goal_met_today">Meta de hoje concluída ✓</string>
     <string name="goal_today_progress">Hoje: %1$d de %2$d min de leitura</string>
-    <string name="streak_rules">Leia %1$d min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos.</string>
+    <string name="streak_goal">Meta de ofensiva</string>
+    <string name="streak_goal_hint">Cada meta cumprida evolui a sua chama (nível %1$d de %2$d).</string>
+    <string name="streak_goal_progress">Meta: %1$d de %2$d dias</string>
+    <string name="streak_goal_reached">Meta de %1$d dias cumprida! Sua chama evoluiu 🔥</string>
+    <string name="streak_recovery">Recupere %1$s: cumpra a meta %3$d dias seguidos (%2$d/%3$d)</string>
+    <string name="streak_rules">Leia %1$d min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos. Se a ofensiva quebrar, cumpra a meta 5 dias seguidos (começando em até uma semana) e ela volta inteira.</string>
     <string name="streak_summary">Atual: %1$s · Recorde: %2$s · Escudos: %3$d</string>
     <string name="daily_goal">Meta diária</string>
     <string name="n_min">%1$d min</string>
@@ -376,10 +381,11 @@
     <string name="practice_wrong">Errado. Ela volta mais tarde nesta rodada.</string>
     <string name="practice_shown_answer">Essa é a resposta. Ela volta mais tarde nesta rodada.</string>
     <string name="practice_dont_know">Não sei</string>
+    <string name="combo_streak">🔥 %1$d seguidas</string>
+    <string name="combo_lost">Combo de %1$d perdido</string>
     <string name="practice_continue">Continuar</string>
     <string name="practice_done_title">Rodada concluída!</string>
     <string name="practice_done_text">%1$d de %2$d palavras sem nenhum erro. As que você errou voltam para a revisão de hoje.</string>
-    <string name="practice_again">Praticar de novo</string>
     <string name="practice_finish">Concluir</string>
     <string name="study_section">Estudar</string>
     <string name="due_today">%1$d para hoje</string>
@@ -420,9 +426,7 @@
     <string name="test_result_good">Muito bem!</string>
     <string name="test_result_ok">Bom começo</string>
     <string name="test_result_low">Vale praticar mais</string>
-    <string name="test_score">%1$d de %2$d certas</string>
     <string name="test_your_answers">Suas respostas</string>
-    <string name="test_new">Novo teste</string>
     <string name="test_correct_answer">Certa: %1$s</string>
     <string name="test_no_answer">Sem resposta</string>
     <string name="match_intro">Junte cada palavra ao seu significado o mais rápido que puder.</string>
