@@ -41,23 +41,26 @@ data class KitWord(val word: String, val translation: String, val example: Strin
 data class KitPack(val id: String, val title: String, val words: List<KitWord>)
 
 val NEW_WORDS_OPTIONS = listOf(10, 15, 20, 30)
+val KIT_LEVELS = listOf("A1", "A2", "B1", "B2")
 
-/** The word kits shipped in assets/kits (built by backend/scripts/build-kit.ts). */
-fun loadKits(ctx: Context, file: String = "kits/en-a1.json"): List<KitPack> {
-    val packs = JSONObject(ctx.assets.open(file).bufferedReader().use { it.readText() }).getJSONArray("packs")
+/** A level's word kits, shipped in assets/kits (built by backend/scripts/build-kit.ts); titles start with the level. */
+fun loadKits(ctx: Context, level: String): List<KitPack> {
+    val packs = JSONObject(ctx.assets.open("kits/en-${level.lowercase()}.json").bufferedReader().use { it.readText() }).getJSONArray("packs")
+    val seen = HashSet<String>() // the A1 file lists a few words twice (two parts of speech)
     return List(packs.length()) { i ->
         val p = packs.getJSONObject(i)
         val words = p.getJSONArray("words")
-        KitPack(p.getString("id"), p.getString("title"), List(words.length()) { j ->
+        KitPack(p.getString("id"), "$level · ${p.getString("title")}", List(words.length()) { j ->
             words.getJSONObject(j).let { KitWord(it.getString("word"), it.getString("translation"), it.getString("example")) }
-        })
+        }.filter { seen.add(it.word.lowercase()) })
     }
 }
 
-/** "Kits de palavras": ready-made A1 packs for someone with no books yet; an added kit comes in a few words a day. */
+/** "Kits de palavras": ready-made packs (A1–B2) for someone with no books yet; an added kit comes in a few words a day. */
 @Composable
 fun KitsMode(app: App, onClose: () -> Unit) {
-    val kits = remember { loadKits(app) }
+    var level by remember { mutableStateOf(KIT_LEVELS.first()) }
+    val kits = remember(level) { loadKits(app, level) }
     var open by remember { mutableStateOf<KitPack?>(null) }
     var added by remember { mutableStateOf(app.prefs.addedKits.split(',').filter { it.isNotEmpty() }.toSet()) }
     var perDay by remember { mutableStateOf(app.prefs.newWordsPerDay) }
@@ -65,9 +68,10 @@ fun KitsMode(app: App, onClose: () -> Unit) {
     BackHandler(enabled = pack != null) { open = null }
 
     Column(Modifier.fillMaxSize()) {
-        StudyTopBar(pack?.let { "A1 · ${it.title}" } ?: stringResource(R.string.kits_title), onClose = { if (pack != null) open = null else onClose() })
+        StudyTopBar(pack?.title ?: stringResource(R.string.kits_title), onClose = { if (pack != null) open = null else onClose() })
         if (pack == null) {
             LazyColumn(contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                item { Pills(KIT_LEVELS, KIT_LEVELS.indexOf(level)) { level = KIT_LEVELS[it] } }
                 item {
                     Text(stringResource(R.string.kits_per_day), style = MaterialTheme.typography.titleSmall)
                     Pills(NEW_WORDS_OPTIONS.map { "$it" }, NEW_WORDS_OPTIONS.indexOf(perDay)) {
@@ -79,7 +83,7 @@ fun KitsMode(app: App, onClose: () -> Unit) {
                     Surface(onClick = { open = k }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text("A1 · ${k.title}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Text(k.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.kit_words, k.words.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             if (k.id in added) Icon(Icons.Outlined.CheckCircle, stringResource(R.string.kit_added), tint = Success)

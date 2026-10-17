@@ -2,13 +2,16 @@
 <resources>
     <!-- Kits.kt -->
     <string name="kits_title">Kits de palavras</string>
-    <string name="kits_hint">Pacotes prontos do nível A1 para estudar sem livros</string>
+    <string name="kits_hint">Pacotes prontos do A1 ao B2 para estudar sem livros</string>
     <string name="kits_start">Começar com um kit de palavras</string>
     <string name="kits_per_day">Palavras novas por dia</string>
     <string name="kit_words">%1$d palavras</string>
     <string name="kit_add">Adicionar kit</string>
     <string name="kit_added">Kit adicionado</string>
     <string name="kit_added_per_day">Adicionado · %1$d palavras novas por dia</string>
+    <string name="onboarding_kit_title">Ainda sem livros?</string>
+    <string name="onboarding_kit_text">Comece com palavras prontas do seu nível: algumas novas por dia, com tradução e exemplo. É opcional — há mais kits em Vocabulário.</string>
+    <string name="onboarding_kit_add">Adicionar %1$s</string>
     <!-- Rules.kt -->
     <string name="csv_columns">Palavra,Tradução,Exemplo,Livro</string>
     <string name="reminder_morning">Manhã (8h)</string>

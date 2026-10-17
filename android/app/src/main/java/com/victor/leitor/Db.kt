@@ -222,7 +222,7 @@ class Db(ctx: Context) : SQLiteOpenHelper(ctx, "leitor.db", null, 5) {
         val rows = readableDatabase.rawQuery("SELECT id, kit_title, original_text, translated_text, example FROM kit_queue ORDER BY id LIMIT ?", arrayOf("$n"))
             .use { c -> buildList { while (c.moveToNext()) add(Triple(c.getLong(0), c.getString(1), KitWord(c.getString(2), c.getString(3), c.getString(4) ?: ""))) } }
         rows.forEach { (id, title, w) ->
-            saveWord(w.word, w.translation, "en", "pt", null, "Kit A1 · $title", w.example.ifEmpty { null })
+            saveWord(w.word, w.translation, "en", "pt", null, "Kit $title", w.example.ifEmpty { null })
             writableDatabase.delete("kit_queue", "id = ?", arrayOf("$id"))
         }
         if (rows.isNotEmpty()) changed()

@@ -82,8 +82,19 @@ for (const [title, words] of groups) {
   const size = Math.ceil(words.length / n);
   for (let i = 0; i < n; i++) {
     const chunk = words.slice(i * size, (i + 1) * size);
-    const r = await model(system, JSON.stringify(chunk), schema);
-    const made = new Map((JSON.parse(r.text) as { word: string; translation: string; example: string }[]).map((w) => [w.word, w]));
+    let made = new Map<string, { word: string; translation: string; example: string }>();
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const r = await model(system, JSON.stringify(chunk), schema);
+        made = new Map((JSON.parse(r.text) as { word: string; translation: string; example: string }[]).map((w) => [w.word, w]));
+        break;
+      } catch (e) {
+        // a quota hit or a malformed answer shouldn't throw away the packs already made
+        if (attempt === 3) throw e;
+        console.warn(`${title}: attempt ${attempt} failed (${(e as Error).message}), retrying`);
+        await new Promise((ok) => setTimeout(ok, 20_000));
+      }
+    }
     const missing = chunk.filter((w) => !made.get(w.word)?.translation);
     if (missing.length) console.warn(`${title}: no translation for ${missing.map((w) => w.word).join(', ')}`);
     packs.push({
