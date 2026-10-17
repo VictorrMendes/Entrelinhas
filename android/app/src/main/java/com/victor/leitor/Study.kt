@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -156,10 +155,15 @@ class ComboCounter {
         }
     }
 
+    /** How long the round took, set by [finish]. */
+    var seconds = 0L
+        private set
+
     /** The round's accolades; a new best combo becomes the record. Call once, when the round ends. */
-    fun finish(prefs: Prefs): List<Accolade> =
-        sessionAccolades(answers, misses, (SystemClock.elapsedRealtime() - startedAt) / 1000, best, prefs.bestCombo)
-            .also { if (best > prefs.bestCombo) prefs.bestCombo = best }
+    fun finish(prefs: Prefs): List<Accolade> {
+        seconds = (SystemClock.elapsedRealtime() - startedAt) / 1000
+        return sessionAccolades(answers, misses, seconds, best, prefs.bestCombo).also { if (best > prefs.bestCombo) prefs.bestCombo = best }
+    }
 }
 
 @Composable
@@ -373,17 +377,20 @@ private fun TestMode(app: App, onClose: () -> Unit) {
     // written answers the strict check refused, as graded by the AI, by question index
     val graded = remember { mutableStateMapOf<Int, AiGrade>() }
     val combo = remember(questions) { ComboCounter() }
+    var accolades by remember { mutableStateOf(emptyList<Accolade>()) }
+
+    fun start() {
+        questions = buildTest(all, all, count, kinds)
+        answers.clear()
+        graded.clear()
+        step = TestStep.TAKING
+    }
 
     Column(Modifier.fillMaxSize()) {
         val title = stringResource(R.string.mode_test)
         StudyTopBar(if (step == TestStep.TAKING) "$title · ${answers.size + 1}/${questions.size}" else title, onClose)
         when (step) {
-            TestStep.SETUP -> TestSetup(all.size, count, { count = it }, kinds, { kinds = it }) {
-                questions = buildTest(all, all, count, kinds)
-                answers.clear()
-                graded.clear()
-                step = TestStep.TAKING
-            }
+            TestStep.SETUP -> TestSetup(all.size, count, { count = it }, kinds, { kinds = it }) { start() }
             TestStep.TAKING -> {
                 StudyProgress(answers.size, questions.size)
                 ComboBadge(combo)
@@ -392,16 +399,16 @@ private fun TestMode(app: App, onClose: () -> Unit) {
                         combo.answer(questions[answers.size].isRight(answer) || ai?.correct == true)
                         ai?.let { graded[answers.size] = it }
                         answers += answer
-                        if (answers.size == questions.size) step = TestStep.RESULTS
+                        if (answers.size == questions.size) {
+                            accolades = combo.finish(app.prefs)
+                            step = TestStep.RESULTS
+                        }
                     }
                 }
             }
             TestStep.RESULTS -> {
-                LaunchedEffect(Unit) {
-                    app.db.completeExercise()
-                    combo.finish(app.prefs)
-                }
-                TestResults(questions, answers, graded, onNew = { step = TestStep.SETUP }, onClose = onClose)
+                LaunchedEffect(Unit) { app.db.completeExercise() }
+                TestResults(questions, answers, graded, combo, accolades, onMore = { start() }, onClose = onClose)
             }
         }
     }
@@ -489,37 +496,20 @@ private fun TestQuestionView(app: App, q: TestQuestion, onAnswer: (answer: Strin
 }
 
 @Composable
-private fun TestResults(questions: List<TestQuestion>, answers: List<String>, graded: Map<Int, AiGrade>, onNew: () -> Unit, onClose: () -> Unit) {
+private fun TestResults(
+    questions: List<TestQuestion>, answers: List<String>, graded: Map<Int, AiGrade>, combo: ComboCounter, accolades: List<Accolade>,
+    onMore: () -> Unit, onClose: () -> Unit,
+) {
     val right = questions.indices.count { questions[it].isRight(answers[it]) || graded[it]?.correct == true }
     val score = right / questions.size.coerceAtLeast(1).toFloat()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { score }, Modifier.size(104.dp), color = Success, strokeWidth = 10.dp,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant, gapSize = 0.dp,
-                )
-                Text("${(score * 100).toInt()}%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Column(Modifier.padding(start = 20.dp)) {
-                Text(
-                    stringResource(
-                        when {
-                            score >= 0.9f -> R.string.test_result_excellent
-                            score >= 0.7f -> R.string.test_result_good
-                            score >= 0.5f -> R.string.test_result_ok
-                            else -> R.string.test_result_low
-                        },
-                    ),
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                )
-                Text(stringResource(R.string.test_score, right, questions.size), Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        val title = when {
+            score >= 0.9f -> R.string.test_result_excellent
+            score >= 0.7f -> R.string.test_result_good
+            score >= 0.5f -> R.string.test_result_ok
+            else -> R.string.test_result_low
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onNew, Modifier.weight(1f)) { Text(stringResource(R.string.test_new)) }
-            Button(onClick = onClose, Modifier.weight(1f)) { Text(stringResource(R.string.practice_finish)) }
-        }
+        SessionEnd(stringResource(title), sessionStats(questions.size, right, combo.seconds), accolades, combo.best, onMore, onClose)
         Text(stringResource(R.string.test_your_answers), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         questions.forEachIndexed { i, q -> TestReview(q, answers[i], graded[i]) }
     }

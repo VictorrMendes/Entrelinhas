@@ -12,14 +12,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -36,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,7 +44,18 @@ import kotlin.math.roundToInt
 /** One number on the end screen: 12 "palavras", 95 "% de acerto", 3 "min". */
 data class SessionStat(val value: Int, val label: String)
 
-/** The end of a study round: numbers counting up, what the round earned and an invite to one more. */
+/** A finished round's words, accuracy and minutes (rounded up, at least 1). */
+@Composable
+fun sessionStats(words: Int, right: Int, seconds: Long) = listOf(
+    SessionStat(words, pluralStringResource(R.plurals.session_stat_words, words)),
+    SessionStat(right * 100 / words.coerceAtLeast(1), stringResource(R.string.session_stat_accuracy)),
+    SessionStat(((seconds + 59) / 60).toInt().coerceAtLeast(1), stringResource(R.string.session_stat_minutes)),
+)
+
+/**
+ * The end of a study round: numbers counting up, what the round earned and an invite to one more. It tops the round's
+ * summary, inside the caller's scrolling column.
+ */
 @Composable
 fun SessionEnd(
     title: String, stats: List<SessionStat>, accolades: List<Accolade>, bestCombo: Int,
@@ -62,10 +71,7 @@ fun SessionEnd(
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
     }
-    Column(
-        modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
-    ) {
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Image(painterResource(R.drawable.celebrate), null, Modifier.size(96.dp))
         Text(title, Modifier.padding(top = 16.dp), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         // same height for every card even when a label wraps

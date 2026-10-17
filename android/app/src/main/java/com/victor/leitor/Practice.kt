@@ -24,7 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +69,7 @@ fun LearnMode(app: App, onClose: () -> Unit) {
     // the round is a plain object; this counter makes the screen read it again after every answer
     var step by remember { mutableIntStateOf(0) }
     val combo = remember(round) { ComboCounter() }
+    var accolades by remember(round) { mutableStateOf(emptyList<Accolade>()) }
 
     Column(Modifier.fillMaxSize()) {
         StudyTopBar(stringResource(R.string.mode_learn), onClose)
@@ -83,12 +83,12 @@ fun LearnMode(app: App, onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (question == null) {
-                LaunchedEffect(round) { combo.finish(app.prefs) }
-                PracticeSummary(app, round, onAgain = { round = newRound(); step++ }, onDone = onClose)
+                PracticeSummary(app, round, combo, accolades, onAgain = { round = newRound(); step++ }, onDone = onClose)
             } else {
                 Question(app, question, key = step) { right ->
                     combo.answer(right)
                     round.answer(right)
+                    if (round.current == null) accolades = combo.finish(app.prefs)
                     step++
                 }
             }
@@ -234,14 +234,17 @@ fun AnswerOption(text: String, state: Boolean?, enabled: Boolean, onClick: () ->
 }
 
 @Composable
-private fun PracticeSummary(app: App, round: PracticeRound, onAgain: () -> Unit, onDone: () -> Unit) {
+private fun PracticeSummary(app: App, round: PracticeRound, combo: ComboCounter, accolades: List<Accolade>, onAgain: () -> Unit, onDone: () -> Unit) {
     // the round counts as a review: no miss moves a word up a box, a miss sends it back to today's queue
     LaunchedEffect(round) {
         round.words.forEach { app.db.answer(it, known = it.id !in round.missed) }
         app.db.completeExercise()
     }
     val clean = round.words.count { it.id !in round.missed }
-    Text(stringResource(R.string.practice_done_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+    SessionEnd(
+        stringResource(R.string.practice_done_title), sessionStats(round.words.size, clean, combo.seconds), accolades, combo.best,
+        onMore = onAgain, onDone = onDone,
+    )
     Text(
         stringResource(R.string.practice_done_text, clean, round.words.size),
         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -261,10 +264,6 @@ private fun PracticeSummary(app: App, round: PracticeRound, onAgain: () -> Unit,
                 Text(w.translated, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onAgain, Modifier.weight(1f)) { Text(stringResource(R.string.practice_again)) }
-        Button(onClick = onDone, Modifier.weight(1f)) { Text(stringResource(R.string.practice_finish)) }
     }
 }
 

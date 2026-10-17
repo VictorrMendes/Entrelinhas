@@ -1,7 +1,12 @@
 package com.victor.leitor
 
 import android.app.Application
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,11 +29,29 @@ class SessionEndTest {
 
     private val stats = listOf(SessionStat(12, "palavras"), SessionStat(95, "% de acerto"))
 
+    /** As the summaries show it: at the top of their scrolling column. */
+    private fun show(content: @Composable () -> Unit) =
+        compose.setContent { MaterialTheme { Column(Modifier.verticalScroll(rememberScrollState())) { content() } } }
+
+    @Test
+    fun statsCountAccuracyAndRoundMinutesUp() {
+        var round = emptyList<SessionStat>()
+        var short = emptyList<SessionStat>()
+        compose.setContent {
+            round = sessionStats(20, 19, 61)
+            short = sessionStats(1, 0, 0)
+        }
+        assertEquals(listOf(20, 95, 2), round.map { it.value })
+        assertEquals(listOf("palavras", "% de acerto", "min"), round.map { it.label })
+        assertEquals(listOf(1, 0, 1), short.map { it.value })
+        assertEquals("palavra", short[0].label)
+    }
+
     @Test
     fun buttonsCallTheirCallbacks() {
         var more = 0
         var done = 0
-        compose.setContent { MaterialTheme { SessionEnd("Rodada concluída!", stats, emptyList(), 0, { more++ }, { done++ }) } }
+        show { SessionEnd("Rodada concluída!", stats, emptyList(), 0, { more++ }, { done++ }) }
         compose.onNodeWithText("Mais 5 min").performScrollTo().performClick()
         compose.onNodeWithText("Concluir").performScrollTo().performClick()
         assertEquals(1, more)
@@ -61,14 +84,14 @@ class SessionEndTest {
 
     @Test
     fun noMoreButtonWithoutOnMore() {
-        compose.setContent { MaterialTheme { SessionEnd("Rodada concluída!", stats, emptyList(), 0, null, {}) } }
+        show { SessionEnd("Rodada concluída!", stats, emptyList(), 0, null, {}) }
         compose.onNodeWithText("Mais 5 min").assertDoesNotExist()
         compose.onNodeWithText("Concluir").assertExists()
     }
 
     @Test
     fun numbersCountUpAndAccoladesShow() {
-        compose.setContent { MaterialTheme { SessionEnd("Rodada concluída!", stats, listOf(Accolade.COMBO_RECORD), 7, {}, {}) } }
+        show { SessionEnd("Rodada concluída!", stats, listOf(Accolade.COMBO_RECORD), 7, {}, {}) }
         compose.mainClock.advanceTimeBy(3000)
         compose.onNodeWithText("12").assertExists()
         compose.onNodeWithText("95").assertExists()

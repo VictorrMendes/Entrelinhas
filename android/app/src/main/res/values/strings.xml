@@ -386,7 +386,6 @@
     <string name="practice_continue">Continuar</string>
     <string name="practice_done_title">Rodada concluída!</string>
     <string name="practice_done_text">%1$d de %2$d palavras sem nenhum erro. As que você errou voltam para a revisão de hoje.</string>
-    <string name="practice_again">Praticar de novo</string>
     <string name="practice_finish">Concluir</string>
     <string name="study_section">Estudar</string>
     <string name="due_today">%1$d para hoje</string>
@@ -427,9 +426,7 @@
     <string name="test_result_good">Muito bem!</string>
     <string name="test_result_ok">Bom começo</string>
     <string name="test_result_low">Vale praticar mais</string>
-    <string name="test_score">%1$d de %2$d certas</string>
     <string name="test_your_answers">Suas respostas</string>
-    <string name="test_new">Novo teste</string>
     <string name="test_correct_answer">Certa: %1$s</string>
     <string name="test_no_answer">Sem resposta</string>
     <string name="match_intro">Junte cada palavra ao seu significado o mais rápido que puder.</string>
