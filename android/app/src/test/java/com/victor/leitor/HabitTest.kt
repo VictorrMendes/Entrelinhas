@@ -74,6 +74,11 @@ class HabitTest {
     }
 
     @Test
+    fun theFlameEvolvesWithEachStreakGoalReached() {
+        assertEquals(listOf(0, 1, 1, 2, 3, 3), listOf(0, 7, 13, 14, 30, 120).map(::flameLevel))
+    }
+
+    @Test
     fun theWordOfTheDayStaysAllDayAndSkipsMasteredWords() {
         fun w(id: Long, box: Int = 0) = Word(id, "w$id", "t$id", null, null, box, null, "en")
         val words = listOf(w(3), w(1), w(2, box = Leitner.MASTERED))

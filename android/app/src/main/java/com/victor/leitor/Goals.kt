@@ -30,11 +30,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 val GOAL_OPTIONS = listOf(3, 5, 10, 15, 20, 30)
+
+/** Streak goals in days; each one reached (by the longest streak) evolves the flame. */
+val STREAK_GOALS = listOf(7, 14, 30)
+
+fun flameLevel(longest: Int) = STREAK_GOALS.count { longest >= it }
+
+// the aura behind the flame for each level: none, amber, blue, purple
+private val FLAME_AURAS = listOf(Color.Transparent, Color(0x55F59E0B), Color(0x5538BDF8), Color(0x66A855F7))
+
+@Composable
+private fun EvolvedFlame(lit: Boolean, longest: Int, size: Int) {
+    Box(Modifier.size((size + 10).dp).clip(CircleShape).background(FLAME_AURAS[flameLevel(longest)]), contentAlignment = Alignment.Center) {
+        Image(painterResource(if (lit) R.drawable.streak else R.drawable.streak_inactive), null, Modifier.size(size.dp))
+    }
+}
 
 @Composable
 fun days(n: Int) = if (n == 1) stringResource(R.string.one_day) else stringResource(R.string.n_days, n)
@@ -49,7 +65,7 @@ fun StreakCard(app: App, version: Int, onClick: () -> Unit) {
         contentColor = MaterialTheme.colorScheme.onSurface, border = cardBorder, modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(if (streak.metToday) R.drawable.streak else R.drawable.streak_inactive), null, Modifier.size(40.dp))
+            EvolvedFlame(streak.metToday, streak.longest, 40)
             Column(Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(
                     if (streak.current == 0) stringResource(R.string.streak_start) else stringResource(R.string.streak_days, days(streak.current)),
@@ -59,6 +75,12 @@ fun StreakCard(app: App, version: Int, onClick: () -> Unit) {
                     if (streak.metToday) stringResource(R.string.goal_met_today) else stringResource(R.string.goal_today_progress, read / 60, goal / 60),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (app.prefs.streakGoal > 0 && streak.current > 0) {
+                    Text(
+                        stringResource(R.string.streak_goal_progress, streak.current, app.prefs.streakGoal),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 streak.recovery?.let {
                     Text(
                         stringResource(R.string.streak_recovery, days(it.lost), it.done, Streak.RECOVER_DAYS),
@@ -82,7 +104,7 @@ fun GoalSheet(app: App, version: Int, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.streak), null, Modifier.size(36.dp))
+                EvolvedFlame(true, streak.longest, 36)
                 Text(stringResource(R.string.streak), Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
             Text(
@@ -93,6 +115,9 @@ fun GoalSheet(app: App, version: Int, onDismiss: () -> Unit) {
                 stringResource(R.string.streak_summary, days(streak.current), days(streak.longest), streak.shields),
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
             )
+            Text(stringResource(R.string.streak_goal), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.streak_goal_hint, flameLevel(streak.longest), STREAK_GOALS.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Pills(STREAK_GOALS.map { days(it) }, STREAK_GOALS.indexOf(app.prefs.streakGoal)) { app.prefs.streakGoal = STREAK_GOALS[it] }
             Text(stringResource(R.string.daily_goal), style = MaterialTheme.typography.titleMedium)
             Pills(GOAL_OPTIONS.map { stringResource(R.string.n_min, it) }, GOAL_OPTIONS.indexOf(app.prefs.dailyGoalMinutes)) { app.prefs.dailyGoalMinutes = GOAL_OPTIONS[it] }
         }
