@@ -1,20 +1,9 @@
-/** Opened from the Home Screen icon (installed) rather than a Safari tab. */
-const installed =
-  window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+import { useState } from 'react';
+import { Library } from './Library';
+import { Reader } from './Reader';
+import type { Book } from './store';
 
 export function App() {
-  return (
-    <main className="welcome">
-      <img src="/apple-touch-icon.png" alt="" />
-      <h1>Entrelinhas</h1>
-      <p>Leia livros no original e entenda cada frase.</p>
-      {installed ? (
-        <p className="card">Instalado! Os livros e o vocabulário chegam nos próximos passos.</p>
-      ) : (
-        <p className="card">
-          Para instalar no iPhone, toque em <strong>Compartilhar</strong> e depois em <strong>Adicionar à Tela de Início</strong>.
-        </p>
-      )}
-    </main>
-  );
+  const [book, setBook] = useState<Book | null>(null);
+  return book ? <Reader book={book} onClose={() => setBook(null)} /> : <Library onOpen={setBook} />;
 }

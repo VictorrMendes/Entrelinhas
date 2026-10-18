@@ -1,4 +1,4 @@
-/* Same palette as the Android app (Theme.kt), following the system's light or dark mode. */
+/* Same palette and fonts as the Android app (Theme.kt), following the system's light or dark mode. */
 @font-face {
   font-family: Nunito;
   src: url('/fonts/nunito_regular.ttf') format('truetype');
@@ -17,6 +17,12 @@
   font-weight: 700;
   font-display: swap;
 }
+@font-face {
+  font-family: Literata;
+  src: url('/fonts/literata_regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light dark;
@@ -25,7 +31,13 @@
   --text: #edebf7;
   --muted: #9a97b5;
   --primary: #a9a6ff;
+  --on-primary: #1b1a4a;
   --line: #34315a;
+  --error: #ff6b81;
+  --success: #34d399;
+  --mark: rgba(169, 166, 255, 0.35);
+  --top: env(safe-area-inset-top);
+  --bottom: env(safe-area-inset-bottom);
 }
 
 @media (prefers-color-scheme: light) {
@@ -35,7 +47,10 @@
     --text: #1f1d2e;
     --muted: #6b6880;
     --primary: #3b3a98;
+    --on-primary: #ffffff;
     --line: #e5e1ec;
+    --error: #d9364f;
+    --mark: rgba(59, 58, 152, 0.18);
   }
 }
 
@@ -53,48 +68,205 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* the notch and the home bar: viewport-fit=cover draws under them */
-#root {
-  min-height: 100dvh;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+button,
+.button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
 
-.welcome {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.button {
+  display: inline-flex;
   justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
-}
-
-.welcome img {
-  width: 120px;
-  height: 120px;
-  border-radius: 28px;
-}
-
-.welcome h1 {
-  margin: 8px 0 0;
-  font-size: 28px;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 24px;
   font-weight: 700;
 }
 
-.welcome p {
-  margin: 0;
-  max-width: 320px;
+.button.primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.button:disabled,
+.button.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wide {
+  width: 100%;
+}
+
+button.text {
+  border: 0;
+  background: none;
+  padding: 8px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+button.danger {
+  color: var(--error);
+}
+
+.muted {
   color: var(--muted);
-  line-height: 1.5;
+}
+
+.error {
+  color: var(--error);
 }
 
 .card {
-  margin-top: 16px;
-  padding: 16px;
-  max-width: 340px;
   border: 1px solid var(--line);
   border-radius: 20px;
   background: var(--card);
-  color: var(--text);
+}
+
+/* ---------- Biblioteca */
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(var(--top) + 16px) 16px calc(var(--bottom) + 24px);
+}
+
+.page-title {
+  margin: 8px 0 16px;
+  font-size: 28px;
+}
+
+.hint {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  line-height: 1.5;
+}
+
+.empty {
+  margin-top: 48px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty img {
+  width: 96px;
+  border-radius: 24px;
+}
+
+.books {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.book {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+}
+
+.book-open {
+  flex: 1;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+/* ---------- Leitor */
+
+.topbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(var(--top) + 4px) 8px 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.pages {
+  max-width: 680px;
+  margin: 0 auto;
+  /* room below the last paragraph so it can scroll up past the translation sheet */
+  padding: calc(var(--top) + 64px) 20px 50vh;
+  font-family: Literata, Georgia, serif;
+  font-size: 19px;
+  line-height: 1.75;
+  touch-action: manipulation; /* no double-tap zoom: taps pick words */
+}
+
+.pages p {
+  margin: 0 0 1em;
+  scroll-margin-top: calc(var(--top) + 64px);
+  content-visibility: auto; /* long books: only paragraphs near the screen are laid out */
+  contain-intrinsic-size: auto 120px;
+}
+
+::highlight(word) {
+  background-color: var(--mark);
+}
+
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 2;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px 20px calc(var(--bottom) + 16px);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--card);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 22px;
+}
+
+.sheet .translation,
+.sheet .error {
+  margin: 4px 0 16px;
+  font-size: 18px;
 }

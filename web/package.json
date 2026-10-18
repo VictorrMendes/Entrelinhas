@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test src/*.test.ts",
     "build": "tsc && vite build",
     "typecheck": "tsc"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

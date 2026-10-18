@@ -1,7 +1,17 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// The production build is served by the backend (WEB_DIR), on the same origin as the API.
+// In production nginx serves the build and passes /api to the backend; in development Vite does the same.
+// API_TARGET picks the backend (default: the one running locally).
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.API_TARGET ?? 'http://localhost:8787',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 });
