@@ -45,7 +45,7 @@ export interface Day {
 }
 
 const opened = new Promise<IDBDatabase>((resolve, reject) => {
-  const req = indexedDB.open('entrelinhas', 2);
+  const req = indexedDB.open('entrelinhas', 3);
   req.onupgradeneeded = (e) => {
     const db = req.result;
     if (e.oldVersion < 1) {
@@ -58,12 +58,13 @@ const opened = new Promise<IDBDatabase>((resolve, reject) => {
       db.createObjectStore('days', { keyPath: 'day' });
       db.createObjectStore('deletions'); // "kind|key" -> when, so a sync doesn't bring deleted things back
     }
+    if (e.oldVersion < 3) db.createObjectStore('kitQueue', { keyPath: 'id', autoIncrement: true }); // kit words waiting for their day
   };
   req.onsuccess = () => resolve(req.result);
   req.onerror = () => reject(req.error);
 });
 
-type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions';
+type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue';
 
 const listeners = new Set<() => void>();
 
@@ -83,6 +84,12 @@ export const db = {
   get: <T>(store: Store, key: IDBValidKey) => run<T | undefined>(store, 'readonly', (s) => s.get(key)),
   all: <T>(store: Store) => run<T[]>(store, 'readonly', (s) => s.getAll()),
   put: (store: Store, value: unknown, key?: IDBValidKey) => run(store, 'readwrite', (s) => s.put(value, key)),
+  /** Many records in one transaction: one redraw instead of one per record. */
+  putAll: (store: Store, values: unknown[]) =>
+    run(store, 'readwrite', (s) => {
+      for (const v of values) s.put(v);
+      return s.count();
+    }),
   del: (store: Store, key: IDBValidKey) => run(store, 'readwrite', (s) => s.delete(key)),
 };
 
@@ -152,4 +159,10 @@ async function today(): Promise<Day> {
 /** Finishing an exercise meets the day's goal too (Cartões, Aprender, Avaliar, Ditado; like the Android app). */
 export async function completeExercise() {
   await db.put('days', { ...(await today()), active: 1, goalMet: 1 });
+}
+
+/** One more dictation sentence checked (XP and the "Ouvido treinado" achievement count them). */
+export async function recordDictation() {
+  const d = await today();
+  await db.put('days', { ...d, active: 1, dictations: d.dictations + 1 });
 }

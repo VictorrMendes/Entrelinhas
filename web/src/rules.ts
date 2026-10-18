@@ -136,6 +136,115 @@ export class PracticeRound<W extends StudyWord> {
   }
 }
 
+export type TestKind = 'choice' | 'written' | 'trueFalse';
+
+/** A test question about [word]. trueFalse asks whether [shown] is its meaning. Answers are text; true/false ones "true" or "false". */
+export interface TestQuestion<W extends StudyWord> {
+  word: W;
+  kind: TestKind;
+  options: string[];
+  shown: string;
+}
+
+export function isRight(q: TestQuestion<StudyWord>, answer: string): boolean {
+  if (q.kind === 'choice') return answer.trim() === q.word.translated.trim();
+  if (q.kind === 'written') return closeEnough(q.word.original, answer);
+  return answer === String(q.shown === q.word.translated.trim());
+}
+
+/**
+ * [count] questions over [words], taking turns through [kinds]. Choice and true/false need three other meanings in the same
+ * language; without them a question is written.
+ */
+export function buildTest<W extends StudyWord>(words: W[], pool: W[], count: number, kinds: Set<TestKind>, random = Math.random): TestQuestion<W>[] {
+  const order = (['choice', 'written', 'trueFalse'] as const).filter((k) => kinds.has(k));
+  const turns: TestKind[] = order.length ? order : ['written'];
+  return shuffle(words, random)
+    .slice(0, count)
+    .map((word, i) => {
+      const options = practiceChoices(word, pool, random);
+      const wanted = turns[i % turns.length];
+      const kind = wanted === 'written' || options.length ? wanted : 'written';
+      const right = word.translated.trim();
+      // half the time the meaning shown is someone else's
+      const shown = kind === 'trueFalse' ? (random() < 0.5 ? right : (options.find((o) => o !== right) as string)) : '';
+      return { word, kind, options: kind === 'choice' ? options : [], shown };
+    });
+}
+
+/** A Combinar tile: a word or a meaning; the two tiles with the same [pair] go together. */
+export interface MatchTile {
+  pair: string;
+  text: string;
+}
+
+/** Up to [pairs] words and their meanings, shuffled. Twin words or meanings would make two right answers, so one of each stays out. */
+export function matchTiles(words: StudyWord[], pairs = 6, random = Math.random): MatchTile[] {
+  const originals = new Set<string>();
+  const meanings = new Set<string>();
+  const picked = shuffle(words, random)
+    .filter((w) => {
+      const o = w.original.trim().toLowerCase();
+      const t = w.translated.trim().toLowerCase();
+      if (originals.has(o) || meanings.has(t)) return false;
+      originals.add(o);
+      meanings.add(t);
+      return true;
+    })
+    .slice(0, pairs);
+  return shuffle(
+    picked.flatMap((w) => [
+      { pair: w.key, text: w.original.trim() },
+      { pair: w.key, text: w.translated.trim() },
+    ]),
+    random,
+  );
+}
+
+export type Mark = 'ok' | 'missing' | 'wrong';
+
+/**
+ * Word-by-word comparison of what was heard with what was typed or said (dictation and shadowing). Case, accents and
+ * punctuation don't count; the longest common subsequence decides which words match, the rest are missing (expected) or
+ * wrong (typed). [score] is the share of the expected words heard right, 0 to 100.
+ */
+export function checkDictation(expected: string, typed: string): { words: { text: string; mark: Mark }[]; score: number } {
+  const key = (w: string) =>
+    w
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Mn}/gu, '')
+      .replace(/[^\p{L}\p{N}]/gu, '');
+  const split = (s: string) => s.split(/\s+/).filter((w) => key(w));
+  const e = split(expected);
+  const t = split(typed);
+  const ek = e.map(key);
+  const tk = t.map(key);
+  const lcs = Array.from({ length: e.length + 1 }, () => new Array<number>(t.length + 1).fill(0));
+  for (let i = e.length - 1; i >= 0; i--)
+    for (let j = t.length - 1; j >= 0; j--) lcs[i][j] = ek[i] === tk[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const out: { text: string; mark: Mark }[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < e.length || j < t.length) {
+    if (i < e.length && j < t.length && ek[i] === tk[j]) {
+      out.push({ text: e[i++], mark: 'ok' });
+      j++;
+    } else if (j < t.length && (i === e.length || lcs[i][j + 1] >= lcs[i + 1][j])) out.push({ text: t[j++], mark: 'wrong' });
+    else out.push({ text: e[i++], mark: 'missing' });
+  }
+  const ok = out.filter((w) => w.mark === 'ok').length;
+  return { words: out, score: e.length ? Math.floor((ok * 100) / e.length) : 100 };
+}
+
+const csvField = (s: string) => (/[,"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+
+/** Anki-ready CSV: Anki reads the `#` header lines; spreadsheets just show them as text rows. */
+export function vocabularyCsv(words: { original: string; translated: string; example: string | null; bookTitle: string | null }[]): string {
+  const rows = words.map((w) => [w.original, w.translated, w.example ?? '', w.bookTitle ?? ''].map(csvField).join(','));
+  return `#separator:Comma\n#html:false\n#columns:Palavra,Tradução,Exemplo,Livro\n${rows.map((r) => `${r}\n`).join('')}`;
+}
+
 export type Accolade = 'perfect' | 'fast' | 'comboRecord';
 
 // one pace for every mode, like the Android app

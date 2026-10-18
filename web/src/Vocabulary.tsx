@@ -1,19 +1,35 @@
-import { Bookmark, ChevronRight, GraduationCap, Layers, Search, Volume2 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { Bookmark, ChevronRight, ClipboardCheck, Download, Ear, GraduationCap, Headphones, Layers, Library, Puzzle, Search, Volume2 } from 'lucide-react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { BookLine } from './Cards';
-import { learned } from './rules';
+import { releaseKitWords } from './kitData';
+import { matchBest, seconds } from './Match';
+import { learned, vocabularyCsv } from './rules';
 import { speak } from './speech';
 import { deleteWord, dueWords, setLearned, useDb, type Word, words } from './store';
 import { TopBar } from './study';
 import { localDay } from './text';
 
-export type StudyMode = 'cards' | 'learn' | 'words';
+export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'dictation' | 'words' | 'kits';
 
 const plural = (n: number, one: string, other: string) => `${n} ${n === 1 ? one : other}`;
+
+/** The vocabulary as an Anki-ready CSV file; on the iPhone the download opens the share sheet (Files, Mail, AirDrop…). */
+function exportCsv(all: Word[]) {
+  const url = URL.createObjectURL(new Blob([vocabularyCsv(all)], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vocabulario.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 /** Like a study set page: a few cards to flip, your progress, then the study modes and the word list as rows. */
 export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) {
   const data = useDb(async () => ({ all: await words(), due: await dueWords() }));
+  // queued kit words come in a few a day
+  useEffect(() => {
+    releaseKitWords();
+  }, []);
   if (!data) return null;
   const { all, due } = data;
   if (all.length === 0) {
@@ -24,14 +40,23 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
           <img src="/apple-touch-icon.png" alt="" />
           <h2>Nenhuma palavra salva ainda</h2>
           <p>Traduza uma palavra durante a leitura e toque em Salvar para adicioná-la aqui.</p>
+          <button type="button" className="button primary" onClick={() => onStudy('kits')}>
+            Começar com um kit de palavras
+          </button>
         </div>
       </main>
     );
   }
   const preview = [...due, ...all].filter((w, i, list) => list.findIndex((x) => x.key === w.key) === i).slice(0, 10);
+  const best = matchBest();
   return (
     <main className="page">
-      <h1 className="page-title">Vocabulário</h1>
+      <div className="title-row">
+        <h1 className="page-title">Vocabulário</h1>
+        <button type="button" className="icon" aria-label="Exportar para Anki ou planilha" onClick={() => exportCsv(all)}>
+          <Download />
+        </button>
+      </div>
       <WordsPreview words={preview} />
       <Mastery words={all} due={due.length} />
       <h2 className="section">Estudar</h2>
@@ -44,6 +69,19 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
           onClick={() => onStudy('cards')}
         />
         <ModeRow icon={<GraduationCap />} tint="success" title="Aprender" subtitle="Escolha o significado e depois escreva a palavra" onClick={() => onStudy('learn')} />
+        <ModeRow icon={<ClipboardCheck />} tint="flame" title="Avaliar" subtitle="Monte um teste e veja a sua nota" onClick={() => onStudy('test')} />
+        <ModeRow
+          icon={<Puzzle />}
+          tint="primary"
+          title="Combinar"
+          subtitle={best > 0 ? `Seu recorde: ${seconds(best)} s` : 'Junte os pares contra o relógio'}
+          disabled={all.length < 2}
+          onClick={() => onStudy('match')}
+        />
+        <ModeRow icon={<Headphones />} tint="flame" title="Ouvir" subtitle="Palavras e traduções em voz alta" onClick={() => onStudy('listen')} />
+        {all.some((w) => (w.example?.split(' ').length ?? 0) >= 3) && (
+          <ModeRow icon={<Ear />} tint="success" title="Ditado" subtitle="Ouça frases dos seus livros e escreva" onClick={() => onStudy('dictation')} />
+        )}
         <ModeRow
           icon={<Bookmark />}
           tint="primary"
@@ -51,6 +89,7 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
           subtitle={`${plural(all.length, 'salva', 'salvas')} · busque, ouça e organize`}
           onClick={() => onStudy('words')}
         />
+        <ModeRow icon={<Library />} tint="success" title="Kits de palavras" subtitle="Pacotes prontos do A1 ao B2 para estudar sem livros" onClick={() => onStudy('kits')} />
       </div>
     </main>
   );
@@ -132,9 +171,9 @@ function Mastery({ words: list, due }: { words: Word[]; due: number }) {
   );
 }
 
-function ModeRow(props: { icon: ReactNode; tint: 'primary' | 'success' | 'flame'; title: string; subtitle: string; onClick: () => void }) {
+function ModeRow(props: { icon: ReactNode; tint: 'primary' | 'success' | 'flame'; title: string; subtitle: string; disabled?: boolean; onClick: () => void }) {
   return (
-    <button type="button" className="card mode" onClick={props.onClick}>
+    <button type="button" className="card mode" disabled={props.disabled} onClick={props.onClick}>
       <span className={`mode-icon ${props.tint}`}>{props.icon}</span>
       <span className="mode-text">
         <strong>{props.title}</strong>

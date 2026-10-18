@@ -22,14 +22,15 @@ export async function translateWord(word: string, sentence: string, src: string)
 }
 
 /** Due for review today; saving it again refreshes the translation and example but keeps its Leitner box. */
-export async function saveWord(original: string, translated: string, src: string, bookTitle: string, example: string) {
+export async function saveWord(original: string, translated: string, src: string, bookTitle: string, example: string | null, tgt = TARGET) {
   const normalized = original.trim().toLowerCase();
-  const key = `${normalized}|${src}|${TARGET}`;
+  const key = `${normalized}|${src}|${tgt}`;
   const now = Date.now();
   const old = await db.get<Word>('words', key);
   const word: Word = old
-    ? { ...old, translated, example, updatedAt: now }
-    : { key, normalized, original, translated, src, tgt: TARGET, bookTitle, example, box: 0, dueDay: localDay(now), savedAt: now, updatedAt: now };
+    ? { ...old, translated, example: example ?? old.example, updatedAt: now }
+    : { key, normalized, original, translated, src, tgt, bookTitle, example, box: 0, dueDay: localDay(now), savedAt: now, updatedAt: now };
+  await db.del('deletions', `word|${key}`); // saved again after a delete: the sync must not drop it
   await db.put('words', word);
 }
 

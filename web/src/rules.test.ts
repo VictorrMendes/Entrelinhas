@@ -1,7 +1,20 @@
 // The same cases as the Android app's PracticeTest and RulesTest, so the two apps agree
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { closeEnough, Leitner, PracticeRound, practiceChoices, practiceWords, type StudyWord, sessionAccolades } from './rules.ts';
+import {
+  buildTest,
+  checkDictation,
+  closeEnough,
+  isRight,
+  Leitner,
+  matchTiles,
+  PracticeRound,
+  practiceChoices,
+  practiceWords,
+  type StudyWord,
+  sessionAccolades,
+  vocabularyCsv,
+} from './rules.ts';
 
 const word = (key: string, original: string, translated: string, src = 'en', box = 0): StudyWord => ({ key, original, translated, src, box });
 const pool = [
@@ -59,6 +72,70 @@ test('due and still-learning words come first', () => {
   const mastered = word('7', 'fair', 'justo', 'en', Leitner.MASTERED);
   const picked = practiceWords([mastered, pool[1], pool[2]], [pool[2]], 2);
   assert.deepEqual(new Set(picked.map((w) => w.key)), new Set(['2', '3']));
+});
+
+// StudyModesTest
+const seven = [
+  word('1', 'house', 'casa'),
+  word('2', 'river', 'rio'),
+  word('3', 'bank', 'margem'),
+  word('4', 'bright', 'claro'),
+  word('5', 'clock', 'relógio'),
+  word('6', 'home', 'casa'),
+  word('7', 'window', 'janela'),
+];
+
+test('a test mixes the chosen kinds and counts right answers', () => {
+  const t = buildTest(seven, seven, 6, new Set(['choice', 'written', 'trueFalse'] as const));
+  assert.equal(t.length, 6);
+  assert.deepEqual(new Set(t.map((q) => q.kind)), new Set(['choice', 'written', 'trueFalse']));
+  for (const q of t) {
+    const right = q.kind === 'choice' ? q.word.translated : q.kind === 'written' ? q.word.original.toUpperCase() : String(q.shown === q.word.translated);
+    assert.ok(isRight(q, right));
+    assert.ok(!isRight(q, ''));
+  }
+});
+
+test('true/false shows a wrong meaning sometimes, and too few meanings fall back to written', () => {
+  const shown = Array.from({ length: 20 }, () => buildTest(seven, seven, 7, new Set(['trueFalse'] as const))).flat();
+  const asked = new Set(shown.map((q) => q.shown === q.word.translated));
+  assert.ok(asked.has(true) && asked.has(false));
+  assert.ok(buildTest(seven.slice(0, 2), seven.slice(0, 2), 2, new Set(['choice'] as const)).every((q) => q.kind === 'written'));
+});
+
+test('match uses pairs without twin meanings', () => {
+  const tiles = matchTiles(seven, 6);
+  assert.equal(tiles.length, 12);
+  const pairs = Map.groupBy(tiles, (t) => t.pair);
+  assert.ok([...pairs.values()].every((p) => p.length === 2));
+  // "house" and "home" both mean "casa": only one of them may be on the board
+  assert.equal(tiles.filter((t) => t.text === 'casa').length, 1);
+});
+
+// RulesTest
+test('dictation ignores case, accents and punctuation, and marks wrong and missing words', () => {
+  const perfect = checkDictation('Olá, mundo! Tudo bem?', 'ola mundo tudo bem');
+  assert.equal(perfect.score, 100);
+  assert.deepEqual(
+    perfect.words.map((w) => w.mark),
+    ['ok', 'ok', 'ok', 'ok'],
+  );
+  const r = checkDictation('The cold wind blew hard', 'the cold went blew');
+  assert.deepEqual(r.words, [
+    { text: 'The', mark: 'ok' },
+    { text: 'cold', mark: 'ok' },
+    { text: 'went', mark: 'wrong' },
+    { text: 'wind', mark: 'missing' },
+    { text: 'blew', mark: 'ok' },
+    { text: 'hard', mark: 'missing' },
+  ]);
+  assert.equal(r.score, 60);
+  assert.equal(checkDictation('Some words here', '').score, 0);
+});
+
+test('the vocabulary CSV quotes when needed', () => {
+  const csv = vocabularyCsv([{ original: 'bright', translated: 'claro', example: 'A bright, cold day.', bookTitle: 'The "Quiet" Library' }]);
+  assert.equal(csv.split('\n')[3], 'bright,claro,"A bright, cold day.","The ""Quiet"" Library"');
 });
 
 test('a round earns perfect, fast and a new combo record', () => {

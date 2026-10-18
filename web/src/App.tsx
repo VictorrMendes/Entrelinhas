@@ -1,10 +1,15 @@
 import { BarChart3, BookOpen, Bookmark, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { Cards } from './Cards';
+import { Dictation } from './Dictation';
+import { Kits } from './Kits';
 import { Learn } from './Learn';
 import { Library } from './Library';
+import { Listen } from './Listen';
+import { Match } from './Match';
 import { Reader } from './Reader';
 import type { Book } from './store';
+import { Test } from './Test';
 import { type StudyMode, Vocabulary, WordsScreen } from './Vocabulary';
 
 type Tab = 'books' | 'vocabulary' | 'progress' | 'settings';
@@ -26,7 +31,12 @@ export function App() {
   if (book) return <Reader book={book} onClose={() => setBook(null)} />;
   if (mode === 'cards') return <Cards onClose={close} />;
   if (mode === 'learn') return <Learn onClose={close} />;
+  if (mode === 'test') return <Test onClose={close} />;
+  if (mode === 'match') return <Match onClose={close} />;
+  if (mode === 'listen') return <Listen onClose={close} />;
+  if (mode === 'dictation') return <Dictation onClose={close} />;
   if (mode === 'words') return <WordsScreen onClose={close} />;
+  if (mode === 'kits') return <Kits onClose={close} />;
 
   return (
     <>
