@@ -33,6 +33,21 @@ export async function saveWord(original: string, translated: string, src: string
   await db.put('words', word);
 }
 
+/** A written answer the strict check refused, graded by AI (synonyms and other forms count); null when it can't be reached. */
+export async function grade(expected: string, meaning: string, answer: string, src: string): Promise<{ correct: boolean; note: string } | null> {
+  try {
+    return await post('/grade', {
+      expected: expected.slice(0, 200),
+      meaning: meaning.slice(0, 200),
+      answer: answer.trim().slice(0, 200),
+      sourceLang: src,
+      targetLang: TARGET,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function errorText(e: unknown): string {
   if (e instanceof ApiError && e.code === 'LIMIT_EXCEEDED') return 'Você chegou ao limite de traduções de hoje.';
   if (e instanceof TypeError) return 'Sem conexão com o servidor.';

@@ -35,6 +35,8 @@
   --line: #34315a;
   --error: #ff6b81;
   --success: #34d399;
+  --flame: #f59e0b;
+  --outline: #9a97b5;
   --mark: rgba(169, 166, 255, 0.35);
   --top: env(safe-area-inset-top);
   --bottom: env(safe-area-inset-bottom);
@@ -132,7 +134,8 @@ button.danger {
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(var(--top) + 16px) 16px calc(var(--bottom) + 24px);
+  /* room for the tab bar */
+  padding: calc(var(--top) + 16px) 16px calc(var(--bottom) + 96px);
 }
 
 .page-title {
