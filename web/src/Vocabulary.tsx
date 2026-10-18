@@ -1,6 +1,18 @@
-import { Bookmark, ChevronRight, ClipboardCheck, Download, Ear, GraduationCap, Headphones, Layers, Library, Puzzle, Search, Volume2 } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import arrowRightSvg from '@material-design-icons/svg/filled/keyboard_arrow_right.svg?raw';
+import bookmarksSvg from '@material-design-icons/svg/outlined/bookmarks.svg?raw';
+import collectionsSvg from '@material-design-icons/svg/outlined/collections_bookmark.svg?raw';
+import extensionSvg from '@material-design-icons/svg/outlined/extension.svg?raw';
+import downloadSvg from '@material-design-icons/svg/outlined/file_download.svg?raw';
+import headphonesSvg from '@material-design-icons/svg/outlined/headphones.svg?raw';
+import hearingSvg from '@material-design-icons/svg/outlined/hearing.svg?raw';
+import quizSvg from '@material-design-icons/svg/outlined/quiz.svg?raw';
+import schoolSvg from '@material-design-icons/svg/outlined/school.svg?raw';
+import styleSvg from '@material-design-icons/svg/outlined/style.svg?raw';
+import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
+import { Search, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { BookLine } from './Cards';
+import { DictationSheet, dictationSentences } from './Dictation';
 import { releaseKitWords } from './kitData';
 import { matchBest, seconds } from './Match';
 import { learned, vocabularyCsv } from './rules';
@@ -8,8 +20,9 @@ import { speak } from './speech';
 import { deleteWord, dueWords, setLearned, useDb, type Word, words } from './store';
 import { TopBar } from './study';
 import { localDay } from './text';
+import { Icon, ScreenTitle } from './ui';
 
-export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'dictation' | 'words' | 'kits';
+export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'words' | 'kits';
 
 const plural = (n: number, one: string, other: string) => `${n} ${n === 1 ? one : other}`;
 
@@ -23,9 +36,11 @@ function exportCsv(all: Word[]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Like a study set page: a few cards to flip, your progress, then the study modes and the word list as rows. */
+/** Like a study set page: a few cards to flip, your progress, then the study modes and the word list as rows (Vocabulary.kt). */
 export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) {
   const data = useDb(async () => ({ all: await words(), due: await dueWords() }));
+  // the dictation opens over this page, as a sheet, like on Android
+  const [dictation, setDictation] = useState<[string, string][] | null>(null);
   // queued kit words come in a few a day
   useEffect(() => {
     releaseKitWords();
@@ -34,13 +49,15 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
   const { all, due } = data;
   if (all.length === 0) {
     return (
-      <main className="page">
-        <h1 className="page-title">Vocabulário</h1>
-        <div className="empty">
-          <img src="/apple-touch-icon.png" alt="" />
-          <h2>Nenhuma palavra salva ainda</h2>
-          <p>Traduza uma palavra durante a leitura e toque em Salvar para adicioná-la aqui.</p>
-          <button type="button" className="button primary" onClick={() => onStudy('kits')}>
+      <main className="tab-page">
+        <ScreenTitle>Vocabulário</ScreenTitle>
+        <div className="empty-state">
+          <img src="/art/empty_vocabulary.png" alt="" width={128} height={128} />
+          <span className="title-medium">Nenhuma palavra salva ainda</span>
+          <span className="body-medium variant">Traduza uma palavra durante a leitura e toque em Salvar para adicioná-la aqui.</span>
+        </div>
+        <div className="center-row">
+          <button type="button" className="filled-button" onClick={() => onStudy('kits')}>
             Começar com um kit de palavras
           </button>
         </div>
@@ -50,47 +67,51 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
   const preview = [...due, ...all].filter((w, i, list) => list.findIndex((x) => x.key === w.key) === i).slice(0, 10);
   const best = matchBest();
   return (
-    <main className="page">
-      <div className="title-row">
-        <h1 className="page-title">Vocabulário</h1>
-        <button type="button" className="icon" aria-label="Exportar para Anki ou planilha" onClick={() => exportCsv(all)}>
-          <Download />
-        </button>
-      </div>
-      <WordsPreview words={preview} />
-      <Mastery words={all} due={due.length} />
-      <h2 className="section">Estudar</h2>
-      <div className="modes">
+    <main className="tab-page">
+      <ScreenTitle
+        end={
+          <button type="button" className="icon" aria-label="Exportar para Anki ou planilha" onClick={() => exportCsv(all)}>
+            <Icon svg={downloadSvg} />
+          </button>
+        }
+      >
+        Vocabulário
+      </ScreenTitle>
+      <div className="vocab">
+        <WordsPreview words={preview} />
+        <Mastery words={all} due={due.length} />
+        <h2 className="section-title title-medium">Estudar</h2>
         <ModeRow
-          icon={<Layers />}
-          tint="primary"
+          icon={styleSvg}
+          tint="var(--primary)"
           title="Cartões"
           subtitle={due.length ? `${due.length} para revisar hoje` : 'Nada para hoje · treino livre com todas'}
           onClick={() => onStudy('cards')}
         />
-        <ModeRow icon={<GraduationCap />} tint="success" title="Aprender" subtitle="Escolha o significado e depois escreva a palavra" onClick={() => onStudy('learn')} />
-        <ModeRow icon={<ClipboardCheck />} tint="flame" title="Avaliar" subtitle="Monte um teste e veja a sua nota" onClick={() => onStudy('test')} />
+        <ModeRow icon={schoolSvg} tint="var(--success)" title="Aprender" subtitle="Escolha o significado e depois escreva a palavra" onClick={() => onStudy('learn')} />
+        <ModeRow icon={quizSvg} tint="var(--flame)" title="Avaliar" subtitle="Monte um teste e veja a sua nota" onClick={() => onStudy('test')} />
         <ModeRow
-          icon={<Puzzle />}
-          tint="primary"
+          icon={extensionSvg}
+          tint="var(--primary)"
           title="Combinar"
           subtitle={best > 0 ? `Seu recorde: ${seconds(best)} s` : 'Junte os pares contra o relógio'}
           disabled={all.length < 2}
           onClick={() => onStudy('match')}
         />
-        <ModeRow icon={<Headphones />} tint="flame" title="Ouvir" subtitle="Palavras e traduções em voz alta" onClick={() => onStudy('listen')} />
+        <ModeRow icon={headphonesSvg} tint="var(--flame)" title="Ouvir" subtitle="Palavras e traduções em voz alta" onClick={() => onStudy('listen')} />
         {all.some((w) => (w.example?.split(' ').length ?? 0) >= 3) && (
-          <ModeRow icon={<Ear />} tint="success" title="Ditado" subtitle="Ouça frases dos seus livros e escreva" onClick={() => onStudy('dictation')} />
+          <ModeRow icon={hearingSvg} tint="var(--success)" title="Ditado" subtitle="Ouça frases dos seus livros e escreva" onClick={() => setDictation(dictationSentences(all))} />
         )}
         <ModeRow
-          icon={<Bookmark />}
-          tint="primary"
+          icon={bookmarksSvg}
+          tint="var(--primary)"
           title="Suas palavras"
           subtitle={`${plural(all.length, 'salva', 'salvas')} · busque, ouça e organize`}
           onClick={() => onStudy('words')}
         />
-        <ModeRow icon={<Library />} tint="success" title="Kits de palavras" subtitle="Pacotes prontos do A1 ao B2 para estudar sem livros" onClick={() => onStudy('kits')} />
+        <ModeRow icon={collectionsSvg} tint="var(--success)" title="Kits de palavras" subtitle="Pacotes prontos do A1 ao B2 para estudar sem livros" onClick={() => onStudy('kits')} />
       </div>
+      {dictation && dictation.length > 0 && <DictationSheet sentences={dictation} onClose={() => setDictation(null)} />}
     </main>
   );
 }
@@ -100,8 +121,8 @@ function WordsPreview({ words: list }: { words: Word[] }) {
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
   return (
-    <>
-      <div className="preview" onScroll={(e) => setPage(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
+    <div>
+      <div className="preview" onScroll={(e) => setPage(Math.round(e.currentTarget.scrollLeft / (e.currentTarget.clientWidth - 4)))}>
         {list.map((w) => {
           const back = flipped.has(w.key);
           return (
@@ -121,10 +142,10 @@ function WordsPreview({ words: list }: { words: Word[] }) {
                     speak(w.original, w.src);
                   }}
                 >
-                  <Volume2 />
+                  <Icon svg={volumeSvg} />
                 </span>
               )}
-              {back ? w.translated : w.original}
+              <span className="headline-small">{back ? w.translated : w.original}</span>
             </button>
           );
         })}
@@ -134,7 +155,7 @@ function WordsPreview({ words: list }: { words: Word[] }) {
           <span key={w.key} className={i === page ? 'on' : ''} />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -150,8 +171,8 @@ function Mastery({ words: list, due }: { words: Word[]; due: number }) {
   return (
     <div className="card mastery">
       <div className="mastery-head">
-        <strong>{plural(list.length, 'palavra', 'palavras')}</strong>
-        {due > 0 && <span className="chip">{due} para hoje</span>}
+        <span className="title-medium grow">{plural(list.length, 'palavra', 'palavras')}</span>
+        {due > 0 && <span className="due-chip label-medium">{due} para hoje</span>}
       </div>
       <div className="mastery-bar">
         {parts
@@ -160,7 +181,7 @@ function Mastery({ words: list, due }: { words: Word[]; due: number }) {
             <span key={p.cls} className={p.cls} style={{ flex: p.n }} />
           ))}
       </div>
-      <div className="mastery-legend">
+      <div className="mastery-legend body-small variant">
         {parts.map((p) => (
           <span key={p.cls}>
             <i className={p.cls} /> {p.label} {p.n}
@@ -171,15 +192,17 @@ function Mastery({ words: list, due }: { words: Word[]; due: number }) {
   );
 }
 
-function ModeRow(props: { icon: ReactNode; tint: 'primary' | 'success' | 'flame'; title: string; subtitle: string; disabled?: boolean; onClick: () => void }) {
+function ModeRow(props: { icon: string; tint: string; title: string; subtitle: string; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" className="card mode" disabled={props.disabled} onClick={props.onClick}>
-      <span className={`mode-icon ${props.tint}`}>{props.icon}</span>
-      <span className="mode-text">
-        <strong>{props.title}</strong>
-        <span className="muted">{props.subtitle}</span>
+      <span className="mode-icon" style={{ color: props.tint }}>
+        <Icon svg={props.icon} />
       </span>
-      <ChevronRight className="muted" />
+      <span className="mode-text">
+        <span className="title-medium">{props.title}</span>
+        <span className="body-small variant">{props.subtitle}</span>
+      </span>
+      <Icon svg={arrowRightSvg} className="variant" />
     </button>
   );
 }

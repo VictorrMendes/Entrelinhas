@@ -2,13 +2,14 @@
  * The phone's own voices (Web Speech API), like the Android app's TextToSpeech: free and on the device. Resolves when the
  * text has been said (true) or failed (false); [onWord] gets each word as it is spoken, where the browser reports it.
  */
-export function speak(text: string, lang: string, rate = 1, onWord?: (start: number, end: number) => void): Promise<boolean> {
+export function speak(text: string, lang: string, rate = 1, onWord?: (start: number, end: number) => void, voiceURI = chosenVoice(lang)): Promise<boolean> {
   if (!('speechSynthesis' in window)) return Promise.resolve(false);
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
   u.rate = rate;
-  const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang));
+  const voices = voicesFor(lang);
+  const voice = voices.find((v) => v.voiceURI === voiceURI) ?? voices[0];
   if (voice) u.voice = voice;
   if (onWord) {
     u.onboundary = (e) => {
@@ -23,6 +24,18 @@ export function speak(text: string, lang: string, rate = 1, onWord?: (start: num
     u.onerror = () => resolve(false);
     speechSynthesis.speak(u);
   });
+}
+
+/** The device's voices for [lang] (the list can come late: browsers fill it after a voiceschanged event). */
+export const voicesFor = (lang: string) =>
+  'speechSynthesis' in window ? speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(lang.toLowerCase())) : [];
+
+/** The voice picked for [lang] in "Voz da leitura"; null lets the browser choose. */
+export const chosenVoice = (lang: string) => localStorage.getItem(`voice.${lang}`);
+
+export function setVoice(lang: string, voiceURI: string | null) {
+  if (voiceURI) localStorage.setItem(`voice.${lang}`, voiceURI);
+  else localStorage.removeItem(`voice.${lang}`);
 }
 
 type Recognition = {

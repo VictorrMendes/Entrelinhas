@@ -44,42 +44,65 @@ async function token(): Promise<string> {
   return data.token;
 }
 
-async function exchange(path: string, body: unknown, auth: string | null): Promise<{ res: Response; json: { data?: unknown; error?: { code?: string } } | null }> {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
+type Body = string | Uint8Array<ArrayBuffer> | null;
+const JSON_TYPE = 'application/json';
+
+async function exchange(method: string, path: string, body: Body, type: string, auth: string | null): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (body !== null) headers['content-type'] = type;
   if (auth) headers.authorization = `Bearer ${auth}`;
-  let res: Response;
   try {
-    res = await fetch(`/api${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    return await fetch(`/api${path}`, { method, headers, body });
   } catch {
     throw new ApiError(0, 'NO_CONNECTION');
   }
-  return { res, json: await res.json().catch(() => null) };
 }
 
-async function call<T>(path: string, body: unknown, auth: string | null): Promise<T> {
-  let { res, json } = await exchange(path, body, auth);
+/** The code of our own error answers; null for anything else, such as a proxy's error page. */
+const errorCode = (res: Response) =>
+  res.json().then(
+    (j) => (j?.error?.code as string | undefined) ?? null,
+    () => null,
+  );
+
+async function send(method: string, path: string, body: Body, type: string, auth: string | null): Promise<Response> {
+  let res = await exchange(method, path, body, type, auth);
   // Cloudflare answers 502-504 on its own while the server restarts; one retry hides that. Auth calls aren't repeated:
   // a lost answer there may already have taken effect.
-  if (res.status >= 502 && res.status <= 504 && !json?.error && !path.startsWith('/auth/')) {
+  if (res.status >= 502 && res.status <= 504 && !path.startsWith('/auth/') && !(await errorCode(res.clone()))) {
     await new Promise((r) => setTimeout(r, 1000));
-    ({ res, json } = await exchange(path, body, auth));
+    res = await exchange(method, path, body, type, auth);
   }
-  if (!res.ok) throw new ApiError(res.status, json?.error?.code ?? `HTTP_${res.status}`);
-  return json?.data as T;
+  if (!res.ok) throw new ApiError(res.status, (await errorCode(res)) ?? `HTTP_${res.status}`);
+  return res;
 }
 
+const data = async <T>(res: Response) => ((await res.json()) as { data: T }).data;
+const call = async <T>(path: string, body: unknown, auth: string | null) => data<T>(await send('POST', path, JSON.stringify(body), JSON_TYPE, auth));
+
 /** An expired or unknown token signs out and registers the device again once; sync calls report the expired session instead. */
-export async function post<T>(path: string, body: unknown): Promise<T> {
+async function authed(method: string, path: string, body: Body = null, type = JSON_TYPE): Promise<Response> {
   try {
-    return await call<T>(path, body, await token());
+    return await send(method, path, body, type, await token());
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 401)) throw e;
     const hadAccount = account() !== null;
     signOut();
     if (hadAccount && path.startsWith('/sync')) throw new ApiError(401, 'SESSION_EXPIRED');
-    return call<T>(path, body, await token());
+    return send(method, path, body, type, await token());
   }
 }
+
+export const post = async <T>(path: string, body: unknown) => data<T>(await authed('POST', path, JSON.stringify(body)));
+export const getJson = async <T>(path: string) => data<T>(await authed('GET', path));
+export const putJson = async <T>(path: string, body: unknown) => data<T>(await authed('PUT', path, JSON.stringify(body)));
+export const getBytes = async (path: string) => new Uint8Array(await (await authed('GET', path)).arrayBuffer());
+export const putBytes = async (path: string, bytes: Uint8Array<ArrayBuffer>) => {
+  await authed('PUT', path, bytes, 'application/octet-stream');
+};
+export const del = async (path: string) => {
+  await authed('DELETE', path);
+};
 
 function adopt(session: { token: string; email: string; name: string | null }) {
   localStorage.setItem('token', session.token);

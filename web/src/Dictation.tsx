@@ -1,16 +1,18 @@
-import { Volume2 } from 'lucide-react';
+/** Dictation as a bottom sheet, over the book or the vocabulary, like the Android app's DictationSheet (Listening.kt). */
+import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
 import { useEffect, useState } from 'react';
+import { Sheet } from './ReaderSheets';
 import { checkDictation, shuffle } from './rules';
 import { speak } from './speech';
-import { completeExercise, record, type Word, words } from './store';
-import { TopBar } from './study';
+import { completeExercise, record, type Word } from './store';
+import { Icon } from './ui';
 
 export const speechRate = () => Number(localStorage.getItem('speechRate') ?? 1);
 
 /** Heard words in green, typed-but-wrong struck through in red, missed ones underlined in amber. */
 export function MarkedWords({ words }: { words: ReturnType<typeof checkDictation>['words'] }) {
   return (
-    <p className="marked">
+    <p className="marked body-large">
       {words.map((w, i) => (
         <span key={`${i}-${w.text}`} className={w.mark}>
           {w.text}{' '}
@@ -24,16 +26,8 @@ export function MarkedWords({ words }: { words: ReturnType<typeof checkDictation
 export const dictationSentences = (all: Word[]): [string, string][] =>
   shuffle(all.flatMap((w) => (w.example && w.example.split(' ').length >= 3 ? [[w.example, w.src] as [string, string]] : []))).slice(0, 10);
 
-export function Dictation({ onClose }: { onClose: () => void }) {
-  const [sentences, setSentences] = useState<[string, string][] | null>(null);
-  useEffect(() => {
-    words().then((all) => setSentences(dictationSentences(all)));
-  }, []);
-  return sentences?.length ? <DictationRound sentences={sentences} onClose={onClose} /> : null;
-}
-
-/** Dictation over the example sentences of saved words: listen, type what you heard, see what you got right. */
-export function DictationRound({ sentences, onClose }: { sentences: [string, string][]; onClose: () => void }) {
+/** Hear a sentence, type it, see what was missed. */
+export function DictationSheet({ sentences, onClose }: { sentences: [string, string][]; onClose: () => void }) {
   const [index, setIndex] = useState(0);
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<ReturnType<typeof checkDictation> | null>(null);
@@ -52,34 +46,42 @@ export function DictationRound({ sentences, onClose }: { sentences: [string, str
   }
 
   return (
-    <main className="study">
-      <TopBar title="Ditado" onClose={onClose} />
-      <div className="study-body">
-        <p className="muted">
+    <Sheet onClose={onClose}>
+      <div className="dictation-sheet">
+        <h2 className="title-large">Ditado</h2>
+        <p className="body-medium variant">
           Ouça e escreva o que entendeu · frase {index + 1} de {sentences.length}
         </p>
-        <div className="row">
-          <button type="button" className="button primary" onClick={() => play()}>
-            <Volume2 /> Ouvir
+        <div className="chip-row">
+          <button type="button" className="filled-button with-icon" onClick={() => play()}>
+            <Icon svg={volumeSvg} size={18} /> Ouvir
           </button>
-          <button type="button" className="button outline" onClick={() => play(0.6)}>
+          <button type="button" className="outlined-button" onClick={() => play(0.6)}>
             Mais devagar
           </button>
         </div>
-        <textarea className="answer-input" rows={3} placeholder="O que você ouviu" value={typed} disabled={!!result} onChange={(e) => setTyped(e.target.value)} />
+        <textarea
+          className="outlined-field textarea"
+          rows={2}
+          placeholder="O que você ouviu"
+          aria-label="O que você ouviu"
+          value={typed}
+          disabled={!!result}
+          onChange={(e) => setTyped(e.target.value)}
+        />
         {!result ? (
-          <button type="button" className="button primary wide" disabled={!typed.trim()} onClick={check}>
+          <button type="button" className="filled-button wide" disabled={!typed.trim()} onClick={check}>
             Conferir
           </button>
         ) : (
           <>
-            <h3 className="label">Você acertou {result.score}% das palavras</h3>
+            <span className="title-medium">Você acertou {result.score}% das palavras</span>
             <MarkedWords words={result.words} />
-            <p className="card original">{sentence}</p>
-            <div className="row">
+            <p className="body-medium answer-box">{sentence}</p>
+            <div className="chip-row">
               <button
                 type="button"
-                className="button outline"
+                className="outlined-button"
                 onClick={() => {
                   setTyped('');
                   setResult(null);
@@ -91,7 +93,7 @@ export function DictationRound({ sentences, onClose }: { sentences: [string, str
               {index < sentences.length - 1 && (
                 <button
                   type="button"
-                  className="button primary"
+                  className="filled-button"
                   onClick={() => {
                     setIndex(index + 1);
                     setTyped('');
@@ -105,6 +107,6 @@ export function DictationRound({ sentences, onClose }: { sentences: [string, str
           </>
         )}
       </div>
-    </main>
+    </Sheet>
   );
 }

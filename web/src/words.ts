@@ -3,10 +3,11 @@ import { db, type Word } from './store';
 import { localDay } from './text';
 
 /** The reader's language: what words are translated into. */
-export const TARGET = navigator.language.split('-')[0] || 'pt';
+/** What books are translated into unless one says otherwise: chosen in Ajustes, else the device's language. */
+export const defaultTarget = () => localStorage.getItem('defaultTarget') ?? (navigator.language.split('-')[0] || 'pt');
 
 /** [text] in [tgt], or with the sense it has in [context] when it is a word; the same question is never asked twice. */
-export async function translate(text: string, src: string, tgt = TARGET, context?: string): Promise<string> {
+export async function translate(text: string, src: string, tgt = defaultTarget(), context?: string): Promise<string> {
   if (src === tgt) return text;
   const key = `${src}|${tgt}|${text}|${context ?? ''}`;
   const cached = await db.get<string>('cache', key);
@@ -21,7 +22,7 @@ export async function translate(text: string, src: string, tgt = TARGET, context
   return translatedText;
 }
 
-export const translateWord = (word: string, sentence: string, src: string, tgt = TARGET) => translate(word, src, tgt, sentence);
+export const translateWord = (word: string, sentence: string, src: string, tgt = defaultTarget()) => translate(word, src, tgt, sentence);
 
 const MAX_BATCH_ITEMS = 20;
 const MAX_BATCH_CHARS = 12_000;
@@ -30,7 +31,7 @@ const MAX_BATCH_CHARS = 12_000;
  * One translation per sentence, in order: the lines of the interlinear layout. Cached ones aren't asked again; a sentence the
  * model skipped falls back to the original, so lines never shift.
  */
-export async function translateSentences(sentences: string[], src: string, tgt = TARGET): Promise<string[]> {
+export async function translateSentences(sentences: string[], src: string, tgt = defaultTarget()): Promise<string[]> {
   if (src === tgt) return sentences;
   const keys = sentences.map((s) => `${src}|${tgt}|${s}|`);
   const out = await Promise.all(keys.map((k) => db.get<string>('cache', k)));
@@ -59,7 +60,7 @@ export async function translateSentences(sentences: string[], src: string, tgt =
 }
 
 /** What a word, expression or sentence means there, its grammar and a new example, explained by AI in [tgt]. */
-export async function explain(text: string, sentence: string, src: string, tgt = TARGET): Promise<string> {
+export async function explain(text: string, sentence: string, src: string, tgt = defaultTarget()): Promise<string> {
   const { explanation } = await post<{ explanation: string }>('/explain', {
     text: text.slice(0, 1000),
     sentence: sentence.slice(0, 1000),
@@ -70,7 +71,7 @@ export async function explain(text: string, sentence: string, src: string, tgt =
 }
 
 /** Due for review today; saving it again refreshes the translation and example but keeps its Leitner box. */
-export async function saveWord(original: string, translated: string, src: string, bookTitle: string, example: string | null, tgt = TARGET) {
+export async function saveWord(original: string, translated: string, src: string, bookTitle: string, example: string | null, tgt = defaultTarget()) {
   const normalized = original.trim().toLowerCase();
   const key = `${normalized}|${src}|${tgt}`;
   const now = Date.now();
@@ -90,7 +91,7 @@ export async function grade(expected: string, meaning: string, answer: string, s
       meaning: meaning.slice(0, 200),
       answer: answer.trim().slice(0, 200),
       sourceLang: src,
-      targetLang: TARGET,
+      targetLang: defaultTarget(),
     });
   } catch {
     return null;

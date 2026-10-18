@@ -1,10 +1,10 @@
 /** The streak card on the library and its goals sheet (Goals.kt). */
 import { useState } from 'react';
-import { Pills } from './Kits';
 import { Sheet } from './ReaderSheets';
 import { flameLevel, STREAK_GOALS, Streak } from './rules';
 import { dailyGoalMinutes, type Day, db, streak, streakGoal, useDb } from './store';
 import { localDay } from './text';
+import { Pills } from './ui';
 
 const GOAL_OPTIONS = [3, 5, 10, 15, 20, 30];
 // the aura behind the flame for each level: none, amber, blue, purple
@@ -35,15 +35,15 @@ export function StreakCard() {
       <button type="button" className="card streak-card" onClick={() => setSheet(true)}>
         <Flame lit={s.metToday} longest={s.longest} size={40} />
         <span className="streak-text">
-          <strong>{s.current === 0 ? 'Comece sua ofensiva' : `${days(s.current)} de ofensiva`}</strong>
-          <span className="small muted">{s.metToday ? 'Meta de hoje concluída ✓' : `Hoje: ${Math.floor(read / 60)} de ${goal / 60} min de leitura`}</span>
+          <span className="title-medium">{s.current === 0 ? 'Comece sua ofensiva' : `${days(s.current)} de ofensiva`}</span>
+          <span className="body-small variant">{s.metToday ? 'Meta de hoje concluída ✓' : `Hoje: ${Math.floor(read / 60)} de ${goal / 60} min de leitura`}</span>
           {aim > 0 && s.current > 0 && (
-            <span className="small muted">
+            <span className="body-small variant">
               Meta: {s.current} de {aim} dias
             </span>
           )}
           {s.recovery && (
-            <span className="small recovery">
+            <span className="body-small recovery">
               Recupere {days(s.recovery.lost)}: cumpra a meta {Streak.RECOVER_DAYS} dias seguidos ({s.recovery.done}/{Streak.RECOVER_DAYS})
             </span>
           )}
@@ -51,7 +51,7 @@ export function StreakCard() {
             <span style={{ width: `${s.metToday ? 100 : Math.min(100, (read * 100) / goal)}%` }} />
           </span>
         </span>
-        {s.shields > 0 && <span className="shields">🛡️{s.shields}</span>}
+        {s.shields > 0 && <span className="shields label-large">🛡️{s.shields}</span>}
       </button>
       {sheet && <GoalSheet longest={s.longest} current={s.current} shields={s.shields} onChange={() => setVersion((v) => v + 1)} onClose={() => setSheet(false)} />}
     </>
@@ -66,25 +66,27 @@ function GoalSheet(props: { current: number; longest: number; shields: number; o
   const minutes = dailyGoalMinutes();
   return (
     <Sheet onClose={props.onClose}>
-      <div className="sheet-head">
-        <Flame lit longest={props.longest} size={36} />
-        <h2>Ofensiva</h2>
+      <div className="goal-sheet">
+        <div className="title-row">
+          <Flame lit longest={props.longest} size={36} />
+          <h2 className="title-large semibold">Ofensiva</h2>
+        </div>
+        <p className="variant">
+          Leia {minutes} min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia
+          parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos. Se a ofensiva quebrar, cumpra a meta 5 dias seguidos (começando em até
+          uma semana) e ela volta inteira.
+        </p>
+        <span className="body-medium semibold">
+          Atual: {days(props.current)} · Recorde: {days(props.longest)} · Escudos: {props.shields}
+        </span>
+        <h3 className="title-medium">Meta de ofensiva</h3>
+        <p className="variant">
+          Cada meta cumprida evolui a sua chama (nível {flameLevel(props.longest)} de {STREAK_GOALS.length}).
+        </p>
+        <Pills options={STREAK_GOALS.map(days)} selected={STREAK_GOALS.indexOf(streakGoal())} onSelect={(i) => set('streakGoal', STREAK_GOALS[i])} />
+        <h3 className="title-medium">Meta diária</h3>
+        <Pills options={GOAL_OPTIONS.map((m) => `${m} min`)} selected={GOAL_OPTIONS.indexOf(minutes)} onSelect={(i) => set('dailyGoalMinutes', GOAL_OPTIONS[i])} />
       </div>
-      <p className="muted">
-        Leia {minutes} min ou termine um exercício (Cartões, Aprender, Avaliar ou Ditado) por dia para manter a ofensiva. Os escudos 🛡️ cobrem um dia
-        parado cada; você começa com 2 e ganha um de volta a cada 7 dias seguidos. Se a ofensiva quebrar, cumpra a meta 5 dias seguidos (começando em até
-        uma semana) e ela volta inteira.
-      </p>
-      <strong>
-        Atual: {days(props.current)} · Recorde: {days(props.longest)} · Escudos: {props.shields}
-      </strong>
-      <h3 className="box-title">Meta de ofensiva</h3>
-      <p className="muted">
-        Cada meta cumprida evolui a sua chama (nível {flameLevel(props.longest)} de {STREAK_GOALS.length}).
-      </p>
-      <Pills options={STREAK_GOALS.map(days)} selected={STREAK_GOALS.indexOf(streakGoal())} onSelect={(i) => set('streakGoal', STREAK_GOALS[i])} />
-      <h3 className="box-title">Meta diária</h3>
-      <Pills options={GOAL_OPTIONS.map((m) => `${m} min`)} selected={GOAL_OPTIONS.indexOf(minutes)} onSelect={(i) => set('dailyGoalMinutes', GOAL_OPTIONS[i])} />
     </Sheet>
   );
 }

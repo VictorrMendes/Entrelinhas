@@ -5,6 +5,8 @@ import { defineConfig } from 'vite';
 // API_TARGET picks the backend (default: the one running locally).
 export default defineConfig({
   plugins: [react()],
+  // shown in Ajustes > Sobre: the day the app was built
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 10)) },
   server: {
     proxy: {
       '/api': {

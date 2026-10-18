@@ -3,18 +3,7 @@ import { useEffect, useState } from 'react';
 import { addedKits, addKit, KIT_LEVELS, type KitPack, loadKits, NEW_WORDS_OPTIONS, perDay } from './kitData';
 import { speak } from './speech';
 import { TopBar } from './study';
-
-export function Pills({ options, selected, onSelect }: { options: string[]; selected: number; onSelect: (i: number) => void }) {
-  return (
-    <div className="pills">
-      {options.map((o, i) => (
-        <button type="button" key={o} className={`pill${i === selected ? ' on' : ''}`} onClick={() => onSelect(i)}>
-          {o}
-        </button>
-      ))}
-    </div>
-  );
-}
+import { Pills } from './ui';
 
 /** "Kits de palavras": ready-made packs (A1–B2) for someone with no books yet; an added kit comes in a few words a day. */
 export function Kits({ onClose }: { onClose: () => void }) {

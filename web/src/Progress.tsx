@@ -1,10 +1,19 @@
 /** The Progress tab (Progress.kt): level, daily and weekly streaks over a calendar, numbers, the week's chart and achievements. */
-import { BookOpen, Calendar, CalendarDays, ChevronLeft, ChevronRight, Flame, Lock, type LucideIcon, Trophy, Type } from 'lucide-react';
+import arrowLeftSvg from '@material-design-icons/svg/filled/keyboard_arrow_left.svg?raw';
+import arrowRightSvg from '@material-design-icons/svg/filled/keyboard_arrow_right.svg?raw';
+import textFieldsSvg from '@material-design-icons/svg/filled/text_fields.svg?raw';
+import calendarMonthSvg from '@material-design-icons/svg/outlined/calendar_month.svg?raw';
+import calendarTodaySvg from '@material-design-icons/svg/outlined/calendar_today.svg?raw';
+import trophySvg from '@material-design-icons/svg/outlined/emoji_events.svg?raw';
+import flameSvg from '@material-design-icons/svg/outlined/local_fire_department.svg?raw';
+import lockSvg from '@material-design-icons/svg/outlined/lock.svg?raw';
+import menuBookSvg from '@material-design-icons/svg/outlined/menu_book.svg?raw';
 import { Fragment, useState } from 'react';
 import { days } from './Goals';
 import { type Achievement, ACHIEVEMENTS, type AchievementGroup, Levels, monthCells, type Totals, unlocked, WeekStreak, xp } from './rules';
 import { type Day, db, streak, totals, useDb } from './store';
 import { firstDayOfWeek, localDay } from './text';
+import { Icon, ScreenTitle } from './ui';
 
 const DAY_MS = 86_400_000;
 const GROUPS: AchievementGroup[] = ['Ofensiva', 'Vocabulário', 'Leitura'];
@@ -23,34 +32,35 @@ export function Progress() {
   const bars = Array.from({ length: 7 }, (_, i) => today - 6 + i).map((day) => ({ label: format({ weekday: 'short' }).format(date(day)), value: byDay.get(day)?.translations ?? 0 }));
 
   return (
-    <main className="page progress-page">
-      <h1 className="page-title">Progresso de leitura</h1>
-      <LevelCard t={t} />
-      <HabitCard byDay={byDay} current={s.current} today={today} />
-      <div className="tiles">
-        <StatTile icon={Calendar} tint="var(--primary)" label="Dias de leitura" value={`${all.filter((d) => d.active).length}`} />
-        <StatTile icon={Flame} tint="var(--flame)" label="Ofensiva" value={days(s.current)} />
-        <StatTile icon={Type} tint="var(--primary)" label="Traduções" value={`${sum((d) => d.translations)}`} />
-        <StatTile icon={BookOpen} tint="var(--text)" label="Livros lidos" value={`${t.booksCompleted}`} />
-      </div>
-      <section className="card box">
-        <div className="title-row">
-          <h2 className="box-title">Resumo da atividade</h2>
-          <span className="small muted">
-            <i className="legend-dot" /> Traduções
-          </span>
+    <main className="tab-page">
+      <ScreenTitle>Progresso de leitura</ScreenTitle>
+      <div className="progress-page">
+        <LevelCard t={t} />
+        <HabitCard byDay={byDay} current={s.current} today={today} />
+        <div className="tiles">
+          <StatTile icon={calendarTodaySvg} tint="var(--primary)" label="Dias de leitura" value={`${all.filter((d) => d.active).length}`} />
+          <StatTile icon={flameSvg} tint="var(--flame)" label="Ofensiva" value={days(s.current)} />
+          <StatTile icon={textFieldsSvg} tint="var(--primary)" label="Traduções" value={`${sum((d) => d.translations)}`} />
+          <StatTile icon={menuBookSvg} tint="var(--text)" label="Livros lidos" value={`${t.booksCompleted}`} />
         </div>
-        <p className="small muted">Traduções nos últimos 7 dias</p>
-        <BarChart bars={bars} />
-      </section>
-      <h2 className="box-title">Detalhes</h2>
-      <section className="card details">
-        <Detail label="Tempo de leitura" value={`${Math.floor(sum((d) => d.seconds) / 60)} min`} />
-        <Detail label="Maior ofensiva" value={days(s.longest)} />
-        <Detail label="Palavras traduzidas manualmente" value={`${sum((d) => d.words)}`} />
-        <Detail label="Parágrafos traduzidos manualmente" value={`${sum((d) => d.paragraphs)}`} />
-      </section>
-      <Achievements t={t} />
+        <section className="card box summary">
+          <div className="title-row">
+            <h2 className="title-large semibold grow">Resumo da atividade</h2>
+            <i className="legend-dot" />
+            <span className="body-medium variant">Traduções</span>
+          </div>
+          <p className="body-small variant">Traduções nos últimos 7 dias</p>
+          <BarChart bars={bars} />
+        </section>
+        <h2 className="title-large semibold">Detalhes</h2>
+        <section className="card details">
+          <Detail label="Tempo de leitura" value={`${Math.floor(sum((d) => d.seconds) / 60)} min`} />
+          <Detail label="Maior ofensiva" value={days(s.longest)} />
+          <Detail label="Palavras traduzidas manualmente" value={`${sum((d) => d.words)}`} />
+          <Detail label="Parágrafos traduzidos manualmente" value={`${sum((d) => d.paragraphs)}`} />
+        </section>
+        <Achievements t={t} />
+      </div>
     </main>
   );
 }
@@ -64,14 +74,14 @@ function LevelCard({ t }: { t: Totals }) {
   return (
     <section className="level-card">
       <div className="title-row">
-        <Trophy className="trophy" />
-        <h2 className="box-title grow">Nível {level}</h2>
-        <strong>{points} XP</strong>
+        <Icon svg={trophySvg} className="trophy" />
+        <h2 className="title-large grow">Nível {level}</h2>
+        <span className="title-medium">{points} XP</span>
       </div>
       <span className="level-bar">
         <span style={{ width: `${((points - from) * 100) / (to - from)}%` }} />
       </span>
-      <p className="small">
+      <p className="body-small">
         Faltam {to - points} XP para o nível {level + 1}
       </p>
     </section>
@@ -95,11 +105,11 @@ function HabitCard({ byDay, current, today }: { byDay: Map<number, Day>; current
   const weekdays = Array.from({ length: 7 }, (_, i) => format({ weekday: 'narrow' }).format(date(3 + ((firstDow + i) % 7))));
 
   return (
-    <section className="card box">
+    <section className="card habit">
       <div className="habit-stats">
-        <HabitStat icon={Flame} tint="var(--flame)" value={days(current)} label="Ofensiva diária" />
+        <HabitStat icon={flameSvg} tint="var(--flame)" value={days(current)} label="Ofensiva diária" />
         <HabitStat
-          icon={CalendarDays}
+          icon={calendarMonthSvg}
           tint="var(--primary)"
           value={weeks(w.current)}
           label={w.thisWeek ? 'Ofensiva semanal · semana garantida' : 'Ofensiva semanal · leia esta semana para manter'}
@@ -108,16 +118,16 @@ function HabitCard({ byDay, current, today }: { byDay: Map<number, Day>; current
       <hr />
       <div className="month-head">
         <button type="button" className="icon" aria-label="Mês anterior" onClick={() => setOffset(offset - 1)}>
-          <ChevronLeft />
+          <Icon svg={arrowLeftSvg} />
         </button>
-        <strong>
+        <span className="title-medium">
           {month[0].toUpperCase() + month.slice(1)} {date(first).getUTCFullYear()}
-        </strong>
+        </span>
         <button type="button" className="icon" aria-label="Próximo mês" disabled={offset >= 0} onClick={() => setOffset(offset + 1)}>
-          <ChevronRight />
+          <Icon svg={arrowRightSvg} />
         </button>
       </div>
-      <div className="month">
+      <div className="month label-medium">
         {weekdays.map((d, i) => (
           <span key={i} className="weekday">
             {d.toUpperCase()}
@@ -128,13 +138,13 @@ function HabitCard({ byDay, current, today }: { byDay: Map<number, Day>; current
           const d = byDay.get(day);
           const mark = d?.goalMet ? ' goal' : d?.active ? ' read' : day === today ? ' today' : '';
           return (
-            <span key={day} className={`day${mark}${day > today ? ' future' : ''}${day === today ? ' is-today' : ''}`}>
-              {day - first + 1}
+            <span key={day} className="day-cell">
+              <span className={`day${mark}${day > today ? ' future' : ''}${day === today ? ' is-today' : ''}`}>{day - first + 1}</span>
             </span>
           );
         })}
       </div>
-      <div className="legend">
+      <div className="legend body-small variant">
         <span>
           <i className="dot-goal" /> Meta cumprida
         </span>
@@ -146,30 +156,30 @@ function HabitCard({ byDay, current, today }: { byDay: Map<number, Day>; current
   );
 }
 
-function HabitStat({ icon: Icon, tint, value, label }: { icon: LucideIcon; tint: string; value: string; label: string }) {
+function HabitStat({ icon, tint, value, label }: { icon: string; tint: string; value: string; label: string }) {
   return (
     <div className="habit-stat">
       <span className="stat-icon" style={{ color: tint }}>
-        <Icon size={20} />
+        <Icon svg={icon} size={20} />
       </span>
       <span>
-        <strong>{value}</strong>
-        <span className="small muted">{label}</span>
+        <span className="title-medium">{value}</span>
+        <span className="body-small variant clamp-2">{label}</span>
       </span>
     </div>
   );
 }
 
-function StatTile({ icon: Icon, tint, label, value }: { icon: LucideIcon; tint: string; label: string; value: string }) {
+function StatTile({ icon, tint, label, value }: { icon: string; tint: string; label: string; value: string }) {
   return (
     <div className="card stat-tile">
       <span className="tile-head">
         <span className="stat-icon" style={{ color: tint }}>
-          <Icon size={20} />
+          <Icon svg={icon} size={20} />
         </span>
-        <strong>{label}</strong>
+        <span className="title-small clamp-2">{label}</span>
       </span>
-      <span className="tile-value">{value}</span>
+      <span className="headline-small semibold">{value}</span>
     </div>
   );
 }
@@ -178,7 +188,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="detail">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <span className="semibold">{value}</span>
     </div>
   );
 }
@@ -202,7 +212,7 @@ function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
     <div className="chart" role="img" aria-label={`Gráfico de traduções: ${total} no período`}>
       <div className="chart-plot">
         {ticks.map((t) => (
-          <span key={t} className="tick" style={{ bottom: `${(t * 100) / max}%` }}>
+          <span key={t} className="tick label-medium" style={{ bottom: `${(t * 100) / max}%` }}>
             <i>{t}</i>
           </span>
         ))}
@@ -211,14 +221,14 @@ function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
             <button type="button" key={i} className={selected === null || selected === i ? '' : 'dim'} onClick={() => setSelected(selected === i ? null : i)}>
               {b.value > 0 && (
                 <span className="bar-fill" style={{ height: `${(b.value * 100) / max}%` }}>
-                  {selected === i && <b>{b.value}</b>}
+                  {selected === i && <b className="label-large">{b.value}</b>}
                 </span>
               )}
             </button>
           ))}
         </div>
       </div>
-      <div className="chart-labels">
+      <div className="chart-labels label-medium">
         {bars.map((b, i) => (
           <span key={i}>{b.label}</span>
         ))}
@@ -229,17 +239,17 @@ function BarChart({ bars }: { bars: { label: string; value: number }[] }) {
 
 function Achievements({ t }: { t: Totals }) {
   return (
-    <>
+    <div className="achievements">
       <div className="title-row">
-        <h2 className="box-title">Conquistas</h2>
-        <span className="muted">
+        <h2 className="title-large semibold grow">Conquistas</h2>
+        <span className="title-medium variant">
           {ACHIEVEMENTS.filter((a) => unlocked(a, t)).length}/{ACHIEVEMENTS.length}
         </span>
       </div>
-      <p className="muted">Você ganha XP lendo, salvando e dominando palavras, fazendo ditados e cumprindo a meta do dia.</p>
+      <p className="body-medium variant">Você ganha XP lendo, salvando e dominando palavras, fazendo ditados e cumprindo a meta do dia.</p>
       {GROUPS.map((g) => (
         <Fragment key={g}>
-          <h3 className="label muted">{g}</h3>
+          <h3 className="title-small variant group-title">{g}</h3>
           <div className="ach-grid">
             {ACHIEVEMENTS.filter((a) => a.group === g).map((a) => (
               <AchievementTile key={a.id} a={a} t={t} />
@@ -247,7 +257,7 @@ function Achievements({ t }: { t: Totals }) {
           </div>
         </Fragment>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -260,14 +270,14 @@ function AchievementTile({ a, t }: { a: Achievement; t: Totals }) {
         <img src={`/art/ach_${a.id}.webp`} alt="" width={72} height={72} loading="lazy" />
         {!done && (
           <span className="lock">
-            <Lock size={16} />
+            <Icon svg={lockSvg} size={16} />
           </span>
         )}
       </span>
-      <strong>{a.title}</strong>
-      <span className="small muted">{a.text}</span>
+      <span className="title-small">{a.title}</span>
+      <span className="body-small variant ach-text">{a.text}</span>
       {!done && (
-        <span className="ach-progress">
+        <span className="label-large primary-text ach-progress">
           {Math.min(a.value(t), a.target)}/{a.target}
         </span>
       )}

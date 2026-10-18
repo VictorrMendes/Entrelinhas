@@ -42,6 +42,8 @@ export interface ParsedBook {
   blocks: Block[];
   /** Image file name -> its bytes. */
   images: Record<string, Uint8Array>;
+  /** The declared cover, else the first image. */
+  cover?: Uint8Array;
   toc: TocEntry[];
 }
 
@@ -479,7 +481,16 @@ function epub(files: Record<string, Uint8Array>, fallback: string): Omit<ParsedB
     blocks,
     images: images.bytes,
     toc: epubToc(files, items, opfDir, target),
+    cover: epubCover(files, opf, items, manifest, opfDir) ?? Object.values(images.bytes)[0],
   };
+}
+
+// EPUB 3 marks the cover with properties="cover-image", EPUB 2 with <meta name="cover" content="id">
+function epubCover(files: Record<string, Uint8Array>, opf: string, items: string[], manifest: Map<string | null, string | null>, opfDir: string) {
+  const meta = [...opf.matchAll(/<(?:\w+:)?meta\b[^>]*>/g)].map((m) => m[0]).find((t) => attr(t, 'name') === 'cover');
+  const declared = items.find((it) => attr(it, 'properties')?.split(' ').includes('cover-image'));
+  const href = (declared ? attr(declared, 'href') : null) ?? manifest.get(meta ? attr(meta, 'content') : null) ?? null;
+  return href === null ? undefined : files[resolve(opfDir, href)];
 }
 
 function epubToc(files: Record<string, Uint8Array>, items: string[], opfDir: string, target: (key: string) => number | null): TocEntry[] {
@@ -534,7 +545,17 @@ function fb2(bytes: Uint8Array, fallback: string): Omit<ParsedBook, 'fileType'> 
     if (inBlock.length) blocks[i] = { ...blocks[i], links: inBlock };
   }
   const title = /<book-title>([\s\S]*?)<\/book-title>/.exec(xml)?.[1];
-  return { title: (title && decode(title)) || fallback, language: languageOf(metaText(xml, 'lang')), blocks, images: images.bytes, toc: [] };
+  const coverpage = /<coverpage>[\s\S]*?<\/coverpage>/.exec(xml)?.[0];
+  const coverTag = coverpage && /<(?:\w+:)?image\b[^>]*>/.exec(coverpage)?.[0];
+  const coverData = coverTag ? binaries.get(attr(coverTag, 'href')?.replace(/^#/, '') ?? '') : undefined;
+  return {
+    title: (title && decode(title)) || fallback,
+    language: languageOf(metaText(xml, 'lang')),
+    blocks,
+    images: images.bytes,
+    cover: coverData === undefined ? undefined : base64(coverData),
+    toc: [],
+  };
 }
 
 /** EPUB, FB2 (also zipped) or TXT. */

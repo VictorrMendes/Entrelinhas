@@ -1,8 +1,25 @@
-/** The Settings tab (Screens.kt Settings and Account.kt): for now, the account that backs up and syncs. */
+/** The Settings tab (Screens.kt Settings and Account.kt). */
+import syncSvg from '@material-design-icons/svg/outlined/sync.svg?raw';
 import { Eye, EyeOff, KeyRound, Lock, type LucideIcon, Mail, User } from 'lucide-react';
 import { type FormEvent, type InputHTMLAttributes, type ReactNode, useEffect, useState } from 'react';
 import { account, ApiError, requestPasswordReset, resetPassword, signIn, signOut } from './api';
-import { Sheet } from './ReaderSheets';
+import { sync, useSyncState } from './cloud';
+import { speechRate } from './Dictation';
+import { langName } from './Learn';
+import { LANGUAGES, Sheet } from './ReaderSheets';
+import { rateLabel, SPEECH_RATES } from './ReaderTools';
+import { type Book, dailyGoalMinutes, db, deleteBook } from './store';
+import { AlertDialog, ChoiceDialog, Confirm, Icon, ScreenTitle, Section, SettingCard, appTheme, applyTheme } from './ui';
+import { defaultTarget } from './words';
+
+function syncStatus({ syncing, lastSync }: { syncing: boolean; lastSync: number }): string {
+  if (syncing) return 'Sincronizando…';
+  if (!lastSync) return 'Ainda não sincronizado';
+  const at = new Date(lastSync);
+  return at.toDateString() === new Date().toDateString()
+    ? `Sincronizado às ${at.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+    : `Sincronizado em ${at.toLocaleDateString('pt-BR')}`;
+}
 
 /** Same limit as the backend's signup validation. */
 const MAX_NAME = 40;
@@ -45,11 +62,28 @@ function resetError(e: unknown): string {
   }
 }
 
+const THEMES = [
+  { title: 'Padrão do sistema', subtitle: 'Segue o tema do celular' },
+  { title: 'Claro', subtitle: 'Sempre claro' },
+  { title: 'Escuro', subtitle: 'Sempre escuro' },
+];
+const GOAL_OPTIONS = [3, 5, 10, 15, 20, 30];
+
+type Dialog = 'theme' | 'goal' | 'speed' | 'language' | 'books' | 'signOut';
+
+/** The Settings tab, card for card like the Android app's (what only a phone can do — reminders, offline models, updates — stays out). */
 export function Settings() {
-  const [me, setMe] = useState(account);
+  // read on every redraw: a sync can sign out by itself when the session expires
+  const [, redraw] = useState(0);
+  const me = account();
   const [signingIn, setSigningIn] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const syncState = useSyncState();
+  const set = (key: string, value: string | number) => {
+    localStorage.setItem(key, String(value));
+    redraw((v) => v + 1);
+  };
 
   useEffect(() => {
     if (!toast) return;
@@ -58,64 +92,134 @@ export function Settings() {
   }, [toast]);
 
   return (
-    <main className="page">
-      <h1 className="page-title">Ajustes</h1>
-      <h2 className="section-head">Conta e backup</h2>
-      {me ? (
-        <div className="card account-card">
-          <span className="avatar">{(me.name ?? me.email).slice(0, 1).toUpperCase()}</span>
-          <span className="account-text">
-            <strong>{me.name ?? me.email}</strong>
-            {me.name && <span className="small muted">{me.email}</span>}
-            <span className="small muted">Ainda não sincronizado</span>
-          </span>
-        </div>
-      ) : (
-        <button type="button" className="card setting" onClick={() => setSigningIn(true)}>
-          <strong>Entrar ou criar conta</strong>
-          <span className="small muted">Backup e sincronização de livros, progresso, vocabulário e destaques entre aparelhos</span>
-        </button>
-      )}
-      <p className="card hint">Tema, metas, lembrete, voz e idioma padrão chegam no próximo passo.</p>
-      {me && (
-        <button type="button" className="text danger wide sign-out" onClick={() => setConfirming(true)}>
-          Sair da conta
-        </button>
-      )}
+    <main className="tab-page">
+      <ScreenTitle>Ajustes</ScreenTitle>
+      <div className="settings">
+        <Section>Conta e backup</Section>
+        {me ? (
+          <div className="card account-card">
+            <span className="avatar title-medium">{(me.name ?? me.email).slice(0, 1).toUpperCase()}</span>
+            <span className="account-text">
+              <span className="title-medium">{me.name ?? me.email}</span>
+              {me.name && <span className="body-medium variant">{me.email}</span>}
+              <span className="body-small variant">{syncStatus(syncState)}</span>
+            </span>
+            <button type="button" className={`icon${syncState.syncing ? ' spinning' : ''}`} aria-label="Sincronizar agora" disabled={syncState.syncing} onClick={() => sync()}>
+              <Icon svg={syncSvg} />
+            </button>
+          </div>
+        ) : (
+          <SettingCard title="Entrar ou criar conta" subtitle="Backup e sincronização de livros, progresso, vocabulário e destaques entre aparelhos" onClick={() => setSigningIn(true)} />
+        )}
+        <Section>Aplicativo</Section>
+        <SettingCard title="Tema" value={THEMES[appTheme()]?.title ?? THEMES[0].title} onClick={() => setDialog('theme')} />
+        <Section>Leitura</Section>
+        <SettingCard title="Meta diária" value={`${dailyGoalMinutes()} min`} onClick={() => setDialog('goal')} />
+        <SettingCard title="Velocidade da voz" value={rateLabel(speechRate())} onClick={() => setDialog('speed')} />
+        <Section>Tradução</Section>
+        <SettingCard title="Idioma padrão de tradução" value={langName(defaultTarget())} onClick={() => setDialog('language')} />
+        <Section>Armazenamento</Section>
+        <SettingCard title="Excluir todos os livros" subtitle="Remove os livros importados e suas imagens" onClick={() => setDialog('books')} />
+        <Section>Sobre o app</Section>
+        <SettingCard title="Sobre" subtitle={`Versão web ${__BUILD__} · servidor ${location.host}`} />
+        {me && (
+          <button type="button" className="sign-out-button title-medium" onClick={() => setDialog('signOut')}>
+            Sair da conta
+          </button>
+        )}
+      </div>
 
+      {dialog === 'theme' && (
+        <ChoiceDialog
+          title="Tema"
+          options={THEMES}
+          selected={appTheme()}
+          onPick={(i) => {
+            set('theme', i);
+            applyTheme(i);
+          }}
+          onDismiss={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'goal' && (
+        <ChoiceDialog
+          title="Meta diária"
+          options={GOAL_OPTIONS.map((m) => ({ title: `${m} min por dia`, subtitle: `Ler ${m} min mantém a ofensiva` }))}
+          selected={GOAL_OPTIONS.indexOf(dailyGoalMinutes())}
+          onPick={(i) => set('dailyGoalMinutes', GOAL_OPTIONS[i])}
+          onDismiss={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'speed' && (
+        <ChoiceDialog
+          title="Velocidade da voz"
+          options={SPEECH_RATES.map((r) => ({ title: rateLabel(r) }))}
+          selected={SPEECH_RATES.indexOf(speechRate())}
+          onPick={(i) => set('speechRate', SPEECH_RATES[i])}
+          onDismiss={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'language' && (
+        <AlertDialog
+          title="Idioma de tradução"
+          onDismiss={() => setDialog(null)}
+          actions={
+            <button type="button" className="text-button" onClick={() => setDialog(null)}>
+              Fechar
+            </button>
+          }
+        >
+          <div className="language-list body-large">
+            {[...LANGUAGES]
+              .sort((a, b) => langName(a).localeCompare(langName(b)))
+              .map((tag) => (
+                <button
+                  type="button"
+                  key={tag}
+                  className={tag === defaultTarget() ? 'on' : ''}
+                  onClick={() => {
+                    set('defaultTarget', tag);
+                    setDialog(null);
+                  }}
+                >
+                  {langName(tag)}
+                </button>
+              ))}
+          </div>
+        </AlertDialog>
+      )}
+      {dialog === 'books' && (
+        <Confirm
+          title="Excluir todos os livros?"
+          text="Remove todos os livros importados e o progresso. Essa ação não pode ser desfeita."
+          onConfirm={async () => {
+            for (const b of await db.all<Book>('books')) await deleteBook(b.id as number);
+          }}
+          onDismiss={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'signOut' && (
+        <Confirm
+          title="Sair da conta?"
+          text="A sincronização para até você entrar de novo. Nada é apagado deste aparelho."
+          action="Sair"
+          onConfirm={() => {
+            signOut();
+            redraw((v) => v + 1);
+          }}
+          onDismiss={() => setDialog(null)}
+        />
+      )}
       {signingIn && (
         <SignInSheet
           onDone={(message) => {
-            setMe(account());
             setSigningIn(false);
+            redraw((v) => v + 1);
             if (message) setToast(message);
+            sync();
           }}
           onClose={() => setSigningIn(false)}
         />
-      )}
-      {confirming && (
-        <div className="sheet-backdrop center-dialog" onClick={() => setConfirming(false)}>
-          <div className="card dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Sair da conta?</h2>
-            <p className="muted">A sincronização para até você entrar de novo. Nada é apagado deste aparelho.</p>
-            <div className="row center">
-              <button type="button" className="button outline" onClick={() => setConfirming(false)}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="button primary"
-                onClick={() => {
-                  signOut();
-                  setMe(null);
-                  setConfirming(false);
-                }}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
       )}
       {toast && <p className="toast">{toast}</p>}
     </main>

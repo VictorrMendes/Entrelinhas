@@ -65,6 +65,8 @@ export function themeVars(theme: number): Record<string, string> {
     '--primary': accent,
     '--on-primary': page,
     '--mark': `color-mix(in srgb, ${accent} 30%, transparent)`,
-    '--tr-bg': `color-mix(in srgb, ${page} 84%, ${accent})`,
+    '--secondary-container': `color-mix(in srgb, ${page} 84%, ${accent})`,
+    '--sheet': `color-mix(in srgb, ${page} 95%, ${text})`,
+    '--card-border': `color-mix(in srgb, ${text} 8%, transparent)`,
   };
 }

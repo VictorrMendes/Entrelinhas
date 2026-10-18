@@ -1,4 +1,9 @@
-import { ArrowLeft, Highlighter, List, Play, Search, Type } from 'lucide-react';
+import arrowBackSvg from '@material-design-icons/svg/filled/arrow_back.svg?raw';
+import formatSizeSvg from '@material-design-icons/svg/filled/format_size.svg?raw';
+import playSvg from '@material-design-icons/svg/filled/play_arrow.svg?raw';
+import highlightSvg from '@material-design-icons/svg/outlined/border_color.svg?raw';
+import listSvg from '@material-design-icons/svg/outlined/list.svg?raw';
+import searchSvg from '@material-design-icons/svg/outlined/search.svg?raw';
 import {
   Fragment,
   memo,
@@ -13,10 +18,11 @@ import {
   useState,
 } from 'react';
 import { asBlocks, type Block } from './book';
-import { DictationRound, speechRate } from './Dictation';
+import { DictationSheet, speechRate } from './Dictation';
+import { notify } from './notices';
 import { caretAt, mark, offsetIn, rangeIn } from './readerDom';
 import { LINE_SPACINGS, MARGINS, themeVars, useReaderPrefs } from './readerPrefs';
-import { LanguageSheet, type Lookup, SearchSheet, SettingsSheet, TocSheet, WordSheet } from './ReaderSheets';
+import { LanguageDialog, type Lookup, SearchSheet, SettingsSheet, TocSheet, VoicePicker, WordSheet } from './ReaderSheets';
 import { GoalReached, HIGHLIGHT_COLORS, HighlightSheet, NotesSheet, PlayerBar, SPEECH_RATES, SentenceSheet } from './ReaderTools';
 import type { StreakState } from './rules';
 import { speak } from './speech';
@@ -26,6 +32,7 @@ import {
   bookHighlights,
   dailyGoalMinutes,
   db,
+  deleteHighlight,
   deleteParagraph,
   type Highlight,
   paragraphTranslations,
@@ -36,9 +43,10 @@ import {
   words,
 } from './store';
 import { fold, nextWord, previousWord, sentenceAt, sentenceRanges, wordAt } from './text';
-import { errorText, saveWord, TARGET, translate, translateSentences, translateWord } from './words';
+import { Icon } from './ui';
+import { defaultTarget, errorText, saveWord, translate, translateSentences, translateWord } from './words';
 
-type Panel = 'toc' | 'search' | 'settings' | 'languages' | 'notes';
+type Panel = 'toc' | 'search' | 'settings' | 'languages' | 'notes' | 'voice';
 
 const WORD = /\p{L}[\p{L}'’-]*/gu;
 /** Reading time is credited in ticks, only while the app is on screen and the reader recently scrolled, tapped or listened. */
@@ -117,15 +125,17 @@ const BlockView = memo(function BlockView(props: {
         </span>
       )}
       {props.veiled ? (
-        <span data-tr="1" className="reveal">
+        <span data-tr="1" className="reveal label-large">
           Toque para ver o texto
         </span>
       ) : props.loading ? (
         <span data-tr="1" className="tr-loading" />
       ) : isNavigation(block) ? null : (
-        <button type="button" data-tr="1" className="para-link" onClick={() => (translation !== undefined ? props.onHide(i) : props.onTranslate(i))}>
-          {translation !== undefined ? 'ocultar' : '文A traduzir'}
-        </button>
+        <span data-tr="1" className="para-row">
+          <button type="button" className="para-link label-medium" onClick={() => (translation !== undefined ? props.onHide(i) : props.onTranslate(i))}>
+            {translation !== undefined ? 'ocultar' : '文A traduzir'}
+          </button>
+        </span>
       )}
     </div>
   );
@@ -139,7 +149,7 @@ interface SentenceTarget {
   existing: Highlight | null;
 }
 
-export function Reader({ book: opened, onClose }: { book: Book; onClose: () => void }) {
+export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; onClose: () => void; onVocabulary: () => void }) {
   const [book, setBook] = useState(opened);
   const [blocks, setBlocks] = useState<Block[] | null>(null);
   const [prefs, setPrefs] = useReaderPrefs();
@@ -166,7 +176,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   bookRef.current = book;
   const id = book.id as number;
   const src = book.language;
-  const tgt = book.target ?? TARGET;
+  const tgt = book.target ?? defaultTarget();
   const element = (i: number) => pagesRef.current?.querySelector<HTMLElement>(`[data-i="${i}"]`) ?? null;
   // words and expressions already saved in this book's language get underlined wherever they come back
   const saved = useDb(() => words().then((ws) => new Set(ws.filter((w) => w.src === src).map((w) => w.original.toLowerCase()))), [src]);
@@ -181,6 +191,11 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   useEffect(() => {
     db.get<(Block | string)[]>('texts', id).then((b) => setBlocks(asBlocks(b ?? [])));
     record('sessions');
+    // opening counts as reading it now, for the library and the sync
+    const now = Date.now();
+    const opened = { ...bookRef.current, lastOpenedAt: now, updatedAt: now };
+    setBook(opened);
+    db.put('books', opened);
   }, [id]);
 
   // the book's pictures, as URLs for the 'img' blocks
@@ -241,7 +256,8 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
         }
         setCurrent(lo);
         const atEnd = items[items.length - 1].getBoundingClientRect().bottom <= window.innerHeight;
-        const next = { ...bookRef.current, lastBlock: lo, ...(atEnd && !bookRef.current.completedAt && { completedAt: Date.now() }) };
+        const now = Date.now();
+        const next = { ...bookRef.current, lastBlock: lo, lastOpenedAt: now, updatedAt: now, ...(atEnd && !bookRef.current.completedAt && { completedAt: now }) };
         setBook(next);
         db.put('books', next);
       }, 400);
@@ -579,16 +595,16 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
 
   return (
     <main className="reader" style={themeVars(prefs.theme)}>
-      <header ref={headerRef} className="topbar">
+      <header ref={headerRef} className="reader-top">
         <button type="button" className="icon" aria-label="Voltar" onClick={onClose}>
-          <ArrowLeft />
+          <Icon svg={arrowBackSvg} />
         </button>
-        <span className="topbar-title">{book.title}</span>
-        <button type="button" className="text" onClick={() => setPanel('languages')}>
+        <h1 className="title-large ellipsis">{book.title}</h1>
+        <button type="button" className="text-button" onClick={() => setPanel('languages')}>
           {src.toUpperCase()} → {tgt.toUpperCase()}
         </button>
         <button type="button" className="icon" aria-label="Aparência da leitura" onClick={() => setPanel('settings')}>
-          <Type />
+          <Icon svg={formatSizeSvg} />
         </button>
       </header>
 
@@ -607,20 +623,20 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
       </div>
 
       {speaking === null ? (
-        <footer className="bottombar">
-          <span className="small">{percent}%</span>
+        <footer className="reader-bar">
+          <span className="label-medium">{percent}%</span>
           <span className="grow" />
           <button type="button" className="icon" aria-label="Sumário" onClick={() => setPanel('toc')}>
-            <List />
+            <Icon svg={listSvg} />
           </button>
           <button type="button" className="icon" aria-label="Buscar no livro" onClick={() => setPanel('search')}>
-            <Search />
+            <Icon svg={searchSvg} />
           </button>
           <button type="button" className="icon" aria-label="Ouvir o livro" onClick={() => speakFrom(current)}>
-            <Play />
+            <Icon svg={playSvg} />
           </button>
           <button type="button" className="icon" aria-label="Destaques e notas" onClick={() => setPanel('notes')}>
-            <Highlighter />
+            <Icon svg={highlightSvg} />
           </button>
         </footer>
       ) : (
@@ -668,7 +684,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
             if (!lookup.result) return;
             await saveWord(lookup.word, lookup.result, src, book.title, lookup.sentence, tgt);
             setLookup(null);
-            setToast('Salva no vocabulário');
+            notify({ text: 'Salva no vocabulário', action: { label: 'Ver', run: onVocabulary } });
           }}
           onClose={() => setLookup(null)}
         />
@@ -697,7 +713,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           existing={editing.existing}
           onSave={saveHighlight}
           onRemove={async () => {
-            if (editing.existing?.id !== undefined) await db.del('highlights', editing.existing.id);
+            if (editing.existing) await deleteHighlight(editing.existing);
             setEditing(null);
           }}
           onClose={() => setEditing(null)}
@@ -715,27 +731,34 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
         />
       )}
       {panel === 'notes' && blocks && <NotesSheet highlights={highlights} blocks={blocks} onPick={go} onClose={() => setPanel(null)} />}
-      {panel === 'settings' && <SettingsSheet prefs={prefs} set={setPrefs} onClose={() => setPanel(null)} />}
+      {panel === 'settings' && <SettingsSheet prefs={prefs} set={setPrefs} onVoice={() => setPanel('voice')} onClose={() => setPanel(null)} />}
+      {panel === 'voice' && (
+        <VoicePicker
+          lang={src}
+          sample={(() => {
+            const text = blocks?.[current]?.text ?? '';
+            const first = sentenceRanges(text, src)[0];
+            return first ? text.slice(first[0], first[1]) : book.title;
+          })()}
+          onClose={() => setPanel(null)}
+        />
+      )}
       {panel === 'languages' && (
-        <LanguageSheet
+        <LanguageDialog
           src={src}
           tgt={tgt}
-          onSave={(s, t) => {
-            const next = { ...book, language: s, target: t };
+          onSave={(s, t, asDefault) => {
+            const next = { ...book, language: s, target: t, updatedAt: Date.now() };
             setBook(next);
             db.put('books', next);
+            if (asDefault) localStorage.setItem('defaultTarget', t);
             setPanel(null);
           }}
           onClose={() => setPanel(null)}
         />
       )}
       {celebrate && <GoalReached streak={celebrate} minutes={dailyGoalMinutes()} onClose={() => setCelebrate(null)} />}
-      {/* over the book, which stays where it was */}
-      {dictation && (
-        <div className="overlay">
-          <DictationRound sentences={dictation} onClose={() => setDictation(null)} />
-        </div>
-      )}
+      {dictation && <DictationSheet sentences={dictation} onClose={() => setDictation(null)} />}
     </main>
   );
 }

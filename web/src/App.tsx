@@ -1,26 +1,31 @@
-import { BarChart3, BookOpen, Bookmark, Settings as SettingsIcon } from 'lucide-react';
+import barChartSvg from '@material-design-icons/svg/filled/bar_chart.svg?raw';
+import bookmarksSvg from '@material-design-icons/svg/outlined/bookmarks.svg?raw';
+import menuBookSvg from '@material-design-icons/svg/outlined/menu_book.svg?raw';
+import settingsSvg from '@material-design-icons/svg/outlined/settings.svg?raw';
 import { useEffect, useState } from 'react';
 import { Cards } from './Cards';
-import { Dictation } from './Dictation';
+import { sync } from './cloud';
 import { Kits } from './Kits';
 import { Learn } from './Learn';
 import { Library } from './Library';
 import { Listen } from './Listen';
 import { Match } from './Match';
+import { type Notice, onNotice } from './notices';
 import { Progress } from './Progress';
 import { Reader } from './Reader';
 import { Settings } from './Settings';
-import { type Book, type Celebration, celebrations, onChange } from './store';
+import { type Book, celebrations, onChange } from './store';
 import { Test } from './Test';
+import { Icon } from './ui';
 import { type StudyMode, Vocabulary, WordsScreen } from './Vocabulary';
 
 type Tab = 'books' | 'vocabulary' | 'progress' | 'settings';
 
-const TABS: { id: Tab; label: string; icon: typeof BookOpen }[] = [
-  { id: 'books', label: 'Livros', icon: BookOpen },
-  { id: 'vocabulary', label: 'Vocabulário', icon: Bookmark },
-  { id: 'progress', label: 'Progresso', icon: BarChart3 },
-  { id: 'settings', label: 'Ajustes', icon: SettingsIcon },
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'books', label: 'Livros', icon: menuBookSvg },
+  { id: 'vocabulary', label: 'Vocabulário', icon: bookmarksSvg },
+  { id: 'progress', label: 'Progresso', icon: barChartSvg },
+  { id: 'settings', label: 'Ajustes', icon: settingsSvg },
 ];
 
 /** The Android app's layout: four tabs below, and the reader or a study mode over them. */
@@ -28,8 +33,19 @@ export function App() {
   const [tab, setTab] = useState<Tab>('books');
   const [book, setBook] = useState<Book | null>(null);
   const [mode, setMode] = useState<StudyMode | null>(null);
-  const [notices, setNotices] = useState<Celebration[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const close = () => setMode(null);
+  const openProgress = () => {
+    setBook(null);
+    setMode(null);
+    setTab('progress');
+  };
+
+  // like the Android app: a quiet sync when the app starts, then the notices anything else sends
+  useEffect(() => {
+    sync(true);
+    return onNotice((n) => setNotices((q) => [...q, n]));
+  }, []);
 
   // counters settle a moment after each change (reading time ticks, a review round), so check once things are quiet
   useEffect(() => {
@@ -37,7 +53,7 @@ export function App() {
     const check = () => {
       clearTimeout(timer);
       timer = window.setTimeout(async () => {
-        const found = await celebrations();
+        const found = (await celebrations()).map((c): Notice => ({ text: c.text, ...(c.achievement && { action: { label: 'Ver', run: openProgress } }) }));
         if (found.length) setNotices((n) => [...n, ...found]);
       }, 1500);
     };
@@ -56,27 +72,38 @@ export function App() {
   }, [notices]);
 
   let screen;
-  if (book) screen = <Reader book={book} onClose={() => setBook(null)} />;
+  if (book)
+    screen = (
+      <Reader
+        book={book}
+        onClose={() => setBook(null)}
+        onVocabulary={() => {
+          setBook(null);
+          setTab('vocabulary');
+        }}
+      />
+    );
   else if (mode === 'cards') screen = <Cards onClose={close} />;
   else if (mode === 'learn') screen = <Learn onClose={close} />;
   else if (mode === 'test') screen = <Test onClose={close} />;
   else if (mode === 'match') screen = <Match onClose={close} />;
   else if (mode === 'listen') screen = <Listen onClose={close} />;
-  else if (mode === 'dictation') screen = <Dictation onClose={close} />;
   else if (mode === 'words') screen = <WordsScreen onClose={close} />;
   else if (mode === 'kits') screen = <Kits onClose={close} />;
   else
     screen = (
       <>
-        {tab === 'books' && <Library onOpen={setBook} />}
+        {tab === 'books' && (
+          <Library onOpen={setBook} onReview={() => setMode('cards')} onExplore={() => setNotices((n) => [...n, { text: 'Os livros grátis chegam numa próxima etapa.' }])} />
+        )}
         {tab === 'vocabulary' && <Vocabulary onStudy={setMode} />}
         {tab === 'progress' && <Progress />}
         {tab === 'settings' && <Settings />}
         <nav className="tabs">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.map(({ id, label, icon }) => (
             <button type="button" key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
               <span className="tab-icon">
-                <Icon />
+                <Icon svg={icon} size={22} />
               </span>
               {label}
             </button>
@@ -92,18 +119,16 @@ export function App() {
       {notice && (
         <p className="toast notice" role="status">
           {notice.text}
-          {notice.achievement && (
+          {notice.action && (
             <button
               type="button"
               className="text"
               onClick={() => {
-                setBook(null);
-                setMode(null);
-                setTab('progress');
+                notice.action?.run();
                 setNotices((n) => n.slice(1));
               }}
             >
-              Ver
+              {notice.action.label}
             </button>
           )}
         </p>

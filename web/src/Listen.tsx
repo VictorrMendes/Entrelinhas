@@ -1,12 +1,11 @@
 import { Gauge, Pause, Play, Quote, SkipBack, SkipForward } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { speechRate } from './Dictation';
+import { rateLabel, SPEECH_RATES } from './ReaderTools';
 import { speak } from './speech';
 import { dueWords, type Word, words } from './store';
 import { ProgressBar, TopBar } from './study';
 
-const SPEECH_RATES = [0.5, 0.75, 1, 1.25, 1.5];
-const rateLabel = (r: number) => `${r}x`.replace('.', ',');
 const PAUSE_BEFORE_MEANING_MS = 900;
 const PAUSE_BEFORE_EXAMPLE_MS = 500;
 const PAUSE_BETWEEN_WORDS_MS = 1300;

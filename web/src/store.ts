@@ -1,6 +1,6 @@
-/** IndexedDB, on this device only (sync with the Android app comes later). */
+/** IndexedDB on this device; cloud.ts syncs it with the Android app through the backend. */
 import { useEffect, useState } from 'react';
-import type { TocEntry } from './book';
+import { parseBook, type TocEntry } from './book';
 import { ACHIEVEMENTS, Leitner, STREAK_GOALS, Streak, type Totals, unlocked, WeekStreak } from './rules';
 import { firstDayOfWeek, localDay } from './text';
 
@@ -22,6 +22,11 @@ export interface Book {
   /** sha256 of the original file: how the Android app and the sync tell books apart (books added before it have none). */
   hash?: string;
   fileType?: string;
+  lastOpenedAt?: number;
+  /** Last change to what syncs: position, languages, completion. */
+  updatedAt?: number;
+  /** Shelves made on Android, one per line; kept so a sync doesn't lose them. */
+  shelves?: string;
 }
 
 /** A highlighted stretch of a block, with an optional note; [color] indexes HIGHLIGHT_COLORS. */
@@ -69,7 +74,7 @@ export interface Day {
 }
 
 const opened = new Promise<IDBDatabase>((resolve, reject) => {
-  const req = indexedDB.open('entrelinhas', 6);
+  const req = indexedDB.open('entrelinhas', 7);
   req.onupgradeneeded = (e) => {
     const db = req.result;
     if (e.oldVersion < 1) {
@@ -89,12 +94,13 @@ const opened = new Promise<IDBDatabase>((resolve, reject) => {
       db.createObjectStore('files'); // book id -> the original file, kept for the cloud backup
       db.createObjectStore('images'); // book id -> { image file name: Blob }
     }
+    if (e.oldVersion < 7) db.createObjectStore('covers'); // book id -> its cover, apart so the library loads only those
   };
   req.onsuccess = () => resolve(req.result);
   req.onerror = () => reject(req.error);
 });
 
-type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs' | 'highlights' | 'files' | 'images';
+type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs' | 'highlights' | 'files' | 'images' | 'covers';
 
 const listeners = new Set<() => void>();
 
@@ -113,6 +119,7 @@ async function run<T>(store: Store, mode: IDBTransactionMode, op: (s: IDBObjectS
 export const db = {
   get: <T>(store: Store, key: IDBValidKey) => run<T | undefined>(store, 'readonly', (s) => s.get(key)),
   all: <T>(store: Store) => run<T[]>(store, 'readonly', (s) => s.getAll()),
+  keys: (store: Store) => run<IDBValidKey[]>(store, 'readonly', (s) => s.getAllKeys()),
   put: (store: Store, value: unknown, key?: IDBValidKey) => run(store, 'readwrite', (s) => s.put(value, key)),
   /** Many records in one transaction: one redraw instead of one per record. */
   putAll: (store: Store, values: unknown[]) =>
@@ -122,6 +129,18 @@ export const db = {
     }),
   del: (store: Store, key: IDBValidKey) => run(store, 'readwrite', (s) => s.delete(key)),
 };
+
+/** Several writes in one transaction, and one redraw after them. */
+export async function transact(stores: Store[], write: (tx: IDBTransaction) => void) {
+  const tx = (await opened).transaction(stores, 'readwrite');
+  write(tx);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  for (const f of listeners) f();
+}
 
 /** Calls [f] after every write to the database (the translation cache aside); returns how to stop. */
 export function onChange(f: () => void) {
@@ -256,16 +275,61 @@ export async function celebrations(): Promise<Celebration[]> {
 
 export const bookHighlights = (book: number) => db.all<Highlight>('highlights').then((all) => all.filter((h) => h.book === book));
 
+export async function deleteHighlight(h: Highlight) {
+  const hash = (await db.get<Book>('books', h.book))?.hash;
+  if (hash) await db.put('deletions', Date.now(), `highlight|${hash}|${h.block}|${h.start}|${h.end}`);
+  await db.del('highlights', h.id as number);
+}
+
 export async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** A book with everything kept for it: text, original file, images, translated paragraphs and highlights. */
-export async function deleteBook(id: number) {
+const imageType = (name: string) => `image/${name.split('.').pop()?.replace('jpg', 'jpeg')}`;
+
+/** Adds a book from its file (the library's picker, or a download by the sync); throws when it can't be read. */
+export async function importBook(fileName: string, bytes: Uint8Array<ArrayBuffer>): Promise<number> {
+  const hash = await sha256Hex(bytes);
+  if ((await db.all<Book>('books')).some((b) => b.hash === hash)) throw new Error('Este livro já está na biblioteca.');
+  const parsed = parseBook(fileName, bytes);
+  const now = Date.now();
+  const book: Book = {
+    title: parsed.title,
+    language: parsed.language,
+    blockCount: parsed.blocks.length,
+    lastBlock: 0,
+    addedAt: now,
+    updatedAt: now,
+    toc: parsed.toc,
+    hash,
+    fileType: parsed.fileType,
+  };
+  const id = (await db.put('books', book)) as number;
+  try {
+    await db.put('texts', parsed.blocks, id);
+    await db.put('files', bytes, id); // kept for the cloud backup
+    const images = Object.fromEntries(Object.entries(parsed.images).map(([name, data]) => [name, new Blob([data as Uint8Array<ArrayBuffer>], { type: imageType(name) })]));
+    if (Object.keys(images).length) await db.put('images', images, id);
+    if (parsed.cover) await db.put('covers', new Blob([parsed.cover as Uint8Array<ArrayBuffer>]), id);
+  } catch (e) {
+    await deleteBook(id, false); // no half-imported book
+    throw e;
+  }
+  return id;
+}
+
+/**
+ * A book with everything kept for it: text, original file, images, translated paragraphs and highlights. [tombstone]
+ * keeps a sync from bringing it back; the sync itself removes books deleted elsewhere without one.
+ */
+export async function deleteBook(id: number, tombstone = true) {
+  const hash = (await db.get<Book>('books', id))?.hash;
+  if (tombstone && hash) await db.put('deletions', Date.now(), `book|${hash}`);
   await db.del('books', id);
   await db.del('texts', id);
   await db.del('files', id);
   await db.del('images', id);
+  await db.del('covers', id);
   await run('paragraphs', 'readwrite', (s) => s.delete(IDBKeyRange.bound(`${id}|`, `${id}|￿`)));
   for (const h of await bookHighlights(id)) await db.del('highlights', h.id as number);
 }

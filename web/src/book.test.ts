@@ -51,6 +51,7 @@ test('FB2 with a legacy encoding, emphasis and an image', () => {
     { type: 'poem', text: 'verso dois' },
   ]);
   assert.deepEqual([...book.images['0.png']], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  assert.deepEqual(book.cover, book.images['0.png'], 'coverpage image is the cover');
 });
 
 test('EPUB in spine order, with its images', () => {
@@ -72,6 +73,7 @@ test('EPUB in spine order, with its images', () => {
     { type: 'p', text: 'primeiro' },
   ]);
   assert.deepEqual(book.images['0.jpg'], cover);
+  assert.deepEqual(book.cover, cover, 'without a declared cover the first image is used');
 });
 
 test('a declared EPUB cover is not a regular image', () => {
@@ -79,6 +81,7 @@ test('a declared EPUB cover is not a regular image', () => {
     'x.epub',
     epub([['text/ch.xhtml', '<p>texto</p>']], { 'OEBPS/img/c.jpg': Uint8Array.from([0xff, 0xd8, 9]) }, '<item id="cv" href="img/c.jpg" media-type="image/jpeg" properties="cover-image"/>'),
   );
+  assert.deepEqual(book.cover, Uint8Array.from([0xff, 0xd8, 9]));
   assert.deepEqual(book.images, {});
 });
 
