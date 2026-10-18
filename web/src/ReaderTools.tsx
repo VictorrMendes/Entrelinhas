@@ -3,6 +3,7 @@ import { Ear, Highlighter, Languages, Mic, Pause, PencilLine, Play, Repeat, Skip
 import { useEffect, useRef, useState } from 'react';
 import type { Block } from './book';
 import { MarkedWords } from './Dictation';
+import { days } from './Goals';
 import { Explanation, Sheet } from './ReaderSheets';
 import { checkDictation, type StreakState } from './rules';
 import { canListen, listen, speak } from './speech';
@@ -14,7 +15,6 @@ export const SPEECH_RATES = [0.5, 0.75, 1, 1.25, 1.5];
 export const rateLabel = (r: number) => `${r}x`.replace('.', ',');
 const SLOW_RATES = [0.5, 0.75, 1];
 const LOOP_PAUSE_MS = 700;
-const days = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
 
 /** A long-pressed sentence: listen (in a loop, slower), translate, explain, dictation from here, say it, highlight. */
 export function SentenceSheet(props: {

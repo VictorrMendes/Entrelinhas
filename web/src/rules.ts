@@ -328,3 +328,95 @@ export function sessionAccolades(answers: number, misses: number, seconds: numbe
   if (bestCombo >= COMBO_MIN && bestCombo > previousRecord) out.push('comboRecord');
   return out;
 }
+
+/** Weeks in a row with at least one reading day; the current week only adds to the count once it has one. */
+export const WeekStreak = {
+  /** [firstDow]: 0 Sunday … 6 Saturday. 1970-01-01, epoch day 0, was a Thursday. */
+  week: (day: number, firstDow: number) => Math.floor((day + 4 - firstDow) / 7),
+
+  compute(days: number[], today: number, firstDow: number): { current: number; longest: number; thisWeek: boolean } {
+    const weeks = new Set(days.map((d) => WeekStreak.week(d, firstDow)));
+    let longest = 0;
+    let run = 0;
+    let previous: number | null = null;
+    for (const w of [...weeks].sort((a, b) => a - b)) {
+      run = previous !== null && w === previous + 1 ? run + 1 : 1;
+      longest = Math.max(longest, run);
+      previous = w;
+    }
+    const now = WeekStreak.week(today, firstDow);
+    const thisWeek = weeks.has(now);
+    let current = 0;
+    for (let w = thisWeek ? now : now - 1; weeks.has(w); w--) current++;
+    return { current, longest, thisWeek };
+  },
+};
+
+const mod = (a: number, n: number) => ((a % n) + n) % n;
+
+/** A month as calendar cells: blanks up to its first weekday, then every day (epoch days). */
+export function monthCells(firstDay: number, length: number, firstDow: number): (number | null)[] {
+  const blanks = mod(mod(firstDay + 4, 7) - firstDow, 7);
+  return [...Array<null>(blanks).fill(null), ...Array.from({ length }, (_, i) => firstDay + i)];
+}
+
+/** Lifetime numbers that XP and achievements come from. */
+export interface Totals {
+  readingMinutes: number;
+  savedWords: number;
+  learnedWords: number;
+  booksCompleted: number;
+  dictations: number;
+  goalDays: number;
+  longestStreak: number;
+  longestWeeks: number;
+}
+
+export const xp = (t: Totals) => t.readingMinutes + t.savedWords * 5 + t.learnedWords * 10 + t.booksCompleted * 100 + t.dictations * 3 + t.goalDays * 20;
+
+/** Level n starts at 50·n·(n−1) XP (0, 100, 300, 600…), so each level takes a little longer than the last. */
+export const Levels = {
+  start: (level: number) => 50 * level * (level - 1),
+  of(xp: number) {
+    let level = 1;
+    while (Levels.start(level + 1) <= xp) level++;
+    return level;
+  },
+};
+
+export type AchievementGroup = 'Ofensiva' | 'Vocabulário' | 'Leitura';
+
+export interface Achievement {
+  /** Its art is /art/ach_[id].webp, from the Android app's drawables. */
+  id: string;
+  title: string;
+  text: string;
+  target: number;
+  group: AchievementGroup;
+  value: (t: Totals) => number;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: 'first_goal', title: 'Primeira meta', text: 'Cumpra a meta diária pela primeira vez', target: 1, group: 'Ofensiva', value: (t) => t.goalDays },
+  { id: 'streak_3', title: 'Pegou o ritmo', text: 'Chegue a 3 dias de sequência', target: 3, group: 'Ofensiva', value: (t) => t.longestStreak },
+  { id: 'week_streak', title: 'Uma semana firme', text: 'Chegue a 7 dias de sequência', target: 7, group: 'Ofensiva', value: (t) => t.longestStreak },
+  { id: 'month_streak', title: 'Hábito de leitura', text: 'Chegue a 30 dias de sequência', target: 30, group: 'Ofensiva', value: (t) => t.longestStreak },
+  { id: 'streak_100', title: 'Centenário', text: 'Chegue a 100 dias de sequência', target: 100, group: 'Ofensiva', value: (t) => t.longestStreak },
+  { id: 'weeks_4', title: 'Quatro semanas', text: 'Leia em 4 semanas seguidas', target: 4, group: 'Ofensiva', value: (t) => t.longestWeeks },
+  { id: 'weeks_12', title: 'Trimestre firme', text: 'Leia em 12 semanas seguidas', target: 12, group: 'Ofensiva', value: (t) => t.longestWeeks },
+  { id: 'words_50', title: 'Colecionador', text: 'Salve 50 palavras', target: 50, group: 'Vocabulário', value: (t) => t.savedWords },
+  { id: 'words_250', title: 'Dicionário vivo', text: 'Salve 250 palavras', target: 250, group: 'Vocabulário', value: (t) => t.savedWords },
+  { id: 'learned_25', title: 'Memória afiada', text: 'Domine 25 palavras na revisão', target: 25, group: 'Vocabulário', value: (t) => t.learnedWords },
+  { id: 'learned_100', title: 'Vocabulário de ferro', text: 'Domine 100 palavras na revisão', target: 100, group: 'Vocabulário', value: (t) => t.learnedWords },
+  { id: 'dictations', title: 'Ouvido treinado', text: 'Faça 20 ditados', target: 20, group: 'Vocabulário', value: (t) => t.dictations },
+  { id: 'first_book', title: 'Fim!', text: 'Conclua seu primeiro livro', target: 1, group: 'Leitura', value: (t) => t.booksCompleted },
+  { id: 'five_books', title: 'Devorador de livros', text: 'Conclua 5 livros', target: 5, group: 'Leitura', value: (t) => t.booksCompleted },
+  { id: 'ten_hours', title: 'Maratonista', text: 'Leia por 10 horas', target: 10, group: 'Leitura', value: (t) => Math.floor(t.readingMinutes / 60) },
+  { id: 'fifty_hours', title: 'Leitor de fôlego', text: 'Leia por 50 horas', target: 50, group: 'Leitura', value: (t) => Math.floor(t.readingMinutes / 60) },
+];
+
+export const unlocked = (a: Achievement, t: Totals) => a.value(t) >= a.target;
+
+/** Streak goals in days; each one reached (by the longest streak) evolves the flame. */
+export const STREAK_GOALS = [7, 14, 30];
+export const flameLevel = (longest: number) => STREAK_GOALS.filter((g) => longest >= g).length;

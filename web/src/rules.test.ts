@@ -2,19 +2,25 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  ACHIEVEMENTS,
   buildTest,
   checkDictation,
   closeEnough,
   isRight,
   Leitner,
+  Levels,
   matchTiles,
+  monthCells,
   PracticeRound,
   practiceChoices,
   practiceWords,
   type StudyWord,
   Streak,
   sessionAccolades,
+  unlocked,
   vocabularyCsv,
+  WeekStreak,
+  xp,
 } from './rules.ts';
 
 const state = (current: number, longest: number, shields: number, metToday: boolean, recovery: { lost: number; done: number } | null = null) => ({
@@ -185,4 +191,45 @@ test('a round earns perfect, fast and a new combo record', () => {
   assert.deepEqual(sessionAccolades(5, 1, 31, 4, 4), []);
   assert.deepEqual(sessionAccolades(10, 8, 100, 2, 0), []);
   assert.deepEqual(sessionAccolades(0, 0, 0, 0, 0), []);
+});
+
+test('XP climbs levels that grow longer', () => {
+  assert.equal(Levels.of(0), 1);
+  assert.equal(Levels.of(99), 1);
+  assert.equal(Levels.of(100), 2);
+  assert.equal(Levels.of(300), 3);
+  const none = { readingMinutes: 0, savedWords: 0, learnedWords: 0, booksCompleted: 0, dictations: 0, goalDays: 0, longestStreak: 0, longestWeeks: 0 };
+  // 30 min + 3 words × 5 + 5 dictations × 3 + 1 goal day × 20 + 1 book × 100
+  assert.equal(xp({ ...none, readingMinutes: 30, savedWords: 3, dictations: 5, goalDays: 1, booksCompleted: 1 }), 180);
+  const t = { ...none, savedWords: 50, readingMinutes: 599 };
+  const byId = (id: string) => ACHIEVEMENTS.find((a) => a.id === id) as (typeof ACHIEVEMENTS)[number];
+  assert.ok(unlocked(byId('words_50'), t));
+  assert.ok(!unlocked(byId('ten_hours'), t));
+});
+
+// the Android HabitTest's days: today is 2026-10-15, a Thursday
+const day = (y: number, m: number, d: number) => Date.UTC(y, m - 1, d) / 86_400_000;
+const today = day(2026, 10, 15);
+
+test('weeks in a row count this week once it has a reading day; an open week does not break them yet', () => {
+  assert.deepEqual(WeekStreak.compute([day(2026, 9, 30), day(2026, 10, 6), day(2026, 10, 13)], today, 0), { current: 3, longest: 3, thisWeek: true });
+  assert.deepEqual(WeekStreak.compute([day(2026, 9, 30), day(2026, 10, 6)], today, 0), { current: 2, longest: 2, thisWeek: false });
+});
+
+test('a whole week without reading starts the weeks over, and the first weekday follows the device', () => {
+  const s = WeekStreak.compute([day(2026, 9, 1), day(2026, 9, 8), day(2026, 9, 15), day(2026, 10, 13)], today, 0);
+  assert.equal(s.current, 1);
+  assert.equal(s.longest, 3);
+  assert.equal(WeekStreak.compute([day(2026, 9, 30)], today, 0).current, 0);
+  const sundayAndMonday = [day(2026, 10, 11), day(2026, 10, 12)];
+  assert.equal(WeekStreak.compute(sundayAndMonday, today, 0).current, 1);
+  assert.equal(WeekStreak.compute(sundayAndMonday, today, 1).current, 2);
+});
+
+test('a month grid starts on the right weekday', () => {
+  const first = day(2026, 10, 1); // a Thursday
+  const cells = monthCells(first, 31, 0);
+  assert.equal(cells.indexOf(first), 4);
+  assert.equal(cells.at(-1), first + 30);
+  assert.equal(monthCells(first, 31, 1).indexOf(first), 3);
 });

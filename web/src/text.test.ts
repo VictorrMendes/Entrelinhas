@@ -1,7 +1,7 @@
 // node --test runs this straight from TypeScript (npm test); it needs no browser
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fold, levelSample, nextWord, previousWord, sentenceAt, sentenceRanges, txtBlocks, wordAt } from './text.ts';
+import { fold, levelSample, nextWord, previousWord, sentenceAt, sentenceRanges, wordAt } from './text.ts';
 
 const page = "It was a bright cold day in April. The clocks were striking thirteen. I don't know why.";
 const tapped = (offset: number) => {
@@ -35,9 +35,6 @@ test('search folding ignores case and accents and keeps the length', () => {
   assert.equal(fold('Ação Café').length, 'Ação Café'.length);
 });
 
-test('a TXT book splits on blank lines and joins wrapped lines', () => {
-  assert.deepEqual(txtBlocks('Line one\nstill one.\n\n\nTwo\r\n\r\n  Three  \n'), ['Line one still one.', 'Two', 'Three']);
-});
 
 test('the level sample takes three excerpts of paragraphs, 1500 characters at most each', () => {
   const blocks = Array.from({ length: 10 }, (_, i) => ({ type: i === 0 ? 'h' : 'p', text: `P${i} ${'x'.repeat(i === 5 ? 2000 : 10)}` }));

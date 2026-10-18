@@ -46,20 +46,25 @@ const TICK_SECONDS = 10;
 const IDLE_AFTER_MS = 120_000;
 const LONG_PRESS_MS = 450;
 
-/** [from, to) of the block's text with its bold and italic parts. */
+/** [from, to) of the block's text with its bold, italic and linked parts. */
 function renderText(b: Block, from: number, to: number): ReactNode[] {
   const spans = b.spans ?? [];
+  const links = b.links ?? [];
   const cuts = new Set([from, to]);
-  for (const s of spans) for (const p of [s.start, s.end]) if (p > from && p < to) cuts.add(p);
+  for (const s of [...spans, ...links]) for (const p of [s.start, s.end]) if (p > from && p < to) cuts.add(p);
   const points = [...cuts].sort((x, y) => x - y);
   return points.slice(0, -1).map((start, k) => {
     const end = points[k + 1];
     let node: ReactNode = b.text.slice(start, end);
     if (spans.some((s) => s.bold && s.start <= start && s.end >= end)) node = <b>{node}</b>;
     if (spans.some((s) => s.italic && s.start <= start && s.end >= end)) node = <i>{node}</i>;
+    if (links.some((l) => l.start <= start && l.end >= end)) node = <span className="link">{node}</span>;
     return <Fragment key={start}>{node}</Fragment>;
   });
 }
+
+/** A line of the book's own contents page: a link and nothing to translate. */
+const isNavigation = (b: Block) => !!b.links?.some((l) => l.start === 0 && l.end >= b.text.length);
 
 /** One block: its text, then its translation (one line under each sentence, or a box below) and the small link. */
 const BlockView = memo(function BlockView(props: {
@@ -72,10 +77,19 @@ const BlockView = memo(function BlockView(props: {
   speaking: boolean;
   /** "Ears only": blurred while it is read, until a tap shows it. */
   veiled: boolean;
+  /** The picture of an 'img' block. */
+  image: string | undefined;
   onTranslate: (i: number) => void;
   onHide: (i: number) => void;
 }) {
   const { block, i, translation } = props;
+  if (block.type === 'img') {
+    return (
+      <div data-i={i} className="block img">
+        {props.image && <img src={props.image} alt={block.text} loading="lazy" />}
+      </div>
+    );
+  }
   const sentences = props.interlinear && translation !== undefined ? sentenceRanges(block.text, props.lang) : null;
   const lines = translation?.split('\n');
   const asLines = sentences && lines && sentences.length > 0 && lines.length === sentences.length;
@@ -108,7 +122,7 @@ const BlockView = memo(function BlockView(props: {
         </span>
       ) : props.loading ? (
         <span data-tr="1" className="tr-loading" />
-      ) : (
+      ) : isNavigation(block) ? null : (
         <button type="button" data-tr="1" className="para-link" onClick={() => (translation !== undefined ? props.onHide(i) : props.onTranslate(i))}>
           {translation !== undefined ? 'ocultar' : '文A traduzir'}
         </button>
@@ -167,6 +181,17 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   useEffect(() => {
     db.get<(Block | string)[]>('texts', id).then((b) => setBlocks(asBlocks(b ?? [])));
     record('sessions');
+  }, [id]);
+
+  // the book's pictures, as URLs for the 'img' blocks
+  const [images, setImages] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    let urls = new Map<string, string>();
+    db.get<Record<string, Blob>>('images', id).then((all) => {
+      urls = new Map(Object.entries(all ?? {}).map(([name, blob]) => [name, URL.createObjectURL(blob)]));
+      setImages(urls);
+    });
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, [id]);
 
   useEffect(() => {
@@ -395,6 +420,9 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     }
     if ((e.target as Element).closest('[data-tr]')) return;
     const hit = hitAt(e.clientX, e.clientY);
+    // a contents line or footnote mark goes where it points
+    const link = hit && blocks?.[hit.block].links?.find((l) => hit.offset >= l.start && hit.offset <= l.end);
+    if (link) return go(link.target);
     const w = hit && blocks ? wordAt(blocks[hit.block].text, hit.offset, src) : null;
     if (hit && w) lookUp(hit.block, w.start, w.end);
     else setLookup(null);
@@ -414,6 +442,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     if (!blocks) return [];
     const out: [string, string][] = [];
     for (let i = block; i < blocks.length && out.length < 10; i++) {
+      if (blocks[i].type === 'img') continue;
       const text = blocks[i].text;
       for (const [s, e] of sentenceRanges(text, src)) {
         const piece = text.slice(s, e);
@@ -444,7 +473,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     if (!blocks) return;
     const me = ++speakRun.current;
     let i = from;
-    while (i >= 0 && i < blocks.length && !blocks[i].text.trim()) i += step;
+    while (i >= 0 && i < blocks.length && (blocks[i].type === 'img' || !blocks[i].text.trim())) i += step;
     if (i < 0 || i >= blocks.length) return stopSpeaking();
     setSpeaking(i);
     setPaused(false);
@@ -522,11 +551,12 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           interlinear={prefs.interlinear}
           speaking={speaking === i}
           veiled={listenOnly && speaking !== null && !revealed.has(i)}
+          image={b.image && images.get(b.image)}
           onTranslate={onTranslate}
           onHide={onHide}
         />
       )),
-    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, onTranslate, onHide],
+    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, images, onTranslate, onHide],
   );
 
   // an expression grows by whole words, within the sentence

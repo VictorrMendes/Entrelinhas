@@ -1,8 +1,8 @@
 /** IndexedDB, on this device only (sync with the Android app comes later). */
 import { useEffect, useState } from 'react';
 import type { TocEntry } from './book';
-import { Leitner, Streak } from './rules';
-import { localDay } from './text';
+import { ACHIEVEMENTS, Leitner, STREAK_GOALS, Streak, type Totals, unlocked, WeekStreak } from './rules';
+import { firstDayOfWeek, localDay } from './text';
 
 export interface Book {
   id?: number;
@@ -19,6 +19,9 @@ export interface Book {
   level?: string;
   /** When the end of the book was first reached. */
   completedAt?: number;
+  /** sha256 of the original file: how the Android app and the sync tell books apart (books added before it have none). */
+  hash?: string;
+  fileType?: string;
 }
 
 /** A highlighted stretch of a block, with an optional note; [color] indexes HIGHLIGHT_COLORS. */
@@ -66,7 +69,7 @@ export interface Day {
 }
 
 const opened = new Promise<IDBDatabase>((resolve, reject) => {
-  const req = indexedDB.open('entrelinhas', 5);
+  const req = indexedDB.open('entrelinhas', 6);
   req.onupgradeneeded = (e) => {
     const db = req.result;
     if (e.oldVersion < 1) {
@@ -82,12 +85,16 @@ const opened = new Promise<IDBDatabase>((resolve, reject) => {
     if (e.oldVersion < 3) db.createObjectStore('kitQueue', { keyPath: 'id', autoIncrement: true }); // kit words waiting for their day
     if (e.oldVersion < 4) db.createObjectStore('paragraphs'); // "book|block|src|tgt" -> its translation, kept on reopening
     if (e.oldVersion < 5) db.createObjectStore('highlights', { keyPath: 'id', autoIncrement: true });
+    if (e.oldVersion < 6) {
+      db.createObjectStore('files'); // book id -> the original file, kept for the cloud backup
+      db.createObjectStore('images'); // book id -> { image file name: Blob }
+    }
   };
   req.onsuccess = () => resolve(req.result);
   req.onerror = () => reject(req.error);
 });
 
-type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs' | 'highlights';
+type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs' | 'highlights' | 'files' | 'images';
 
 const listeners = new Set<() => void>();
 
@@ -115,6 +122,14 @@ export const db = {
     }),
   del: (store: Store, key: IDBValidKey) => run(store, 'readwrite', (s) => s.delete(key)),
 };
+
+/** Calls [f] after every write to the database (the translation cache aside); returns how to stop. */
+export function onChange(f: () => void) {
+  listeners.add(f);
+  return () => {
+    listeners.delete(f);
+  };
+}
 
 /** [load]'s result, read again after every write to the database. */
 export function useDb<T>(load: () => Promise<T>, deps: unknown[] = []): T | undefined {
@@ -197,12 +212,60 @@ export async function streak() {
   return Streak.compute(met.sort((a, b) => a - b), localDay());
 }
 
+/** The streak goal being aimed at, in days (7 → 14 → 30); 0 once every goal is behind. */
+export const streakGoal = () => Number(localStorage.getItem('streakGoal') ?? STREAK_GOALS[0]);
+
+export async function totals(): Promise<Totals> {
+  const [days, ws, books] = await Promise.all([db.all<Day>('days'), db.all<Word>('words'), db.all<Book>('books')]);
+  const sum = (f: (d: Day) => number) => days.reduce((n, d) => n + f(d), 0);
+  const met = days.filter((d) => d.goalMet).map((d) => d.day);
+  return {
+    readingMinutes: Math.floor(sum((d) => d.seconds) / 60),
+    savedWords: ws.length,
+    learnedWords: ws.filter((w) => w.box >= Leitner.MASTERED).length,
+    booksCompleted: books.filter((b) => b.completedAt).length,
+    dictations: sum((d) => d.dictations),
+    goalDays: met.length,
+    longestStreak: Streak.compute(met.sort((a, b) => a - b), localDay()).longest,
+    longestWeeks: WeekStreak.compute(days.filter((d) => d.active).map((d) => d.day), localDay(), firstDayOfWeek()).longest,
+  };
+}
+
+export interface Celebration {
+  text: string;
+  /** An achievement has a "Ver" that opens the Progress tab. */
+  achievement: boolean;
+}
+
+/** Streak goals reached and achievements unlocked since the last check; the very first check only takes note of what is there. */
+export async function celebrations(): Promise<Celebration[]> {
+  const out: Celebration[] = [];
+  const goal = streakGoal();
+  if (goal > 0 && (await streak()).current >= goal) {
+    out.push({ text: `Meta de ${goal} dias cumprida! Sua chama evoluiu 🔥`, achievement: false });
+    localStorage.setItem('streakGoal', String(STREAK_GOALS.find((g) => g > goal) ?? 0));
+  }
+  const t = await totals();
+  const now = ACHIEVEMENTS.filter((a) => unlocked(a, t));
+  const stored = localStorage.getItem('achievements');
+  const seen = new Set(stored?.split(',').filter(Boolean));
+  localStorage.setItem('achievements', [...new Set([...seen, ...now.map((a) => a.id)])].join(','));
+  if (stored !== null) for (const a of now) if (!seen.has(a.id)) out.push({ text: `Conquista desbloqueada: ${a.title}`, achievement: true });
+  return out;
+}
+
 export const bookHighlights = (book: number) => db.all<Highlight>('highlights').then((all) => all.filter((h) => h.book === book));
 
-/** A book with everything kept for it: text, translated paragraphs and highlights. */
+export async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** A book with everything kept for it: text, original file, images, translated paragraphs and highlights. */
 export async function deleteBook(id: number) {
   await db.del('books', id);
   await db.del('texts', id);
+  await db.del('files', id);
+  await db.del('images', id);
   await run('paragraphs', 'readwrite', (s) => s.delete(IDBKeyRange.bound(`${id}|`, `${id}|￿`)));
   for (const h of await bookHighlights(id)) await db.del('highlights', h.id as number);
 }

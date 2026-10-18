@@ -42,13 +42,6 @@ export function localDay(ms = Date.now()): number {
   return Math.floor((ms - new Date(ms).getTimezoneOffset() * 60_000) / 86_400_000);
 }
 
-/** A plain-text book: paragraphs are separated by blank lines; the hard line breaks inside one are just wrapping. */
-export function txtBlocks(text: string): string[] {
-  return text
-    .split(/\r?\n\s*\r?\n/)
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
-}
 
 /** What the backend reads to judge a book's CEFR level: three excerpts (at 20%, 50% and 80%), like the Android app's levelSample. */
 export function levelSample(blocks: { type: string; text: string }[]): string {
@@ -60,4 +53,10 @@ export function levelSample(blocks: { type: string; text: string }[]): string {
       return s.slice(0, 1500);
     })
     .join('\n\n[…]\n\n');
+}
+
+/** The device's first day of the week: 0 Sunday … 6 Saturday (Sunday where the browser can't tell, as in Brazil). */
+export function firstDayOfWeek(): number {
+  const locale = new Intl.Locale(navigator.language) as Intl.Locale & { getWeekInfo?: () => { firstDay: number }; weekInfo?: { firstDay: number } };
+  return ((locale.getWeekInfo?.() ?? locale.weekInfo)?.firstDay ?? 7) % 7;
 }

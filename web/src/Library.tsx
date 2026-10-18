@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { post } from './api';
 import { asBlocks, type Block, parseBook } from './book';
-import { type Book, db, deleteBook } from './store';
+import { StreakCard } from './Goals';
+import { type Book, db, deleteBook, sha256Hex } from './store';
 import { levelSample } from './text';
 
 const onIphone = /iPhone|iPad/.test(navigator.userAgent);
 const installed =
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+const imageType = (name: string) => `image/${name.split('.').pop()?.replace('jpg', 'jpeg')}`;
 
 let assessing = false;
 
@@ -46,7 +49,10 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
     setBusy(true);
     setError(null);
     try {
-      const parsed = parseBook(file.name, new Uint8Array(await file.arrayBuffer()));
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const hash = await sha256Hex(bytes);
+      if ((await db.all<Book>('books')).some((b) => b.hash === hash)) throw new Error('Este livro já está na biblioteca.');
+      const parsed = parseBook(file.name, bytes);
       const book: Book = {
         title: parsed.title,
         language: parsed.language,
@@ -54,9 +60,19 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
         lastBlock: 0,
         addedAt: Date.now(),
         toc: parsed.toc,
+        hash,
+        fileType: parsed.fileType,
       };
       const id = (await db.put('books', book)) as number;
-      await db.put('texts', parsed.blocks, id);
+      try {
+        await db.put('texts', parsed.blocks, id);
+        await db.put('files', bytes, id);
+        const images = Object.fromEntries(Object.entries(parsed.images).map(([name, data]) => [name, new Blob([data as Uint8Array<ArrayBuffer>], { type: imageType(name) })]));
+        if (Object.keys(images).length) await db.put('images', images, id);
+      } catch (e) {
+        await deleteBook(id); // no half-imported book
+        throw e;
+      }
       await load();
       assessLevels(load);
     } catch (e) {
@@ -75,6 +91,7 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
   return (
     <main className="page">
       <h1 className="page-title">Biblioteca</h1>
+      <StreakCard />
       {onIphone && !installed && (
         <p className="card hint">
           Para instalar: toque em <strong>Compartilhar</strong> e depois em <strong>Adicionar à Tela de Início</strong>.
@@ -82,10 +99,10 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
       )}
 
       <label className={`button primary wide${busy ? ' disabled' : ''}`}>
-        {busy ? 'Abrindo o livro…' : '+ Adicionar livro (EPUB ou TXT)'}
+        {busy ? 'Abrindo o livro…' : '+ Adicionar livro (EPUB, FB2 ou TXT)'}
         <input
           type="file"
-          accept=".epub,.txt,application/epub+zip,text/plain"
+          accept=".epub,.fb2,.zip,.txt,application/epub+zip,text/plain"
           hidden
           disabled={busy}
           onChange={(e) => {
@@ -100,14 +117,14 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
       {books.length === 0 && !busy && (
         <div className="empty">
           <img src="/apple-touch-icon.png" alt="" />
-          <p>Nenhum livro ainda. Adicione um EPUB ou TXT do seu aparelho.</p>
+          <p>Nenhum livro ainda. Adicione um EPUB, FB2 ou TXT do seu aparelho.</p>
         </div>
       )}
 
       <ul className="books">
         {books.map((b) => {
           const id = b.id as number;
-          const progress = Math.round((b.lastBlock / Math.max(1, b.blockCount - 1)) * 100);
+          const progress = b.completedAt ? 100 : Math.round((b.lastBlock / Math.max(1, b.blockCount - 1)) * 100);
           return (
             <li key={id} className="card book">
               <button type="button" className="book-open" onClick={() => onOpen(b)}>
