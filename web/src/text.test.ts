@@ -1,7 +1,7 @@
 // node --test runs this straight from TypeScript (npm test); it needs no browser
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { sentenceAt, txtBlocks, wordAt } from './text.ts';
+import { fold, nextWord, previousWord, sentenceAt, sentenceRanges, txtBlocks, wordAt } from './text.ts';
 
 const page = "It was a bright cold day in April. The clocks were striking thirteen. I don't know why.";
 const tapped = (offset: number) => {
@@ -18,6 +18,21 @@ test('a tap picks the whole word, also right after its last letter, and nothing 
 
 test('the sentence around the word is its context', () => {
   assert.equal(sentenceAt(page, page.indexOf('clocks'), 'en'), 'The clocks were striking thirteen.');
+});
+
+test('sentences split for the interlinear lines, and a lookup grows by whole words', () => {
+  const ranges = sentenceRanges(page, 'en').map(([s, e]) => page.slice(s, e));
+  assert.deepEqual(ranges, ['It was a bright cold day in April.', 'The clocks were striking thirteen.', "I don't know why."]);
+  const gave = 'He gave up, then left.';
+  const up = gave.indexOf('up');
+  assert.deepEqual(previousWord(gave, up, 'en'), { start: 3, end: 7 });
+  assert.deepEqual(nextWord(gave, up + 2, 'en'), { start: gave.indexOf('then'), end: gave.indexOf('then') + 4 }); // skips the comma
+  assert.equal(previousWord(gave, 0, 'en'), null);
+});
+
+test('search folding ignores case and accents and keeps the length', () => {
+  assert.equal(fold('Ação Café'), 'acao cafe');
+  assert.equal(fold('Ação Café').length, 'Ação Café'.length);
 });
 
 test('a TXT book splits on blank lines and joins wrapped lines', () => {

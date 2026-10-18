@@ -22,7 +22,14 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
     setError(null);
     try {
       const parsed = parseBook(file.name, new Uint8Array(await file.arrayBuffer()));
-      const book: Book = { title: parsed.title, language: parsed.language, blockCount: parsed.blocks.length, lastBlock: 0, addedAt: Date.now() };
+      const book: Book = {
+        title: parsed.title,
+        language: parsed.language,
+        blockCount: parsed.blocks.length,
+        lastBlock: 0,
+        addedAt: Date.now(),
+        toc: parsed.toc,
+      };
       const id = (await db.put('books', book)) as number;
       await db.put('texts', parsed.blocks, id);
       await load();

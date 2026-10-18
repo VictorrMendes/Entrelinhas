@@ -1,5 +1,6 @@
 /** IndexedDB, on this device only (sync with the Android app comes later). */
 import { useEffect, useState } from 'react';
+import type { TocEntry } from './book';
 import { Leitner } from './rules';
 import { localDay } from './text';
 
@@ -7,10 +8,13 @@ export interface Book {
   id?: number;
   title: string;
   language: string;
+  /** What the book is translated into; the reader's language when not chosen. */
+  target?: string;
   blockCount: number;
   /** First paragraph on screen when the book was last read. */
   lastBlock: number;
   addedAt: number;
+  toc?: TocEntry[];
 }
 
 /** Same fields as the Android app's synced words, so the two can merge later. */
@@ -45,7 +49,7 @@ export interface Day {
 }
 
 const opened = new Promise<IDBDatabase>((resolve, reject) => {
-  const req = indexedDB.open('entrelinhas', 3);
+  const req = indexedDB.open('entrelinhas', 4);
   req.onupgradeneeded = (e) => {
     const db = req.result;
     if (e.oldVersion < 1) {
@@ -59,12 +63,13 @@ const opened = new Promise<IDBDatabase>((resolve, reject) => {
       db.createObjectStore('deletions'); // "kind|key" -> when, so a sync doesn't bring deleted things back
     }
     if (e.oldVersion < 3) db.createObjectStore('kitQueue', { keyPath: 'id', autoIncrement: true }); // kit words waiting for their day
+    if (e.oldVersion < 4) db.createObjectStore('paragraphs'); // "book|block|src|tgt" -> its translation, kept on reopening
   };
   req.onsuccess = () => resolve(req.result);
   req.onerror = () => reject(req.error);
 });
 
-type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue';
+type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs';
 
 const listeners = new Set<() => void>();
 
@@ -161,8 +166,32 @@ export async function completeExercise() {
   await db.put('days', { ...(await today()), active: 1, goalMet: 1 });
 }
 
-/** One more dictation sentence checked (XP and the "Ouvido treinado" achievement count them). */
-export async function recordDictation() {
+type Stat = 'words' | 'paragraphs' | 'autoParagraphs' | 'dictations' | 'sessions';
+
+/** Counts today's activity like the Android app's Db.record: translated words and paragraphs also count as translations. */
+export async function record(stat: Stat, n = 1) {
   const d = await today();
-  await db.put('days', { ...d, active: 1, dictations: d.dictations + 1 });
+  const translation = stat === 'words' || stat === 'paragraphs' || stat === 'autoParagraphs';
+  await db.put('days', { ...d, active: 1, [stat]: d[stat] + n, translations: d.translations + (translation ? n : 0) });
 }
+
+const paragraphKey = (book: number, block: number, src: string, tgt: string) => `${book}|${block}|${src}|${tgt}`;
+
+/** A book's saved paragraph translations for a language pair, by block. */
+export async function paragraphTranslations(book: number, src: string, tgt: string): Promise<Map<number, string>> {
+  const prefix = `${book}|`;
+  const range = IDBKeyRange.bound(prefix, `${prefix}￿`);
+  const [keys, values] = await Promise.all([
+    run<IDBValidKey[]>('paragraphs', 'readonly', (s) => s.getAllKeys(range)),
+    run<string[]>('paragraphs', 'readonly', (s) => s.getAll(range)),
+  ]);
+  const out = new Map<number, string>();
+  keys.forEach((k, i) => {
+    const [, block, s, t] = String(k).split('|');
+    if (s === src && t === tgt) out.set(Number(block), values[i]);
+  });
+  return out;
+}
+
+export const saveParagraph = (book: number, block: number, src: string, tgt: string, text: string) => db.put('paragraphs', text, paragraphKey(book, block, src, tgt));
+export const deleteParagraph = (book: number, block: number, src: string, tgt: string) => db.del('paragraphs', paragraphKey(book, block, src, tgt));

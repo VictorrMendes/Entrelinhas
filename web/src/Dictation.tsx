@@ -2,7 +2,7 @@ import { Volume2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { checkDictation, shuffle } from './rules';
 import { speak } from './speech';
-import { completeExercise, recordDictation, type Word, words } from './store';
+import { completeExercise, record, type Word, words } from './store';
 import { TopBar } from './study';
 
 export const speechRate = () => Number(localStorage.getItem('speechRate') ?? 1);
@@ -47,7 +47,7 @@ function DictationRound({ sentences, onClose }: { sentences: [string, string][];
 
   function check() {
     setResult(checkDictation(sentence, typed));
-    recordDictation();
+    record('dictations');
     if (index === sentences.length - 1) completeExercise(); // the last sentence ends the round
   }
 

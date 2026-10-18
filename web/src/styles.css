@@ -206,70 +206,295 @@ button.danger {
 
 /* ---------- Leitor */
 
-.topbar {
+.reader {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar,
+.bottombar {
   position: fixed;
   inset: 0 0 auto;
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: calc(var(--top) + 4px) 8px 4px;
+  gap: 4px;
+  padding: calc(var(--top) + 4px) 4px 4px;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
+.bottombar {
+  inset: auto 0 0;
+  padding: 0 4px var(--bottom) 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
 .topbar-title {
+  flex: 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--muted);
+  font-weight: 600;
+}
+
+.grow {
+  flex: 1;
 }
 
 .pages {
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
   /* room below the last paragraph so it can scroll up past the translation sheet */
-  padding: calc(var(--top) + 64px) 20px 50vh;
+  padding-top: calc(var(--top) + 64px);
+  padding-bottom: 50vh;
   font-family: Literata, Georgia, serif;
-  font-size: 19px;
-  line-height: 1.75;
   touch-action: manipulation; /* no double-tap zoom: taps pick words */
 }
 
-.pages p {
-  margin: 0 0 1em;
+.pages.sans {
+  font-family: Nunito, system-ui, sans-serif;
+}
+
+.block {
+  display: flow-root;
+  margin: 0 0 12px;
   scroll-margin-top: calc(var(--top) + 64px);
-  content-visibility: auto; /* long books: only paragraphs near the screen are laid out */
+  content-visibility: auto; /* long books: only blocks near the screen are laid out */
   contain-intrinsic-size: auto 120px;
+}
+
+.block.h {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.block.q {
+  padding-left: 16px;
+  font-style: italic;
+}
+
+.block.li::before {
+  content: '• ';
+}
+
+.tr-line {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 0.8em;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--primary);
+}
+
+.tr-box {
+  display: block;
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--tr-bg, color-mix(in srgb, var(--primary) 16%, var(--bg)));
+  font-weight: 400;
+}
+
+.para-link {
+  float: right;
+  border: 0;
+  background: none;
+  padding: 2px 6px;
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.tr-loading {
+  display: block;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  background-size: 200% 100%;
+  animation: loading 1s linear infinite;
+}
+
+@keyframes loading {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 
 ::highlight(word) {
   background-color: var(--mark);
 }
 
+::highlight(search) {
+  background-color: var(--mark);
+}
+
+::highlight(saved) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.toast {
+  position: fixed;
+  inset: auto 16px calc(var(--bottom) + 72px);
+  z-index: 4;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--text);
+  color: var(--bg);
+  text-align: center;
+  font-weight: 600;
+}
+
 .sheet {
   position: fixed;
   inset: auto 0 0;
-  z-index: 2;
+  z-index: 3;
   max-width: 680px;
+  max-height: 80dvh;
   margin: 0 auto;
-  padding: 16px 20px calc(var(--bottom) + 16px);
+  padding: 12px 20px calc(var(--bottom) + 16px);
+  overflow-y: auto;
   border: 1px solid var(--line);
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
   background: var(--card);
+  color: var(--text);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.sheet.panel {
+  display: grid;
+  gap: 10px;
 }
 
 .sheet-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 4px;
+}
+
+.sheet-head h2 {
+  flex: 1;
+  margin: 0;
   font-size: 22px;
 }
 
-.sheet .translation,
+.lookup-word {
+  font-size: 24px;
+}
+
+.sheet .translation {
+  margin: 4px 0 12px;
+  font-size: 22px;
+}
+
 .sheet .error {
-  margin: 4px 0 16px;
-  font-size: 18px;
+  margin: 4px 0 12px;
+}
+
+button.icon:disabled {
+  opacity: 0.35;
+}
+
+button.icon.tonal {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.explanation {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--card));
+  line-height: 1.5;
+}
+
+.explanation svg {
+  flex: none;
+  color: var(--primary);
+}
+
+.word-sheet .chip-button {
+  margin-bottom: 12px;
+}
+
+.sheet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sheet-list button {
+  width: 100%;
+  padding: 14px 4px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 17px;
+}
+
+.sheet-list button.on {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.sheet-list .snippet {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.themes {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.theme {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  font-size: 12px;
+}
+
+.theme span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.theme.on span {
+  border: 3px solid var(--primary);
+}
+
+.stepper {
+  align-items: center;
+  gap: 16px;
 }
