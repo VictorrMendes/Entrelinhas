@@ -27,6 +27,23 @@ updates:
       - dependency-name: node
         update-types: [version-update:semver-major]
 
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      web:
+        update-types: [minor, patch]
+
+  # imagens do PWA: node (só LTS, como no backend) e nginx
+  - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
   - package-ecosystem: gradle
     directory: /android
     schedule:

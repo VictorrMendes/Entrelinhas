@@ -28,3 +28,16 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+
+  # o PWA (versão para iPhone): nginx com o build de web/, que repassa /api/ para o serviço api pela rede interna
+  web:
+    build: ./web
+    depends_on: [api]
+    ports:
+      - "${WEB_PORT:-8788}:80"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

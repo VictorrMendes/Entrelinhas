@@ -1,0 +1,100 @@
+/* Same palette as the Android app (Theme.kt), following the system's light or dark mode. */
+@font-face {
+  font-family: Nunito;
+  src: url('/fonts/nunito_regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Nunito;
+  src: url('/fonts/nunito_semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: Nunito;
+  src: url('/fonts/nunito_bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #12111f;
+  --card: #1d1b33;
+  --text: #edebf7;
+  --muted: #9a97b5;
+  --primary: #a9a6ff;
+  --line: #34315a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #faf7f2;
+    --card: #fdfcff;
+    --text: #1f1d2e;
+    --muted: #6b6880;
+    --primary: #3b3a98;
+    --line: #e5e1ec;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Nunito, system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* the notch and the home bar: viewport-fit=cover draws under them */
+#root {
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.welcome {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.welcome img {
+  width: 120px;
+  height: 120px;
+  border-radius: 28px;
+}
+
+.welcome h1 {
+  margin: 8px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.welcome p {
+  margin: 0;
+  max-width: 320px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.card {
+  margin-top: 16px;
+  padding: 16px;
+  max-width: 340px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--text);
+}
