@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Bookmark, Settings } from 'lucide-react';
+import { BarChart3, BookOpen, Bookmark, Settings as SettingsIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Cards } from './Cards';
 import { Dictation } from './Dictation';
@@ -9,6 +9,7 @@ import { Listen } from './Listen';
 import { Match } from './Match';
 import { Progress } from './Progress';
 import { Reader } from './Reader';
+import { Settings } from './Settings';
 import { type Book, type Celebration, celebrations, onChange } from './store';
 import { Test } from './Test';
 import { type StudyMode, Vocabulary, WordsScreen } from './Vocabulary';
@@ -19,7 +20,7 @@ const TABS: { id: Tab; label: string; icon: typeof BookOpen }[] = [
   { id: 'books', label: 'Livros', icon: BookOpen },
   { id: 'vocabulary', label: 'Vocabulário', icon: Bookmark },
   { id: 'progress', label: 'Progresso', icon: BarChart3 },
-  { id: 'settings', label: 'Ajustes', icon: Settings },
+  { id: 'settings', label: 'Ajustes', icon: SettingsIcon },
 ];
 
 /** The Android app's layout: four tabs below, and the reader or a study mode over them. */
@@ -70,7 +71,7 @@ export function App() {
         {tab === 'books' && <Library onOpen={setBook} />}
         {tab === 'vocabulary' && <Vocabulary onStudy={setMode} />}
         {tab === 'progress' && <Progress />}
-        {tab === 'settings' && <Soon title="Ajustes" text="Conta, sincronização com o Android e preferências chegam numa próxima etapa." />}
+        {tab === 'settings' && <Settings />}
         <nav className="tabs">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button type="button" key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
@@ -111,11 +112,3 @@ export function App() {
   );
 }
 
-function Soon({ title, text }: { title: string; text: string }) {
-  return (
-    <main className="page">
-      <h1 className="page-title">{title}</h1>
-      <p className="card hint">{text}</p>
-    </main>
-  );
-}

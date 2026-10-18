@@ -101,6 +101,6 @@ export async function grade(expected: string, meaning: string, answer: string, s
 export function errorText(e: unknown): string {
   if (e instanceof ApiError && e.code === 'LIMIT_EXCEEDED') return 'Limite diário de traduções online atingido.';
   if (e instanceof ApiError && (e.code === 'RATE_LIMIT' || e.status === 429)) return 'Muitas traduções seguidas. Tente de novo em instantes.';
-  if (e instanceof TypeError) return 'Sem conexão com o servidor de tradução. Verifique a internet.';
+  if (e instanceof ApiError && e.code === 'NO_CONNECTION') return 'Sem conexão com o servidor de tradução. Verifique a internet.';
   return 'Falha na tradução online.';
 }
