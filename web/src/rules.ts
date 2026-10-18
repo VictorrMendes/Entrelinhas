@@ -245,6 +245,74 @@ export function vocabularyCsv(words: { original: string; translated: string; exa
   return `#separator:Comma\n#html:false\n#columns:Palavra,Tradução,Exemplo,Livro\n${rows.map((r) => `${r}\n`).join('')}`;
 }
 
+/** The broken streak of [lost] days being earned back; [done] of the RECOVER_DAYS days in a row are met. */
+export interface Recovery {
+  lost: number;
+  done: number;
+}
+
+export interface StreakState {
+  current: number;
+  longest: number;
+  shields: number;
+  metToday: boolean;
+  recovery: Recovery | null;
+}
+
+/** A blank day spends a shield, otherwise the streak restarts; every 7 days of streak a shield comes back, up to 2. */
+export const Streak = {
+  MAX_SHIELDS: 2,
+  SHIELD_EVERY: 7,
+  /** A broken streak comes back after this many met days in a row... */
+  RECOVER_DAYS: 5,
+  /** ...started at most this many days after it broke. */
+  RECOVER_WITHIN: 7,
+
+  /** [metDays] are ascending local days. */
+  compute(metDays: number[], today: number): StreakState {
+    let current = 0;
+    let longest = 0;
+    let shields = 0;
+    let lost = 0;
+    let last: number | null = null;
+    for (const day of metDays) {
+      if (day === last) continue;
+      const missed = last === null ? null : day - last - 1;
+      if (current > 0 && missed !== null && missed <= shields) {
+        current++;
+        shields -= missed;
+        if (lost > 0 && missed > 0) lost = 0; // earning back needs every day, shields don't count
+        if (lost > 0 && current === Streak.RECOVER_DAYS) {
+          current += lost;
+          lost = 0;
+        }
+      } else {
+        lost = current >= 2 && missed !== null && missed <= Streak.RECOVER_WITHIN ? current : 0;
+        current = 1;
+        shields = Streak.MAX_SHIELDS;
+      }
+      if (current % Streak.SHIELD_EVERY === 0) shields = Math.min(Streak.MAX_SHIELDS, shields + 1);
+      longest = Math.max(longest, current);
+      last = day;
+    }
+    if (last === null) return { current: 0, longest: 0, shields: 0, metToday: false, recovery: null };
+    // blank days up to yesterday already spent their shields; today isn't over yet
+    const missedNow = Math.max(0, today - last - 1);
+    // broken now: meeting the goal again soon starts the earn-back
+    if (missedNow > shields) {
+      const recovery = current >= 2 && missedNow <= Streak.RECOVER_WITHIN ? { lost: current, done: 0 } : null;
+      return { current: 0, longest, shields: 0, metToday: false, recovery };
+    }
+    return {
+      current,
+      longest,
+      shields: shields - missedNow,
+      metToday: last === today,
+      recovery: lost > 0 && missedNow === 0 ? { lost, done: current } : null,
+    };
+  },
+};
+
 export type Accolade = 'perfect' | 'fast' | 'comboRecord';
 
 // one pace for every mode, like the Android app

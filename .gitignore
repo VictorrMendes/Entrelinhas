@@ -20,3 +20,4 @@ docker-compose.override.yml
 AGENTS.md
 CLAUDE.MD
 docs
+assets

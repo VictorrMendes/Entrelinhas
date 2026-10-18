@@ -1,10 +1,35 @@
 import { useEffect, useState } from 'react';
-import { parseBook } from './book';
-import { type Book, db } from './store';
+import { post } from './api';
+import { asBlocks, type Block, parseBook } from './book';
+import { type Book, db, deleteBook } from './store';
+import { levelSample } from './text';
 
 const onIphone = /iPhone|iPad/.test(navigator.userAgent);
 const installed =
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+let assessing = false;
+
+/** Asks the backend, once per book, which CEFR level it needs; a failure (offline, quota) leaves the rest for later. */
+async function assessLevels(done: () => void) {
+  if (assessing) return;
+  assessing = true;
+  try {
+    for (const b of await db.all<Book>('books')) {
+      if (b.level) continue;
+      const sample = levelSample(asBlocks((await db.get<(Block | string)[]>('texts', b.id as number)) ?? []));
+      const { level } = await post<{ level: string }>('/level', { sample, language: b.language });
+      // the reader may have moved on in the book meanwhile: only the level changes
+      const now = await db.get<Book>('books', b.id as number);
+      if (now) await db.put('books', { ...now, level });
+      done();
+    }
+  } catch {
+    // tried again next time the library opens
+  } finally {
+    assessing = false;
+  }
+}
 
 export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
   const [books, setBooks] = useState<Book[]>([]);
@@ -14,7 +39,7 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
 
   const load = () => db.all<Book>('books').then((all) => setBooks(all.sort((a, b) => b.addedAt - a.addedAt)));
   useEffect(() => {
-    load();
+    load().then(() => assessLevels(load));
   }, []);
 
   async function add(file: File) {
@@ -33,6 +58,7 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
       const id = (await db.put('books', book)) as number;
       await db.put('texts', parsed.blocks, id);
       await load();
+      assessLevels(load);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não consegui abrir este arquivo.');
     } finally {
@@ -41,8 +67,7 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
   }
 
   async function remove(id: number) {
-    await db.del('books', id);
-    await db.del('texts', id);
+    await deleteBook(id);
     setConfirming(null);
     await load();
   }
@@ -88,7 +113,7 @@ export function Library({ onOpen }: { onOpen: (book: Book) => void }) {
               <button type="button" className="book-open" onClick={() => onOpen(b)}>
                 <strong>{b.title}</strong>
                 <span className="muted">
-                  {b.language.toUpperCase()} · {progress}% lido
+                  {b.language.toUpperCase()} · {progress}% lido {b.level && <span className="chip">Nível {b.level}</span>}
                 </span>
                 <span className="bar">
                   <span style={{ width: `${progress}%` }} />

@@ -49,3 +49,15 @@ export function txtBlocks(text: string): string[] {
     .map((p) => p.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
 }
+
+/** What the backend reads to judge a book's CEFR level: three excerpts (at 20%, 50% and 80%), like the Android app's levelSample. */
+export function levelSample(blocks: { type: string; text: string }[]): string {
+  const paragraphs = blocks.some((b) => b.type === 'p') ? blocks.filter((b) => b.type === 'p') : blocks;
+  return [0.2, 0.5, 0.8]
+    .map((at) => {
+      let s = '';
+      for (let i = Math.floor(paragraphs.length * at); i < paragraphs.length && s.length < 1500; i++) s += (s ? ' ' : '') + paragraphs[i].text;
+      return s.slice(0, 1500);
+    })
+    .join('\n\n[…]\n\n');
+}

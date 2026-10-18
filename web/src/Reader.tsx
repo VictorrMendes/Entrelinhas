@@ -1,16 +1,50 @@
-import { ArrowLeft, List, Search, Type } from 'lucide-react';
-import { Fragment, memo, type MouseEvent, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Highlighter, List, Play, Search, Type } from 'lucide-react';
+import {
+  Fragment,
+  memo,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { asBlocks, type Block } from './book';
+import { DictationRound, speechRate } from './Dictation';
 import { caretAt, mark, offsetIn, rangeIn } from './readerDom';
 import { LINE_SPACINGS, MARGINS, themeVars, useReaderPrefs } from './readerPrefs';
 import { LanguageSheet, type Lookup, SearchSheet, SettingsSheet, TocSheet, WordSheet } from './ReaderSheets';
-import { type Book, db, deleteParagraph, paragraphTranslations, record, saveParagraph, useDb, words } from './store';
+import { GoalReached, HIGHLIGHT_COLORS, HighlightSheet, NotesSheet, PlayerBar, SPEECH_RATES, SentenceSheet } from './ReaderTools';
+import type { StreakState } from './rules';
+import { speak } from './speech';
+import {
+  addReadingSeconds,
+  type Book,
+  bookHighlights,
+  dailyGoalMinutes,
+  db,
+  deleteParagraph,
+  type Highlight,
+  paragraphTranslations,
+  record,
+  saveParagraph,
+  streak,
+  useDb,
+  words,
+} from './store';
 import { fold, nextWord, previousWord, sentenceAt, sentenceRanges, wordAt } from './text';
 import { errorText, saveWord, TARGET, translate, translateSentences, translateWord } from './words';
 
-type Panel = 'toc' | 'search' | 'settings' | 'languages';
+type Panel = 'toc' | 'search' | 'settings' | 'languages' | 'notes';
 
 const WORD = /\p{L}[\p{L}'’-]*/gu;
+/** Reading time is credited in ticks, only while the app is on screen and the reader recently scrolled, tapped or listened. */
+const TICK_SECONDS = 10;
+const IDLE_AFTER_MS = 120_000;
+const LONG_PRESS_MS = 450;
 
 /** [from, to) of the block's text with its bold and italic parts. */
 function renderText(b: Block, from: number, to: number): ReactNode[] {
@@ -35,6 +69,9 @@ const BlockView = memo(function BlockView(props: {
   translation: string | undefined;
   loading: boolean;
   interlinear: boolean;
+  speaking: boolean;
+  /** "Ears only": blurred while it is read, until a tap shows it. */
+  veiled: boolean;
   onTranslate: (i: number) => void;
   onHide: (i: number) => void;
 }) {
@@ -43,7 +80,7 @@ const BlockView = memo(function BlockView(props: {
   const lines = translation?.split('\n');
   const asLines = sentences && lines && sentences.length > 0 && lines.length === sentences.length;
   return (
-    <div data-i={i} className={`block ${block.type}`}>
+    <div data-i={i} className={`block ${block.type}${props.speaking ? ' speaking' : ''}${props.veiled ? ' veiled' : ''}`}>
       {asLines ? (
         sentences.map(([start], k) => {
           const from = k === 0 ? 0 : start;
@@ -65,7 +102,11 @@ const BlockView = memo(function BlockView(props: {
           {translation.replace(/\n/g, ' ')}
         </span>
       )}
-      {props.loading ? (
+      {props.veiled ? (
+        <span data-tr="1" className="reveal">
+          Toque para ver o texto
+        </span>
+      ) : props.loading ? (
         <span data-tr="1" className="tr-loading" />
       ) : (
         <button type="button" data-tr="1" className="para-link" onClick={() => (translation !== undefined ? props.onHide(i) : props.onTranslate(i))}>
@@ -75,6 +116,14 @@ const BlockView = memo(function BlockView(props: {
     </div>
   );
 });
+
+/** A long-pressed sentence (or the highlight under the finger). */
+interface SentenceTarget {
+  block: number;
+  start: number;
+  end: number;
+  existing: Highlight | null;
+}
 
 export function Reader({ book: opened, onClose }: { book: Book; onClose: () => void }) {
   const [book, setBook] = useState(opened);
@@ -87,6 +136,16 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   const [searchMark, setSearchMark] = useState<{ block: number; query: string } | null>(null);
   const [current, setCurrent] = useState(opened.lastBlock);
   const [toast, setToast] = useState<string | null>(null);
+  const [sentence, setSentence] = useState<SentenceTarget | null>(null);
+  const [editing, setEditing] = useState<SentenceTarget | null>(null);
+  const [dictation, setDictation] = useState<[string, string][] | null>(null);
+  const [speaking, setSpeaking] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [spoken, setSpoken] = useState<{ block: number; start: number; end: number } | null>(null);
+  const [listenOnly, setListenOnly] = useState(false);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [rate, setRate] = useState(speechRate);
+  const [celebrate, setCelebrate] = useState<StreakState | null>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const bookRef = useRef(book);
@@ -97,6 +156,13 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   const element = (i: number) => pagesRef.current?.querySelector<HTMLElement>(`[data-i="${i}"]`) ?? null;
   // words and expressions already saved in this book's language get underlined wherever they come back
   const saved = useDb(() => words().then((ws) => new Set(ws.filter((w) => w.src === src).map((w) => w.original.toLowerCase()))), [src]);
+  const highlights = useDb(() => bookHighlights(id), [id]) ?? [];
+  const lastInteraction = useRef(Date.now());
+  const speakingRef = useRef<number | null>(null);
+  speakingRef.current = speaking;
+  const touch = () => {
+    lastInteraction.current = Date.now();
+  };
 
   useEffect(() => {
     db.get<(Block | string)[]>('texts', id).then((b) => setBlocks(asBlocks(b ?? [])));
@@ -113,6 +179,15 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     return () => clearTimeout(t);
   }, [toast]);
 
+  // active reading time meets the daily goal; the moment it does, the reader celebrates
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      const active = speakingRef.current !== null || Date.now() - lastInteraction.current < IDLE_AFTER_MS;
+      if (document.visibilityState === 'visible' && active && (await addReadingSeconds(TICK_SECONDS))) setCelebrate(await streak());
+    }, TICK_SECONDS * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // back to the paragraph the book was left on, then keep the first one on screen as the reader scrolls
   const restored = useRef(false);
   useLayoutEffect(() => {
@@ -125,6 +200,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     if (!blocks) return;
     let timer: number | undefined;
     const onScroll = () => {
+      touch();
       clearTimeout(timer);
       timer = window.setTimeout(() => {
         const items = pagesRef.current?.children;
@@ -139,7 +215,10 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           else lo = mid + 1;
         }
         setCurrent(lo);
-        db.put('books', { ...bookRef.current, lastBlock: lo });
+        const atEnd = items[items.length - 1].getBoundingClientRect().bottom <= window.innerHeight;
+        const next = { ...bookRef.current, lastBlock: lo, ...(atEnd && !bookRef.current.completedAt && { completedAt: Date.now() }) };
+        setBook(next);
+        db.put('books', next);
       }, 400);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -149,7 +228,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     };
   }, [blocks]);
 
-  // the marks drawn over the text: the looked-up word, saved words and expressions, a search result
+  // the marks drawn over the text: the looked-up word, saved words, a search result, highlights, the word being read
   useEffect(() => {
     const el = lookup && element(lookup.block);
     mark('word', el ? [rangeIn(el, lookup.start, lookup.end)] : []);
@@ -179,10 +258,35 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     mark('search', ranges);
   }, [searchMark, blocks, translations, prefs.interlinear]);
 
-  useEffect(() => () => ['word', 'saved', 'search'].forEach((n) => mark(n, [])), []);
+  useEffect(() => {
+    HIGHLIGHT_COLORS.forEach((_, c) =>
+      mark(
+        `hl${c}`,
+        highlights.filter((h) => h.color === c).map((h) => {
+          const el = element(h.block);
+          return el ? rangeIn(el, h.start, h.end) : null;
+        }),
+      ),
+    );
+  }, [highlights, blocks, translations, prefs.interlinear]);
+
+  useEffect(() => {
+    const el = spoken && element(spoken.block);
+    mark('spoken', el ? [rangeIn(el, spoken.start, spoken.end)] : []);
+  }, [spoken]);
+
+  useEffect(
+    () => () => {
+      for (const n of ['word', 'saved', 'search', 'spoken', 'select', ...HIGHLIGHT_COLORS.map((_, c) => `hl${c}`)]) mark(n, []);
+      speakRun.current++;
+      speechSynthesis.cancel();
+    },
+    [],
+  );
 
   function lookUp(block: number, start: number, end: number) {
     if (!blocks) return;
+    touch();
     const text = blocks[block].text;
     const asked: Lookup = { block, start, end, word: text.slice(start, end), sentence: sentenceAt(text, start, src) };
     setLookup(asked);
@@ -196,16 +300,176 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
     );
   }
 
-  function onTap(e: MouseEvent) {
-    if ((e.target as Element).closest('[data-tr]')) return;
-    const caret = caretAt(e.clientX, e.clientY);
+  /** The block and offset in its text under a screen point, or null outside the book's text. */
+  function hitAt(x: number, y: number): { block: number; offset: number } | null {
+    const caret = caretAt(x, y);
     const el = caret?.node.parentElement?.closest<HTMLElement>('[data-i]');
     const offset = caret && el ? offsetIn(el, caret.node, caret.offset) : null;
-    if (!el || offset === null || !blocks) return setLookup(null);
-    const block = Number(el.dataset.i);
-    const w = wordAt(blocks[block].text, offset, src);
-    if (w) lookUp(block, w.start, w.end);
+    return el && offset !== null ? { block: Number(el.dataset.i), offset } : null;
+  }
+
+  // a long press opens the sentence; holding and dragging marks whole words and translates them on release
+  const press = useRef<{
+    x: number;
+    y: number;
+    timer: number;
+    active: boolean;
+    block: number;
+    offset: number;
+    anchor: { start: number; end: number };
+    range: { start: number; end: number };
+  } | null>(null);
+  // a mouse fires a click right after a long press, a finger usually doesn't: ignore only one that comes at once
+  const suppressClickUntil = useRef(0);
+
+  function onPointerDown(e: PointerEvent) {
+    touch();
+    if (e.button !== 0 || (e.target as Element).closest('[data-tr]') || !blocks) return;
+    const x = e.clientX;
+    const y = e.clientY;
+    const timer = window.setTimeout(() => {
+      const hit = hitAt(x, y);
+      const p = press.current;
+      if (!hit || !p) return;
+      const w = wordAt(blocks[hit.block].text, hit.offset, src) ?? { start: hit.offset, end: hit.offset };
+      Object.assign(p, { active: true, block: hit.block, offset: hit.offset, anchor: w, range: w });
+      const el = element(hit.block);
+      mark('select', el ? [rangeIn(el, w.start, w.end)] : []);
+      navigator.vibrate?.(15);
+    }, LONG_PRESS_MS);
+    press.current = { x, y, timer, active: false, block: 0, offset: 0, anchor: { start: 0, end: 0 }, range: { start: 0, end: 0 } };
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    const p = press.current;
+    if (!p || !blocks) return;
+    if (!p.active) {
+      // moving before the long press is a scroll
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) {
+        clearTimeout(p.timer);
+        press.current = null;
+      }
+      return;
+    }
+    const hit = hitAt(e.clientX, e.clientY);
+    const w = hit && hit.block === p.block ? wordAt(blocks[p.block].text, hit.offset, src) : null;
+    if (!w) return;
+    p.range = { start: Math.min(p.anchor.start, w.start), end: Math.max(p.anchor.end, w.end) };
+    const el = element(p.block);
+    mark('select', el ? [rangeIn(el, p.range.start, p.range.end)] : []);
+  }
+
+  function onPointerUp() {
+    const p = press.current;
+    press.current = null;
+    if (!p) return;
+    clearTimeout(p.timer);
+    if (!p.active) return;
+    suppressClickUntil.current = Date.now() + 400;
+    mark('select', []);
+    if (p.range.start === p.anchor.start && p.range.end === p.anchor.end) openSentence(p.block, p.offset);
+    else lookUp(p.block, p.range.start, p.range.end);
+  }
+
+  // while a long press drags a selection the page must not scroll, and the browser's own selection and menu stay away
+  useEffect(() => {
+    const el = pagesRef.current;
+    if (!el) return;
+    const noScroll = (e: TouchEvent) => press.current?.active && e.preventDefault();
+    const noSelect = (e: Event) => e.preventDefault();
+    el.addEventListener('touchmove', noScroll, { passive: false });
+    el.addEventListener('selectstart', noSelect);
+    return () => {
+      el.removeEventListener('touchmove', noScroll);
+      el.removeEventListener('selectstart', noSelect);
+    };
+  }, [blocks]);
+
+  function onTap(e: MouseEvent) {
+    if (Date.now() < suppressClickUntil.current) return;
+    if ((e.target as Element).closest('button')) return;
+    const veiled = (e.target as Element).closest<HTMLElement>('.veiled');
+    if (veiled) {
+      setRevealed((r) => new Set(r).add(Number(veiled.dataset.i)));
+      return;
+    }
+    if ((e.target as Element).closest('[data-tr]')) return;
+    const hit = hitAt(e.clientX, e.clientY);
+    const w = hit && blocks ? wordAt(blocks[hit.block].text, hit.offset, src) : null;
+    if (hit && w) lookUp(hit.block, w.start, w.end);
     else setLookup(null);
+  }
+
+  function openSentence(block: number, offset: number) {
+    if (!blocks) return;
+    const text = blocks[block].text;
+    const existing = highlights.find((h) => h.block === block && offset >= h.start && offset < h.end) ?? null;
+    const range = existing ? [existing.start, existing.end] : (sentenceRanges(text, src).find(([, e]) => offset < e) ?? [0, text.length]);
+    setLookup(null);
+    setSentence({ block, start: range[0], end: range[1], existing });
+  }
+
+  /** The long-pressed sentence and the ones after it, for a dictation that follows the book. */
+  function dictationFrom(block: number, start: number): [string, string][] {
+    if (!blocks) return [];
+    const out: [string, string][] = [];
+    for (let i = block; i < blocks.length && out.length < 10; i++) {
+      const text = blocks[i].text;
+      for (const [s, e] of sentenceRanges(text, src)) {
+        const piece = text.slice(s, e);
+        if ((i !== block || s >= start) && piece.split(' ').length >= 3 && out.length < 10) out.push([piece, src]);
+      }
+    }
+    return out;
+  }
+
+  async function saveHighlight(color: number, note: string | null) {
+    if (!editing) return;
+    const now = Date.now();
+    const h = editing.existing;
+    await db.put(
+      'highlights',
+      h
+        ? { ...h, color, note, updatedAt: now }
+        : ({ book: id, block: editing.block, start: editing.start, end: editing.end, color, note, createdAt: now, updatedAt: now } satisfies Highlight),
+    );
+    setEditing(null);
+  }
+
+  // read aloud: one block after another, the word being said lit up where the browser reports it
+  const speakRun = useRef(0);
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
+  async function speakFrom(from: number, step = 1) {
+    if (!blocks) return;
+    const me = ++speakRun.current;
+    let i = from;
+    while (i >= 0 && i < blocks.length && !blocks[i].text.trim()) i += step;
+    if (i < 0 || i >= blocks.length) return stopSpeaking();
+    setSpeaking(i);
+    setPaused(false);
+    setSpoken(null);
+    const el = element(i);
+    const r = el?.getBoundingClientRect();
+    if (el && r && (r.top < (headerRef.current?.getBoundingClientRect().bottom ?? 0) || r.bottom > window.innerHeight - 64)) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const ok = await speak(blocks[i].text, src, rateRef.current, (start, end) => speakRun.current === me && setSpoken({ block: i, start, end }));
+    if (speakRun.current !== me) return; // paused, stopped or moved on
+    if (!ok) {
+      stopSpeaking();
+      setToast('Não foi possível ler em voz alta neste aparelho.');
+      return;
+    }
+    speakFrom(i + 1);
+  }
+  function stopSpeaking() {
+    speakRun.current++;
+    speechSynthesis.cancel();
+    setSpeaking(null);
+    setSpoken(null);
+    setListenOnly(false);
+    setRevealed(new Set());
   }
 
   async function translateBlock(i: number) {
@@ -244,19 +508,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
   const onTranslate = useCallback((i: number) => latest.current.translateBlock(i), []);
   const onHide = useCallback((i: number) => latest.current.hideTranslation(i), []);
 
-  // an expression grows by whole words, within the sentence
-  let growBack: { start: number; end: number } | null = null;
-  let growOn: { start: number; end: number } | null = null;
-  if (lookup && blocks) {
-    const text = blocks[lookup.block].text;
-    const sentence = sentenceRanges(text, src).find(([s, e]) => lookup.start >= s && lookup.start < e) ?? [0, text.length];
-    growBack = previousWord(text, lookup.start, src);
-    if (growBack && growBack.start < sentence[0]) growBack = null;
-    growOn = nextWord(text, lookup.end, src);
-    if (growOn && growOn.end > sentence[1]) growOn = null;
-  }
-
-  // the list itself only changes with the text or its translations, never with a lookup, a panel or a toast
+  // the list itself only changes with the text, its translations or the reading aloud, never with a lookup or a panel
   const pages = useMemo(
     () =>
       blocks?.map((b, i) => (
@@ -268,12 +520,26 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           translation={translations.get(i)}
           loading={loading.has(i)}
           interlinear={prefs.interlinear}
+          speaking={speaking === i}
+          veiled={listenOnly && speaking !== null && !revealed.has(i)}
           onTranslate={onTranslate}
           onHide={onHide}
         />
       )),
-    [blocks, src, translations, loading, prefs.interlinear, onTranslate, onHide],
+    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, onTranslate, onHide],
   );
+
+  // an expression grows by whole words, within the sentence
+  let growBack: { start: number; end: number } | null = null;
+  let growOn: { start: number; end: number } | null = null;
+  if (lookup && blocks) {
+    const text = blocks[lookup.block].text;
+    const s = sentenceRanges(text, src).find(([a, b]) => lookup.start >= a && lookup.start < b) ?? [0, text.length];
+    growBack = previousWord(text, lookup.start, src);
+    if (growBack && growBack.start < s[0]) growBack = null;
+    growOn = nextWord(text, lookup.end, src);
+    if (growOn && growOn.end > s[1]) growOn = null;
+  }
 
   const go = (block: number) => {
     setPanel(null);
@@ -301,20 +567,61 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
         className={`pages${prefs.serif ? '' : ' sans'}`}
         style={{ fontSize: prefs.fontSize, lineHeight: LINE_SPACINGS[prefs.spacing], paddingLeft: MARGINS[prefs.margins], paddingRight: MARGINS[prefs.margins] }}
         onClick={onTap}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {pages}
       </div>
 
-      <footer className="bottombar">
-        <span className="small">{percent}%</span>
-        <span className="grow" />
-        <button type="button" className="icon" aria-label="Sumário" onClick={() => setPanel('toc')}>
-          <List />
-        </button>
-        <button type="button" className="icon" aria-label="Buscar no livro" onClick={() => setPanel('search')}>
-          <Search />
-        </button>
-      </footer>
+      {speaking === null ? (
+        <footer className="bottombar">
+          <span className="small">{percent}%</span>
+          <span className="grow" />
+          <button type="button" className="icon" aria-label="Sumário" onClick={() => setPanel('toc')}>
+            <List />
+          </button>
+          <button type="button" className="icon" aria-label="Buscar no livro" onClick={() => setPanel('search')}>
+            <Search />
+          </button>
+          <button type="button" className="icon" aria-label="Ouvir o livro" onClick={() => speakFrom(current)}>
+            <Play />
+          </button>
+          <button type="button" className="icon" aria-label="Destaques e notas" onClick={() => setPanel('notes')}>
+            <Highlighter />
+          </button>
+        </footer>
+      ) : (
+        <PlayerBar
+          paused={paused}
+          rate={rate}
+          listenOnly={listenOnly}
+          onPrevious={() => speakFrom(speaking - 1, -1)}
+          onPlayPause={() => {
+            if (paused) speakFrom(speaking);
+            else {
+              speakRun.current++;
+              speechSynthesis.cancel();
+              setPaused(true);
+            }
+          }}
+          onNext={() => speakFrom(speaking + 1)}
+          onRate={() => {
+            const next = SPEECH_RATES[(SPEECH_RATES.indexOf(rate) + 1) % SPEECH_RATES.length];
+            localStorage.setItem('speechRate', String(next));
+            setRate(next);
+            rateRef.current = next;
+            if (!paused) speakFrom(speaking);
+          }}
+          onListenOnly={() => {
+            setListenOnly(!listenOnly);
+            setRevealed(new Set());
+          }}
+          onStop={stopSpeaking}
+        />
+      )}
 
       {toast && <p className="toast">{toast}</p>}
 
@@ -336,6 +643,36 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           onClose={() => setLookup(null)}
         />
       )}
+      {sentence && blocks && (
+        <SentenceSheet
+          sentence={blocks[sentence.block].text.slice(sentence.start, sentence.end)}
+          lang={src}
+          tgt={tgt}
+          highlighted={sentence.existing !== null}
+          onHighlight={() => {
+            setEditing(sentence);
+            setSentence(null);
+          }}
+          onDictation={() => {
+            const list = dictationFrom(sentence.block, sentence.start);
+            setSentence(null);
+            if (list.length) setDictation(list);
+          }}
+          onClose={() => setSentence(null)}
+        />
+      )}
+      {editing && blocks && (
+        <HighlightSheet
+          quote={blocks[editing.block].text.slice(editing.start, editing.end)}
+          existing={editing.existing}
+          onSave={saveHighlight}
+          onRemove={async () => {
+            if (editing.existing?.id !== undefined) await db.del('highlights', editing.existing.id);
+            setEditing(null);
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {panel === 'toc' && <TocSheet toc={book.toc ?? []} current={current} onPick={go} onClose={() => setPanel(null)} />}
       {panel === 'search' && blocks && (
         <SearchSheet
@@ -347,6 +684,7 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           onClose={() => setPanel(null)}
         />
       )}
+      {panel === 'notes' && blocks && <NotesSheet highlights={highlights} blocks={blocks} onPick={go} onClose={() => setPanel(null)} />}
       {panel === 'settings' && <SettingsSheet prefs={prefs} set={setPrefs} onClose={() => setPanel(null)} />}
       {panel === 'languages' && (
         <LanguageSheet
@@ -360,6 +698,13 @@ export function Reader({ book: opened, onClose }: { book: Book; onClose: () => v
           }}
           onClose={() => setPanel(null)}
         />
+      )}
+      {celebrate && <GoalReached streak={celebrate} minutes={dailyGoalMinutes()} onClose={() => setCelebrate(null)} />}
+      {/* over the book, which stays where it was */}
+      {dictation && (
+        <div className="overlay">
+          <DictationRound sentences={dictation} onClose={() => setDictation(null)} />
+        </div>
       )}
     </main>
   );

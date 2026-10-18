@@ -343,6 +343,142 @@ button.danger {
   text-underline-offset: 3px;
 }
 
+/* HIGHLIGHT_COLORS at ~35% */
+::highlight(hl0) {
+  background-color: rgba(250, 204, 21, 0.35);
+}
+
+::highlight(hl1) {
+  background-color: rgba(74, 222, 128, 0.35);
+}
+
+::highlight(hl2) {
+  background-color: rgba(96, 165, 250, 0.35);
+}
+
+::highlight(hl3) {
+  background-color: rgba(244, 114, 182, 0.35);
+}
+
+::highlight(select),
+::highlight(spoken) {
+  background-color: var(--mark);
+}
+
+.pages {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* the long press is ours: sentence actions, not the system menu */
+}
+
+.block.speaking {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.block.veiled > span:not([data-tr]) {
+  filter: blur(6px);
+}
+
+.reveal {
+  display: block;
+  margin-top: 4px;
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.player-bar {
+  justify-content: space-evenly;
+  padding-left: 4px;
+}
+
+button.icon.filled {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.quote {
+  margin: 8px 0 0;
+  font-family: Literata, Georgia, serif;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.highlight-quote {
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.italic {
+  margin: 0;
+  font-style: italic;
+}
+
+.colors {
+  gap: 14px;
+}
+
+.color {
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+}
+
+.color.on {
+  border-color: var(--text);
+}
+
+.sheet-list button.note-row {
+  display: flex;
+  gap: 12px;
+  font-family: Literata, Georgia, serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.note-bar {
+  flex: none;
+  width: 4px;
+  border-radius: 2px;
+}
+
+.block-line {
+  display: block;
+  margin-top: 4px;
+  font-family: Nunito, system-ui, sans-serif;
+}
+
+.center-dialog {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.dialog {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(100%, 360px);
+  padding: 24px;
+  text-align: center;
+}
+
+.dialog h2 {
+  margin: 0;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--text);
+}
+
 .toast {
   position: fixed;
   inset: auto 16px calc(var(--bottom) + 72px);

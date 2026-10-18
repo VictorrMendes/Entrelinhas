@@ -12,9 +12,51 @@ import {
   practiceChoices,
   practiceWords,
   type StudyWord,
+  Streak,
   sessionAccolades,
   vocabularyCsv,
 } from './rules.ts';
+
+const state = (current: number, longest: number, shields: number, metToday: boolean, recovery: { lost: number; done: number } | null = null) => ({
+  current,
+  longest,
+  shields,
+  metToday,
+  recovery,
+});
+const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+test('the streak counts days in a row, spends shields on blank days and then breaks', () => {
+  assert.deepEqual(Streak.compute([8, 9, 10], 10), state(3, 3, 2, true));
+  // today not read yet: the streak is still alive
+  assert.deepEqual(Streak.compute([8, 9, 10], 11), state(3, 3, 2, false));
+  // day 11 blank -> one shield spent, the streak continues on day 12
+  assert.deepEqual(Streak.compute([8, 9, 10, 12], 12), state(4, 4, 1, true));
+  // three blank days > two shields -> restart, and the 3 lost days can be earned back
+  assert.deepEqual(Streak.compute([8, 9, 10, 14], 14), state(1, 3, 2, true, { lost: 3, done: 1 }));
+  // nothing since day 10 and two whole days missed (11, 12): shields cover it
+  assert.deepEqual(Streak.compute([8, 9, 10], 13), state(3, 3, 0, false));
+  assert.deepEqual(Streak.compute([8, 9, 10], 14), state(0, 3, 0, false, { lost: 3, done: 0 }));
+  // day 3 blank spends one shield; reaching 7 streak days returns it
+  assert.deepEqual(Streak.compute([1, 2, 4, 5, 6, 7, 8, 9], 9), state(8, 8, 2, true));
+});
+
+test('a broken streak comes back after five met days in a row', () => {
+  const before = range(1, 10); // a 10-day streak, then 4 blank days: more than the 2 shields
+  assert.deepEqual(Streak.compute(before, 14).recovery, { lost: 10, done: 0 });
+  const midway = Streak.compute([...before, ...range(15, 17)], 17);
+  assert.equal(midway.current, 3);
+  assert.deepEqual(midway.recovery, { lost: 10, done: 3 });
+  const back = Streak.compute([...before, ...range(15, 19)], 19);
+  assert.equal(back.current, 15);
+  assert.equal(back.recovery, null);
+  // a blank day while earning back (even one a shield covers) loses it
+  const gap = Streak.compute([...before, 15, 16, 18, 19, 20], 20);
+  assert.equal(gap.current, 5);
+  assert.equal(gap.recovery, null);
+  // and so does coming back too late
+  assert.equal(Streak.compute([...before, ...range(25, 29)], 29).current, 5);
+});
 
 const word = (key: string, original: string, translated: string, src = 'en', box = 0): StudyWord => ({ key, original, translated, src, box });
 const pool = [

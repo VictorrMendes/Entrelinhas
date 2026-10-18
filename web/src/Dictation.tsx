@@ -33,7 +33,7 @@ export function Dictation({ onClose }: { onClose: () => void }) {
 }
 
 /** Dictation over the example sentences of saved words: listen, type what you heard, see what you got right. */
-function DictationRound({ sentences, onClose }: { sentences: [string, string][]; onClose: () => void }) {
+export function DictationRound({ sentences, onClose }: { sentences: [string, string][]; onClose: () => void }) {
   const [index, setIndex] = useState(0);
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState<ReturnType<typeof checkDictation> | null>(null);

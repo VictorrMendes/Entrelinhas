@@ -1,7 +1,7 @@
 /** IndexedDB, on this device only (sync with the Android app comes later). */
 import { useEffect, useState } from 'react';
 import type { TocEntry } from './book';
-import { Leitner } from './rules';
+import { Leitner, Streak } from './rules';
 import { localDay } from './text';
 
 export interface Book {
@@ -15,6 +15,23 @@ export interface Book {
   lastBlock: number;
   addedAt: number;
   toc?: TocEntry[];
+  /** CEFR level (A1–C2) the AI judged the book needs. */
+  level?: string;
+  /** When the end of the book was first reached. */
+  completedAt?: number;
+}
+
+/** A highlighted stretch of a block, with an optional note; [color] indexes HIGHLIGHT_COLORS. */
+export interface Highlight {
+  id?: number;
+  book: number;
+  block: number;
+  start: number;
+  end: number;
+  color: number;
+  note: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** Same fields as the Android app's synced words, so the two can merge later. */
@@ -49,7 +66,7 @@ export interface Day {
 }
 
 const opened = new Promise<IDBDatabase>((resolve, reject) => {
-  const req = indexedDB.open('entrelinhas', 4);
+  const req = indexedDB.open('entrelinhas', 5);
   req.onupgradeneeded = (e) => {
     const db = req.result;
     if (e.oldVersion < 1) {
@@ -64,12 +81,13 @@ const opened = new Promise<IDBDatabase>((resolve, reject) => {
     }
     if (e.oldVersion < 3) db.createObjectStore('kitQueue', { keyPath: 'id', autoIncrement: true }); // kit words waiting for their day
     if (e.oldVersion < 4) db.createObjectStore('paragraphs'); // "book|block|src|tgt" -> its translation, kept on reopening
+    if (e.oldVersion < 5) db.createObjectStore('highlights', { keyPath: 'id', autoIncrement: true });
   };
   req.onsuccess = () => resolve(req.result);
   req.onerror = () => reject(req.error);
 });
 
-type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs';
+type Store = 'books' | 'texts' | 'words' | 'cache' | 'days' | 'deletions' | 'kitQueue' | 'paragraphs' | 'highlights';
 
 const listeners = new Set<() => void>();
 
@@ -159,6 +177,34 @@ async function today(): Promise<Day> {
       dictations: 0,
     }
   );
+}
+
+/** Minutes of active reading a day that meet the goal (the Android app's default is 5). */
+export const dailyGoalMinutes = () => Number(localStorage.getItem('dailyGoalMinutes') ?? 5);
+
+/** Adds active reading time; true exactly when this call makes today reach the goal. */
+export async function addReadingSeconds(seconds: number): Promise<boolean> {
+  const d = await today();
+  const total = d.seconds + seconds;
+  const justMet = !d.goalMet && total >= dailyGoalMinutes() * 60;
+  await db.put('days', { ...d, active: 1, seconds: total, goalMet: d.goalMet || (justMet ? 1 : 0) });
+  return justMet;
+}
+
+/** The daily streak over the days whose goal was met. */
+export async function streak() {
+  const met = (await db.all<Day>('days')).filter((d) => d.goalMet).map((d) => d.day);
+  return Streak.compute(met.sort((a, b) => a - b), localDay());
+}
+
+export const bookHighlights = (book: number) => db.all<Highlight>('highlights').then((all) => all.filter((h) => h.book === book));
+
+/** A book with everything kept for it: text, translated paragraphs and highlights. */
+export async function deleteBook(id: number) {
+  await db.del('books', id);
+  await db.del('texts', id);
+  await run('paragraphs', 'readwrite', (s) => s.delete(IDBKeyRange.bound(`${id}|`, `${id}|￿`)));
+  for (const h of await bookHighlights(id)) await db.del('highlights', h.id as number);
 }
 
 /** Finishing an exercise meets the day's goal too (Cartões, Aprender, Avaliar, Ditado; like the Android app). */
