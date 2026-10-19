@@ -12,7 +12,7 @@ const GOAL_OPTIONS = [3, 5, 10, 15, 20, 30];
 
 const PAGES: { symbol: string; title: string; text: string }[] = [
   { symbol: '📚', title: 'Leia qualquer livro.\nEntenda cada palavra.', text: 'Leitura sem esforço, com traduções instantâneas enquanto você lê.' },
-  { symbol: '📥', title: 'Traga seus livros.\nComece a ler na hora.', text: 'Importe EPUB, FB2 ou TXT do aparelho ou da nuvem (Arquivos, iCloud, Google Drive).' },
+  { symbol: '📥', title: 'Traga seus livros.\nComece a ler na hora.', text: 'Importe EPUB, FB2, PDF ou TXT do aparelho ou da nuvem (Arquivos, iCloud, Google Drive).' },
   { symbol: '👆', title: 'Toque numa palavra.\nVeja a tradução.', text: 'Toque em qualquer palavra desconhecida para ver o significado e salvá-la no vocabulário.' },
   { symbol: '文A', title: 'Traduza parágrafos inteiros com um toque.', text: 'Use o botão “traduzir” para converter qualquer parágrafo com IA.' },
   { symbol: '📶', title: 'Tradução inteligente com IA.', text: 'As traduções que você já viu ficam guardadas no aparelho e voltam mesmo sem internet.' },

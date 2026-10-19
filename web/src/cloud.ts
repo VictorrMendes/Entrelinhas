@@ -159,7 +159,7 @@ async function syncNow(): Promise<string> {
         await importBook(`${book.title}.${book.fileType}`, bytes);
         downloaded++;
       } catch {
-        // a format this app doesn't open yet (PDF): the book stays in the cloud for the other devices
+        // one this app can't read (a PDF of scanned pages needs the Android app's OCR): it stays in the cloud for the other devices
       }
     }
     await applySnapshot(merged);

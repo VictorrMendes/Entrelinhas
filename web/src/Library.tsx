@@ -161,10 +161,10 @@ export function Library({ onOpen, onReview, onExplore }: { onOpen: (book: Book) 
               <Icon svg={addSvg} size={22} />
             </span>
             <span className="title-small">Adicionar livro</span>
-            <span className="body-small variant">EPUB, FB2 ou TXT do aparelho</span>
+            <span className="body-small variant">EPUB, PDF, FB2 ou TXT do aparelho</span>
             <input
               type="file"
-              accept=".epub,.fb2,.zip,.txt,application/epub+zip,text/plain"
+              accept=".epub,.pdf,.fb2,.zip,.txt,application/epub+zip,application/pdf,text/plain"
               hidden
               disabled={busy}
               onChange={(e) => {
@@ -186,7 +186,7 @@ export function Library({ onOpen, onReview, onExplore }: { onOpen: (book: Book) 
           <div className="empty-state">
             <img src="/art/empty_library.png" alt="" width={128} height={128} />
             <span className="title-medium">{books.length === 0 ? 'Nenhum livro ainda' : 'Nada por aqui'}</span>
-            <span className="body-medium variant">Adicione um livro EPUB, FB2 ou TXT para começar a ler.</span>
+            <span className="body-medium variant">Adicione um livro EPUB, FB2, PDF ou TXT para começar a ler.</span>
           </div>
         )}
         {shown.map((b) => (

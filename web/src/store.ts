@@ -291,7 +291,7 @@ const imageType = (name: string) => `image/${name.split('.').pop()?.replace('jpg
 export async function importBook(fileName: string, bytes: Uint8Array<ArrayBuffer>): Promise<number> {
   const hash = await sha256Hex(bytes);
   if ((await db.all<Book>('books')).some((b) => b.hash === hash)) throw new Error('Este livro já está na biblioteca.');
-  const parsed = parseBook(fileName, bytes);
+  const parsed = await parseBook(fileName, bytes);
   const now = Date.now();
   const book: Book = {
     title: parsed.title,

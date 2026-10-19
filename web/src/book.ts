@@ -1,9 +1,10 @@
 /**
  * The Android app's BookParser.kt, rule for rule: reading positions and highlights sync by block index and text offset,
  * so both apps must cut a book into exactly the same blocks. Book markup is only tokenized, never handed to the DOM.
- * PDF comes later.
+ * PDF is the exception: the app reads it with PDFBox, this one with pdf.js, so its blocks come close but can differ.
  */
 import { strFromU8, unzipSync } from 'fflate';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 /** Bold or italic text inside a block: [start, end) of its text. */
 export interface Span {
@@ -36,13 +37,13 @@ export interface TocEntry {
 
 export interface ParsedBook {
   title: string;
-  fileType: 'epub' | 'fb2' | 'txt';
+  fileType: 'epub' | 'fb2' | 'txt' | 'pdf';
   /** Primary language subtag from the book's metadata, e.g. "en" (the Android app guesses it from the text instead). */
   language: string;
   blocks: Block[];
   /** Image file name -> its bytes. */
   images: Record<string, Uint8Array>;
-  /** The declared cover, else the first image. */
+  /** The declared cover, else the first image (a PDF's first page). */
   cover?: Uint8Array;
   toc: TocEntry[];
 }
@@ -558,15 +559,387 @@ function fb2(bytes: Uint8Array, fallback: string): Omit<ParsedBook, 'fileType'> 
   };
 }
 
-/** EPUB, FB2 (also zipped) or TXT. */
-export function parseBook(fileName: string, bytes: Uint8Array): ParsedBook {
+/** A decoded PDF image as pdf.js hands it over (kind is its ImageKind: 1 = 1-bit gray, 2 = RGB, 3 = RGBA). */
+export interface PdfImage {
+  width: number;
+  height: number;
+  kind: number;
+  data: Uint8Array | Uint8ClampedArray;
+}
+
+/** What a PDF needs pixels for. Only the browser has it; without it (tests) images and the cover are left out. */
+export interface Draw {
+  image(img: PdfImage): Promise<Uint8Array | null>;
+  cover(page: PDFPageProxy): Promise<Uint8Array | null>;
+}
+
+const toJpeg = (canvas: HTMLCanvasElement, quality: number) =>
+  new Promise<Uint8Array | null>((done) => canvas.toBlob((b) => (b ? b.arrayBuffer().then((a) => done(new Uint8Array(a))) : done(null)), 'image/jpeg', quality));
+
+function rgba({ width, height, kind, data }: PdfImage): Uint8ClampedArray<ArrayBuffer> | null {
+  const n = width * height;
+  if (kind === 3) return data.length === n * 4 ? new Uint8ClampedArray(data) : null;
+  const out = new Uint8ClampedArray(n * 4).fill(255);
+  if (kind === 2) {
+    for (let i = 0; i < n; i++) out.set(data.subarray(i * 3, i * 3 + 3), i * 4);
+  } else if (kind === 1) {
+    const row = (width + 7) >> 3;
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) if (!((data[y * row + (x >> 3)] >> (7 - (x & 7))) & 1)) out.fill(0, (y * width + x) * 4, (y * width + x) * 4 + 3);
+  } else return null;
+  return out;
+}
+
+const BROWSER: Draw = {
+  // the app copies a PDF's JPEGs as they are and saves the rest as PNG; pdf.js only hands out pixels, so all become JPEG
+  async image(img) {
+    const pixels = rgba(img);
+    if (!pixels) return null;
+    const canvas = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height });
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, img.width, img.height);
+    ctx.drawImage(await createImageBitmap(new ImageData(pixels, img.width, img.height)), 0, 0);
+    return toJpeg(canvas, 0.9);
+  },
+  // the first page 360 px wide, as the app's pdfCover renders it
+  async cover(page) {
+    const viewport = page.getViewport({ scale: 360 / page.getViewport({ scale: 1 }).width });
+    const canvas = Object.assign(document.createElement('canvas'), { width: 360, height: Math.floor(viewport.height) });
+    await page.render({ canvas, viewport, background: '#fff' }).promise;
+    return toJpeg(canvas, 0.85);
+  },
+};
+
+/** One glyph as PDFBox's TextPosition sees it. pdf.js's own text runs drop the space glyphs (an indent made of spaces
+ *  would move the line start), so glyphs are laid out from the drawing operators the way PDFStreamEngine does. */
+interface Glyph {
+  text: string;
+  x: number;
+  /** Baseline, from the top of the page (yDirAdj). */
+  y: number;
+  width: number;
+  /** As LegacyPDFStreamEngine measures it. */
+  height: number;
+  space: number;
+  font: string;
+  size: number;
+  paragraphStart?: boolean;
+  hanging?: boolean;
+}
+
+const HYPHEN_BREAK = /-\r?\n(?=\p{Ll})/gu;
+// PDFTextStripper.normalizeWord: presentation forms (ligatures and the like) are spelled out; then Java's trim()
+const PRESENTATION = /[ﬀ-﷿ﹰ-﻿]/g;
+const normalizeWord = (s: string) => s.replace(PRESENTATION, (c) => c.normalize('NFKC').replace(/^[\0- ]+|[\0- ]+$/g, ''));
+const round3 = (v: number) => Math.round(v * 1000) / 1000;
+const within = (a: number, b: number, v: number) => b < a + v && b > a - v;
+const overlap = (y1: number, h1: number, y2: number, h2: number) => within(y1, y2, 0.1) || (y2 <= y1 && y2 >= y1 - h1) || (y1 <= y2 && y1 >= y2 - h2);
+
+// TextPositionComparator: on the same line (by baseline and height), left to right; otherwise top to bottom
+const byPosition = (p: Glyph, q: Glyph) =>
+  Math.abs(p.y - q.y) < 0.1 || (q.y >= p.y - p.height && q.y <= p.y) || (p.y >= q.y - q.height && p.y <= q.y) ? p.x - q.x : p.y - q.y;
+
+// PDFTextStripper.isParagraphSeparation (its list-item patterns only ever match a line starting with ".", so they're left out)
+function paragraphStart(p: Glyph, last: Glyph, lineStart: Glyph, maxHeight: number) {
+  const xGap = p.x - lineStart.x;
+  if (Math.abs(p.y - last.y) > round3(2.5 * maxHeight)) p.paragraphStart = true;
+  else if (xGap > round3(2 * p.space)) {
+    if (lineStart.paragraphStart) p.hanging = true;
+    else p.paragraphStart = true;
+  } else if (xGap < -p.space) p.paragraphStart = !lineStart.paragraphStart;
+  else if (Math.abs(xGap) < round3(0.25 * p.width) && lineStart.hanging) p.hanging = true;
+  return !!p.paragraphStart;
+}
+
+/** A page's paragraphs and where each starts, as PDFTextStripper.writePage cuts them (the app's PageText). */
+function pageParagraphs(glyphs: Glyph[]): [number, string][] {
+  const out: [number, string][] = [];
+  let sb = '';
+  let y = 0;
+  const flush = () => {
+    const t = trim(sb.replace(HYPHEN_BREAK, '').replace(WS, ' '));
+    if (t) out.push([y, t]);
+    sb = '';
+  };
+  let line = '';
+  let lineY = 0;
+  const endLine = (separator: string) => {
+    if (!sb) y = lineY;
+    sb += normalizeWord(line) + separator;
+    line = '';
+  };
+  let maxY = -Infinity;
+  let maxHeight = -1;
+  let endX = -1;
+  let lastSpacing = -1;
+  let prevAverage = -1;
+  let last: Glyph | null = null;
+  let lineStart: Glyph | null = null;
+  for (const g of glyphs.sort(byPosition)) {
+    if (last && (g.font !== last.font || g.size !== last.size)) prevAverage = -1;
+    const deltaSpace = !g.space ? Infinity : lastSpacing < 0 ? g.space * 0.5 : ((g.space + lastSpacing) / 2) * 0.5;
+    const average = prevAverage < 0 ? g.width : (prevAverage + g.width) / 2;
+    let nextWordX = endX === -1 ? null : endX + Math.min(deltaSpace, average * 0.3);
+    if (last && lineStart) {
+      if (!overlap(g.y, g.height, maxY, maxHeight)) {
+        endLine('\n');
+        if (paragraphStart(g, last, lineStart, maxHeight)) flush();
+        lineStart = g;
+        nextWordX = null;
+        maxY = -Infinity;
+        maxHeight = -1;
+      }
+      if (nextWordX !== null && nextWordX < g.x && !last.text.endsWith(' ')) line += ' ';
+      // at least a space away from the last glyph: the line height starts over
+      if (Math.abs(g.x - last.x) > g.space + deltaSpace) {
+        maxY = -Infinity;
+        maxHeight = -1;
+      }
+    }
+    if (g.y >= maxY) maxY = g.y;
+    endX = g.x + g.width;
+    if (!line) lineY = g.y;
+    line += g.text;
+    maxHeight = Math.max(maxHeight, g.height);
+    if (!lineStart) {
+      g.paragraphStart = true;
+      lineStart = g;
+    }
+    last = g;
+    lastSpacing = g.space;
+    prevAverage = average;
+  }
+  if (line) endLine('');
+  flush();
+  return out;
+}
+
+// Height of the font box of the standard 14 fonts, which pdf.js leaves out when they aren't embedded; PDFBox reads the AFM files
+const STANDARD_BOX: Record<string, number> = {
+  Courier: 1055,
+  'Courier-Bold': 1051,
+  'Courier-Oblique': 1055,
+  'Courier-BoldOblique': 1051,
+  Helvetica: 1156,
+  'Helvetica-Bold': 1190,
+  'Helvetica-Oblique': 1156,
+  'Helvetica-BoldOblique': 1190,
+  'Times-Roman': 1116,
+  'Times-Bold': 1153,
+  'Times-Italic': 1100,
+  'Times-BoldItalic': 1139,
+  Symbol: 1303,
+  ZapfDingbats: 963,
+};
+
+interface FontMetrics {
+  /** Glyph space to text space. */
+  scale: number;
+  height: number;
+  space: number;
+}
+
+/** LegacyPDFStreamEngine's glyph height (half the font's bounding box; PDFBox lowers it to CapHeight, which pdf.js keeps
+ *  to itself) and PDFont.getSpaceWidth (the glyph ToUnicode maps to a space, else code 32, else 80% of the average width),
+ *  both per unit of font size. */
+function fontMetrics(
+  f: { name?: string; fontMatrix?: number[]; bbox?: number[]; widths?: Record<number, number>; toUnicode?: { _map?: unknown }; defaultWidth?: number } | null,
+): FontMetrics {
+  const matrix = f?.fontMatrix ?? [0.001, 0, 0, 0.001];
+  const glyphHeight = (f?.bbox ? f.bbox[3] - f.bbox[1] : (STANDARD_BOX[f?.name ?? ''] ?? 0)) / 2;
+  const widths = f?.widths ?? {};
+  const map = f?.toUnicode?._map;
+  const code = Array.isArray(map) ? map.indexOf(' ') : -1;
+  let space = (code >= 0 ? widths[code] : widths[32]) ?? f?.defaultWidth ?? 0;
+  if (!(space > 0)) {
+    const all = Object.values(widths).filter((w) => w > 0);
+    space = all.length ? (all.reduce((a, b) => a + b, 0) / all.length) * 0.8 : 0;
+  }
+  return { scale: matrix[0], height: glyphHeight ? glyphHeight * Math.abs(matrix[3]) : 0.5, space: space ? space * Math.abs(matrix[0]) : 1 };
+}
+
+async function digest(data: Uint8Array | Uint8ClampedArray) {
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(data)));
+  return Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function pdfOutline(doc: PDFDocumentProxy, pageStart: number[]): Promise<TocEntry[]> {
+  const out: TocEntry[] = [];
+  const pageOf = async (dest: unknown): Promise<number> => {
+    const d = typeof dest === 'string' ? await doc.getDestination(dest) : dest;
+    const ref = Array.isArray(d) ? d[0] : null;
+    return typeof ref === 'number' ? ref : ref ? doc.getPageIndex(ref) : -1;
+  };
+  const walk = async (items: { title: string; dest: unknown; items: unknown[] }[], depth: number) => {
+    for (const item of items) {
+      const index = await pageOf(item.dest).catch(() => -1);
+      if (index >= 0 && index < pageStart.length && trim(item.title ?? '')) out.push({ title: trim(item.title), block: pageStart[index] });
+      if (depth < 1) await walk(item.items as typeof items, depth + 1);
+    }
+  };
+  await walk((await doc.getOutline()) ?? [], 0);
+  return out;
+}
+
+/** Text state, saved and restored with the graphics state (the text matrix isn't). */
+interface TextState {
+  font: string;
+  size: number;
+  charSpacing: number;
+  wordSpacing: number;
+  hScale: number;
+  leading: number;
+  rise: number;
+}
+
+/** Paragraphs and images are ordered by their position on the page, so a figure lands where it was printed. */
+async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Promise<ParsedBook> {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const { OPS, Util } = pdfjs;
+  if (typeof document !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc)
+    pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
+  // a copy, since pdf.js hands the bytes over to its worker; raw pixels (no ImageBitmap) so images can be compared
+  const task = pdfjs.getDocument({ data: bytes.slice(), fontExtraProperties: true, isOffscreenCanvasSupported: false, isImageDecoderSupported: false, verbosity: 0 });
+  const doc = await task.promise.catch((e: unknown) => {
+    throw new Error((e as Error)?.name === 'PasswordException' ? 'Este PDF é protegido por senha.' : 'Não consegui abrir este PDF.');
+  });
+  try {
+    const images = new ImageStore();
+    const seen = new Set<string>();
+    const blocks: Block[] = [];
+    const pageStart: number[] = [];
+    const metrics = new Map<string, FontMetrics>();
+    for (let i = 1; i <= doc.numPages; i++) {
+      pageStart.push(blocks.length);
+      const page = await doc.getPage(i);
+      const ops = await page.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
+      const [left, bottom, , top] = page.view;
+      const glyphs: Glyph[] = [];
+      const drawn = new Map<string, [number, number][]>();
+      const pictures: [number, string][] = [];
+      let ctm = [1, 0, 0, 1, 0, 0];
+      let state: TextState = { font: '', size: 0, charSpacing: 0, wordSpacing: 0, hScale: 1, leading: 0, rise: 0 };
+      const saved: [number[], TextState][] = [];
+      let tm = [1, 0, 0, 1, 0, 0];
+      let x = 0;
+      let y = 0;
+      let lineX = 0;
+      let lineY = 0;
+      const moveText = (dx: number, dy: number) => {
+        x = lineX += dx;
+        y = lineY += dy;
+      };
+      for (let k = 0; k < ops.fnArray.length; k++) {
+        const fn = ops.fnArray[k];
+        const args = ops.argsArray[k];
+        if (fn === OPS.save || fn === OPS.paintFormXObjectBegin) {
+          saved.push([ctm, state]);
+          if (fn === OPS.paintFormXObjectBegin && args[0]) ctm = Util.transform(ctm, args[0]);
+        } else if (fn === OPS.restore || fn === OPS.paintFormXObjectEnd) [ctm, state] = saved.pop() ?? [ctm, state];
+        else if (fn === OPS.transform) ctm = Util.transform(ctm, args);
+        else if (fn === OPS.beginText) {
+          tm = [1, 0, 0, 1, 0, 0];
+          x = lineX = y = lineY = 0;
+        } else if (fn === OPS.setTextMatrix) {
+          tm = Array.from(args[0] as ArrayLike<number>);
+          x = lineX = y = lineY = 0;
+        } else if (fn === OPS.moveText) moveText(args[0], args[1]);
+        else if (fn === OPS.setLeadingMoveText) {
+          state = { ...state, leading: args[1] };
+          moveText(args[0], args[1]);
+        } else if (fn === OPS.nextLine) moveText(0, state.leading);
+        else if (fn === OPS.setLeading) state = { ...state, leading: -args[0] };
+        else if (fn === OPS.setCharSpacing) state = { ...state, charSpacing: args[0] };
+        else if (fn === OPS.setWordSpacing) state = { ...state, wordSpacing: args[0] };
+        else if (fn === OPS.setHScale) state = { ...state, hScale: args[0] / 100 };
+        else if (fn === OPS.setTextRise) state = { ...state, rise: args[0] };
+        else if (fn === OPS.setFont) state = { ...state, font: args[0], size: args[1] };
+        else if (fn === OPS.showText) {
+          let font = metrics.get(state.font);
+          if (!font) metrics.set(state.font, (font = fontMetrics(page.commonObjs.has(state.font) ? page.commonObjs.get(state.font) : null)));
+          const size = Math.abs(state.size);
+          const hScale = state.hScale * Math.sign(state.size || 1);
+          const m = Util.transform(ctm, tm);
+          // Trm = [size·hScale 0 0 size 0 rise] × Tm × CTM: its scaling sizes the glyph height and the space
+          const scaleX = Math.abs(size * hScale) * Math.hypot(m[0], m[1]);
+          const scaleY = size * Math.hypot(m[2], m[3]);
+          const fl = Math.fround; // PDFBox measures in 32-bit floats
+          let advance = 0;
+          for (const g of args[0] as ({ unicode: string; width: number; isSpace: boolean } | number)[]) {
+            if (typeof g === 'number') {
+              advance -= (g * size) / 1000;
+              continue;
+            }
+            const width = g.width * font.scale * size;
+            if (g.unicode) {
+              const px = x + advance * hScale;
+              const py = y + state.rise;
+              const ox = m[0] * px + m[2] * py + m[4];
+              const oy = m[1] * px + m[3] * py + m[5];
+              const glyph: Glyph = {
+                text: g.unicode,
+                x: fl(ox - left),
+                y: fl(top - oy),
+                width: fl(width * hScale * m[0]),
+                height: fl(font.height * scaleY),
+                space: fl(font.space * scaleX),
+                font: state.font,
+                size: state.size,
+              };
+              // processTextPosition: the same character drawn again on top of itself (fake bold) counts once
+              const tolerance = glyph.width / glyph.text.length / 3;
+              const same = drawn.get(glyph.text) ?? [];
+              if (!same.some(([sx, sy]) => sx >= glyph.x - tolerance && sx < glyph.x + tolerance && sy >= glyph.y - tolerance && sy < glyph.y + tolerance)) {
+                same.push([glyph.x, glyph.y]);
+                drawn.set(glyph.text, same);
+                glyphs.push(glyph);
+              }
+            }
+            advance += width + (g.isSpace ? state.wordSpacing : 0) + state.charSpacing;
+          }
+          x += advance * hScale;
+        } else if (fn === OPS.paintImageXObject && draw) {
+          // PageImages: PDF space grows upward, so an image's top is pageHeight - (y + height)
+          const objs = String(args[0]).startsWith('g_') ? page.commonObjs : page.objs;
+          const img: PdfImage | null = objs.has(args[0]) ? objs.get(args[0]) : null;
+          if (!img?.data) continue;
+          // first use only: logos and ornaments repeated on every page appear once; tiny images are skipped
+          const key = `${img.width}x${img.height}:${await digest(img.data)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (img.width < 64 || img.height < 64) continue;
+          const data = await draw.image(img).catch(() => null);
+          const name = data && images.add(`pdf-${seen.size}`, data);
+          if (name) pictures.push([top - bottom - (ctm[5] + ctm[3]), name]);
+        }
+      }
+      const placed: [number, Block][] = pageParagraphs(glyphs).map(([py, text]) => [py, { type: classify(text), text }]);
+      for (const [py, image] of pictures) placed.push([py, { type: 'img', text: '', image }]);
+      blocks.push(...placed.sort((p, q) => p[0] - q[0]).map(([, b]) => b));
+      page.cleanup();
+    }
+    // the app reads scanned pages with OCR; here there's nothing to read
+    if (!blocks.some((b) => b.text)) throw new Error('Este PDF só tem páginas escaneadas; o texto dele só é reconhecido no app Android.');
+    const info = (await doc.getMetadata().catch(() => null))?.info as { Title?: unknown } | undefined;
+    const title = typeof info?.Title === 'string' && trim(info.Title) ? info.Title : fallback;
+    const cover = draw ? ((await draw.cover(await doc.getPage(1)).catch(() => null)) ?? undefined) : undefined;
+    return { title, fileType: 'pdf', language: 'en', blocks, images: images.bytes, cover, toc: await pdfOutline(doc, pageStart).catch(() => []) };
+  } finally {
+    await task.destroy();
+  }
+}
+
+/** EPUB, FB2 (also zipped), TXT or PDF. */
+export async function parseBook(fileName: string, bytes: Uint8Array, draw: Draw | null = typeof document === 'undefined' ? null : BROWSER): Promise<ParsedBook> {
   const dot = fileName.lastIndexOf('.');
   const stem = dot >= 0 ? fileName.slice(0, dot) : fileName;
   const fallback = trim(stem) ? stem : fileName;
   const head = strFromU8(bytes.subarray(0, 1024), true);
   let book: ParsedBook;
-  if (head.startsWith('%PDF')) throw new Error('PDF ainda não abre aqui; use EPUB, FB2 ou TXT.');
-  if (head.startsWith('PK')) {
+  if (head.startsWith('%PDF')) book = await pdf(bytes, fallback, draw);
+  else if (head.startsWith('PK')) {
     const files = Object.fromEntries(Object.entries(unzipSync(bytes)).filter(([name]) => !name.endsWith('/')));
     const inner = Object.keys(files).find((k) => k.toLowerCase().endsWith('.fb2'));
     if ('META-INF/container.xml' in files) book = { ...epub(files, fallback), fileType: 'epub' };
@@ -574,7 +947,7 @@ export function parseBook(fileName: string, bytes: Uint8Array): ParsedBook {
     else throw new Error('Este arquivo compactado não tem um EPUB nem um FB2.');
   } else if (head.includes('<FictionBook')) book = { ...fb2(bytes, fallback), fileType: 'fb2' };
   else if (/\.txt$/i.test(fileName)) book = { title: fallback, fileType: 'txt', language: 'en', blocks: txt(decodeText(bytes)), images: {}, toc: [] };
-  else throw new Error('Formato não aceito: use EPUB, FB2 ou TXT.');
+  else throw new Error('Formato não aceito: use EPUB, FB2, TXT ou PDF.');
 
   // splitting long blocks shifts indices, so links and the table of contents are remapped through the same split
   const blocks: Block[] = [];
