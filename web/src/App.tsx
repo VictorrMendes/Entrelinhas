@@ -5,6 +5,7 @@ import settingsSvg from '@material-design-icons/svg/outlined/settings.svg?raw';
 import { useEffect, useState } from 'react';
 import { Cards } from './Cards';
 import { sync } from './cloud';
+import { FreeBooks } from './FreeBooks';
 import { Kits } from './Kits';
 import { Learn } from './Learn';
 import { Library } from './Library';
@@ -34,6 +35,7 @@ export function App() {
   const [tab, setTab] = useState<Tab>('books');
   const [book, setBook] = useState<Book | null>(null);
   const [mode, setMode] = useState<StudyMode | null>(null);
+  const [exploring, setExploring] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [welcome, setWelcome] = useState(() => !onboarded());
   const [signingIn, setSigningIn] = useState(false);
@@ -103,11 +105,12 @@ export function App() {
   else if (mode === 'listen') screen = <Listen onClose={close} />;
   else if (mode === 'words') screen = <WordsScreen onClose={close} />;
   else if (mode === 'kits') screen = <Kits onClose={close} />;
+  else if (exploring) screen = <FreeBooks onClose={() => setExploring(false)} />;
   else
     screen = (
       <>
         {tab === 'books' && (
-          <Library onOpen={setBook} onReview={() => setMode('cards')} onExplore={() => setNotices((n) => [...n, { text: 'Os livros grátis chegam numa próxima etapa.' }])} />
+          <Library onOpen={setBook} onReview={() => setMode('cards')} onExplore={() => setExploring(true)} />
         )}
         {tab === 'vocabulary' && <Vocabulary onStudy={setMode} />}
         {tab === 'progress' && <Progress />}

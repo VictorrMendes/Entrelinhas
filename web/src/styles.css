@@ -2257,3 +2257,54 @@ button.text.end {
 .onboarding-page .pills {
   max-width: 100%;
 }
+
+/* ---------- Livros grátis (Explore.kt): TopAppBar, the picture and hint, one card per collection */
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: calc(64px + var(--top));
+  padding: var(--top) 4px 0;
+  background: var(--bg);
+}
+
+.app-bar h1 {
+  margin: 0;
+  padding: 0 4px;
+}
+
+.free-list {
+  display: grid;
+  gap: 12px;
+  padding: 0 16px calc(24px + var(--bottom));
+}
+
+.free-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.free-hint p {
+  margin: 8px 0 0;
+}
+
+.site-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-card .body-medium {
+  margin-top: 4px;
+}
+
+.site-card .label-medium {
+  margin-top: 8px;
+}
