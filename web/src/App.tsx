@@ -11,9 +11,10 @@ import { Library } from './Library';
 import { Listen } from './Listen';
 import { Match } from './Match';
 import { type Notice, onNotice } from './notices';
+import { Onboarding, onboarded } from './Onboarding';
 import { Progress } from './Progress';
 import { Reader } from './Reader';
-import { Settings } from './Settings';
+import { Settings, SignInSheet } from './Settings';
 import { type Book, celebrations, onChange } from './store';
 import { Test } from './Test';
 import { Icon } from './ui';
@@ -34,6 +35,8 @@ export function App() {
   const [book, setBook] = useState<Book | null>(null);
   const [mode, setMode] = useState<StudyMode | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [welcome, setWelcome] = useState(() => !onboarded());
+  const [signingIn, setSigningIn] = useState(false);
   const close = () => setMode(null);
   const openProgress = () => {
     setBook(null);
@@ -72,7 +75,17 @@ export function App() {
   }, [notices]);
 
   let screen;
-  if (book)
+  if (welcome)
+    screen = (
+      <Onboarding
+        onSignIn={() => setSigningIn(true)}
+        onDone={() => {
+          localStorage.setItem('onboarded', '1');
+          setWelcome(false);
+        }}
+      />
+    );
+  else if (book)
     screen = (
       <Reader
         book={book}
@@ -116,6 +129,15 @@ export function App() {
   return (
     <>
       {screen}
+      {signingIn && (
+        <SignInSheet
+          onDone={() => {
+            setSigningIn(false);
+            sync();
+          }}
+          onClose={() => setSigningIn(false)}
+        />
+      )}
       {notice && (
         <p className="toast notice" role="status">
           {notice.text}

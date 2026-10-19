@@ -80,6 +80,8 @@
   /* the Android cardBorder: onSurface at 8% */
   --card-border: rgba(237, 235, 247, 0.08);
   --secondary-container: #2a2750;
+  --primary-container: #2e2c66;
+  --on-primary-container: #e6e4ff;
   --inverse-surface: #edebf7;
   --inverse-on-surface: #12111f;
   --inverse-primary: #3b3a98;
@@ -103,6 +105,8 @@
     --outline: #6b6880;
     --mark: rgba(59, 58, 152, 0.18);
     --secondary-container: #eeebfb;
+    --primary-container: #e4e3fa;
+    --on-primary-container: #1e1d5c;
     --inverse-surface: #2a2840;
     --inverse-on-surface: #f4f2fa;
     --inverse-primary: #a9a6ff;
@@ -124,6 +128,8 @@
   --outline: #6b6880;
   --mark: rgba(59, 58, 152, 0.18);
   --secondary-container: #eeebfb;
+  --primary-container: #e4e3fa;
+  --on-primary-container: #1e1d5c;
   --inverse-surface: #2a2840;
   --inverse-on-surface: #f4f2fa;
   --inverse-primary: #a9a6ff;
@@ -2130,4 +2136,124 @@ button.text.end {
 
 .language-list button.on {
   color: var(--primary);
+}
+
+/* ---------- Primeira abertura (Onboarding.kt) */
+
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(var(--top) + 16px) 24px calc(var(--bottom) + 16px);
+}
+
+.onboarding-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 48px;
+}
+
+.onboarding-pages {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.onboarding-page {
+  display: flex;
+  flex: 0 0 100%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 8px;
+  overflow-y: auto;
+  scroll-snap-align: center;
+  text-align: center;
+}
+
+.onboarding-page h2,
+.onboarding-page h3,
+.onboarding-page p {
+  margin: 0;
+}
+
+.onboarding-symbol {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 168px;
+  height: 168px;
+  margin-bottom: 40px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-size: 64px;
+  line-height: 1;
+}
+
+.onboarding-title {
+  margin-bottom: 16px !important;
+  white-space: pre-line;
+}
+
+.onboarding-emoji {
+  font-size: 64px;
+  line-height: 1.2;
+}
+
+.onboarding-emoji + h2,
+.onboarding-setup-title {
+  margin-top: 20px !important;
+}
+
+.onboarding-hint {
+  margin: 6px 0 14px !important;
+}
+
+.onboarding-label {
+  margin: 18px 0 10px !important;
+}
+
+.onboarding-action {
+  margin-top: 22px;
+}
+
+.onboarding-language {
+  display: flex;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.onboarding-signed {
+  margin-top: 12px !important;
+}
+
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.onboarding-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  transition: width 0.2s;
+}
+
+.onboarding-dots span.on {
+  width: 24px;
+  background: var(--primary);
+}
+
+.onboarding-page .pills {
+  max-width: 100%;
 }

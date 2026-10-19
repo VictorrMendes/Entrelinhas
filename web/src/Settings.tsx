@@ -239,7 +239,7 @@ function Field({ icon: Icon, label, hint, trailing, ...input }: { icon: typeof L
   );
 }
 
-function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; onClose: () => void }) {
+export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; onClose: () => void }) {
   const [create, setCreate] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [name, setName] = useState('');
