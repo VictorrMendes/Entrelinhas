@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Volume2 } from 'lucide-react';
+import { CheckCircle, VolumeUp } from './icons';
 import { useEffect, useState } from 'react';
 import { addedKits, addKit, KIT_LEVELS, type KitPack, loadKits, NEW_WORDS_OPTIONS, perDay } from './kitData';
 import { speak } from './speech';
@@ -22,7 +22,7 @@ export function Kits({ onClose }: { onClose: () => void }) {
     return (
       <main className="study">
         <TopBar title={open.title} onClose={() => setOpen(null)} />
-        <div className="study-body">
+        <div className="kits-list kit-detail">
           <button
             type="button"
             className="button primary wide"
@@ -38,12 +38,12 @@ export function Kits({ onClose }: { onClose: () => void }) {
             {open.words.map((w) => (
               <li key={w.word}>
                 <span>
-                  <strong>{w.word}</strong>
-                  <span className="primary-text">{w.translation}</span>
-                  <em className="muted small">{w.example}</em>
+                  <span className="title-medium">{w.word}</span>
+                  <span className="body-medium primary-text">{w.translation}</span>
+                  <span className="body-small italic variant">{w.example}</span>
                 </span>
                 <button type="button" className="icon" aria-label="Ouvir pronúncia" onClick={() => speak(w.word, 'en')}>
-                  <Volume2 />
+                  <VolumeUp />
                 </button>
               </li>
             ))}
@@ -56,24 +56,30 @@ export function Kits({ onClose }: { onClose: () => void }) {
   return (
     <main className="study">
       <TopBar title="Kits de palavras" onClose={onClose} />
-      <div className="study-body">
+      <div className="kits-list">
         <Pills options={KIT_LEVELS} selected={KIT_LEVELS.indexOf(level)} onSelect={(i) => setLevel(KIT_LEVELS[i])} />
-        <h3 className="label">Palavras novas por dia</h3>
-        <Pills
-          options={NEW_WORDS_OPTIONS.map(String)}
-          selected={NEW_WORDS_OPTIONS.indexOf(daily)}
-          onSelect={(i) => {
-            localStorage.setItem('newWordsPerDay', String(NEW_WORDS_OPTIONS[i]));
-            setDaily(NEW_WORDS_OPTIONS[i]);
-          }}
-        />
+        <div>
+          <h3 className="title-small per-day">Palavras novas por dia</h3>
+          <Pills
+            options={NEW_WORDS_OPTIONS.map(String)}
+            selected={NEW_WORDS_OPTIONS.indexOf(daily)}
+            onSelect={(i) => {
+              localStorage.setItem('newWordsPerDay', String(NEW_WORDS_OPTIONS[i]));
+              setDaily(NEW_WORDS_OPTIONS[i]);
+            }}
+          />
+        </div>
         {kits.map((k) => (
-          <button type="button" key={k.id} className="card mode" onClick={() => setOpen(k)}>
-            <span className="mode-text">
-              <strong>{k.title}</strong>
-              <span className="muted">{k.words.length} palavras</span>
+          <button type="button" key={k.id} className="kit-card" onClick={() => setOpen(k)}>
+            <span className="grow">
+              <span className="title-medium">{k.title}</span>
+              <span className="body-medium variant">{k.words.length} palavras</span>
             </span>
-            {added.has(k.id) ? <CheckCircle2 className="success-text" aria-label="Kit adicionado" /> : <ChevronRight className="muted" />}
+            {added.has(k.id) && (
+              <span className="success-text" role="img" aria-label="Kit adicionado">
+                <CheckCircle />
+              </span>
+            )}
           </button>
         ))}
       </div>

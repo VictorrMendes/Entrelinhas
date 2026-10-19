@@ -70,7 +70,7 @@ export function Match({ onClose }: { onClose: () => void }) {
         <div className="session-end centered">
           <h2 className="intro">Junte cada palavra ao seu significado o mais rápido que puder.</h2>
           {best > 0 && <p className="muted">Recorde: {seconds(best)} s</p>}
-          <button type="button" className="button primary wide" onClick={begin}>
+          <button type="button" className="button primary wide tall" onClick={begin}>
             Começar
           </button>
         </div>

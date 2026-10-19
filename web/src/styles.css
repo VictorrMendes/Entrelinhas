@@ -162,11 +162,19 @@ button,
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  min-height: 48px;
-  padding: 0 20px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 24px;
   border: 0;
-  border-radius: 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.button.tall {
+  min-height: 52px;
 }
 
 .button.primary {
@@ -176,8 +184,18 @@ button,
 
 .button:disabled,
 .button.disabled {
-  opacity: 0.5;
   cursor: default;
+}
+
+/* Material 3 disabled buttons: onSurface at 12% behind, 38% for the label */
+.button.primary:disabled {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+}
+
+.button.outline:disabled,
+.button.text-only:disabled {
+  opacity: 0.38;
 }
 
 .wide {
@@ -392,6 +410,11 @@ button.danger {
   border-radius: 4px;
   background: var(--sheet);
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
+}
+
+.menu.start {
+  right: auto;
+  left: 0;
 }
 
 .menu button {
@@ -975,7 +998,7 @@ button.icon:disabled {
 }
 
 .toc-row,
-.search-row,
+.search-result,
 .note-row {
   display: block;
   width: 100%;
@@ -991,12 +1014,8 @@ button.icon:disabled {
   font-weight: 600;
 }
 
-.search-row {
+.search-result {
   padding: 12px 24px;
-}
-
-.search-row:not(:has(strong)) {
-  display: -webkit-box;
 }
 
 .search-count {
@@ -1609,23 +1628,48 @@ button.icon:disabled {
 }
 
 .mascot {
-  justify-self: center;
+  align-self: center;
 }
 
+/* SignInSheet (Account.kt): title, subtitle, segmented buttons, outlined fields, the button 52dp tall */
 .auth {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
   text-align: center;
 }
 
-.auth h2,
-.auth p {
-  margin: 0;
+.auth h2 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.auth > p {
+  margin: 4px 0 20px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+}
+
+.auth .field + .field {
+  margin-top: 12px;
+}
+
+.auth .button.wide {
+  min-height: 52px;
+  margin-top: 20px;
+}
+
+.auth .error-box {
+  margin-top: 12px;
 }
 
 .segmented {
   display: flex;
-  border: 1px solid var(--line);
+  margin-bottom: 16px;
+  border: 1px solid var(--muted);
   border-radius: 20px;
   overflow: hidden;
 }
@@ -1635,12 +1679,19 @@ button.icon:disabled {
   min-height: 40px;
   border: 0;
   background: none;
-  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--muted);
 }
 
 .segmented button.on {
-  background: color-mix(in srgb, var(--primary) 18%, transparent);
-  color: var(--primary);
+  background: var(--secondary-container);
 }
 
 .field {
@@ -1652,16 +1703,17 @@ button.icon:disabled {
 .field-box {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 0 4px 0 14px;
-  border: 1px solid var(--line);
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--muted);
   border-radius: 14px;
   color: var(--muted);
 }
 
 .field-box:focus-within {
-  border-color: var(--primary);
+  padding: 0 3px 0 11px;
+  border: 2px solid var(--primary);
 }
 
 .field-box input {
@@ -1677,8 +1729,11 @@ button.icon:disabled {
 }
 
 button.text.end {
-  justify-self: end;
-  padding: 4px;
+  align-self: flex-end;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
 }
 
 .error-box {

@@ -1,4 +1,4 @@
-import { Gauge, Pause, Play, Quote, SkipBack, SkipForward } from 'lucide-react';
+import { FormatQuote, Pause, PlayArrow, SkipNext, SkipPrevious, Speed } from './icons';
 import { useEffect, useRef, useState } from 'react';
 import { speechRate } from './Dictation';
 import { rateLabel, SPEECH_RATES } from './ReaderTools';
@@ -75,7 +75,7 @@ export function Listen({ onClose }: { onClose: () => void }) {
     <main className="study">
       <TopBar title="Ouvir" onClose={onClose} />
       <ProgressBar done={word ? index + 1 : 0} total={list.length} />
-      <p className="muted center">
+      <p className="label-large variant listen-count">
         {index + 1} de {list.length}
       </p>
       <div className="card listen-card">
@@ -83,45 +83,45 @@ export function Listen({ onClose }: { onClose: () => void }) {
           <>
             <h2>{word.original}</h2>
             <p className="meaning">{showMeaning ? word.translated : '…'}</p>
-            {showMeaning && examples && word.example && <p className="example">“{word.example}”</p>}
+            {showMeaning && examples && word.example && <p className="example body-large">“{word.example}”</p>}
           </>
         )}
       </div>
-      <div className="row center">
+      <div className="chip-row listen-chips">
         <button
           type="button"
-          className={`chip-button${examples ? ' on' : ''}`}
+          className={`filter-chip${examples ? ' on' : ''}`}
           onClick={() => {
             localStorage.setItem('listenExamples', examples ? '0' : '1');
             setExamples(!examples);
           }}
         >
-          <Quote size={18} /> Frase de exemplo
+          <FormatQuote size={18} /> Frase de exemplo
         </button>
         <button
           type="button"
-          className="chip-button"
+          className="filter-chip"
           onClick={() => {
             const next = SPEECH_RATES[(SPEECH_RATES.indexOf(rate) + 1) % SPEECH_RATES.length];
             localStorage.setItem('speechRate', String(next));
             setRate(next);
           }}
         >
-          <Gauge size={18} /> {rateLabel(rate)}
+          <Speed size={18} /> {rateLabel(rate)}
         </button>
       </div>
       <div className="player">
         <button type="button" className="icon big" aria-label="Anterior" onClick={() => move(-1)}>
-          <SkipBack size={32} />
+          <SkipPrevious size={32} />
         </button>
         <button type="button" className="big-play" aria-label={playing ? 'Pausar' : 'Tocar'} onClick={() => (playing ? pause() : play(index))}>
-          {playing ? <Pause size={40} /> : <Play size={40} />}
+          {playing ? <Pause size={40} /> : <PlayArrow size={40} />}
         </button>
         <button type="button" className="icon big" aria-label="Próxima" onClick={() => move(1)}>
-          <SkipForward size={32} />
+          <SkipNext size={32} />
         </button>
       </div>
-      <p className="note">Mantenha a tela ligada: no iPhone, a leitura para quando a tela apaga.</p>
+      <p className="note listen-hint">Mantenha a tela ligada: no iPhone, a leitura para quando a tela apaga.</p>
     </main>
   );
 }

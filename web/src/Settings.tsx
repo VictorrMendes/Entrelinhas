@@ -1,6 +1,6 @@
 /** The Settings tab (Screens.kt Settings and Account.kt). */
 import syncSvg from '@material-design-icons/svg/outlined/sync.svg?raw';
-import { Eye, EyeOff, KeyRound, Lock, type LucideIcon, Mail, User } from 'lucide-react';
+import { Email, Lock, Person, Pin, Visibility, VisibilityOff } from './icons';
 import { type FormEvent, type InputHTMLAttributes, type ReactNode, useEffect, useState } from 'react';
 import { account, ApiError, requestPasswordReset, resetPassword, signIn, signOut } from './api';
 import { sync, useSyncState } from './cloud';
@@ -226,7 +226,7 @@ export function Settings() {
   );
 }
 
-function Field({ icon: Icon, label, hint, trailing, ...input }: { icon: LucideIcon; label: string; hint?: string; trailing?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
+function Field({ icon: Icon, label, hint, trailing, ...input }: { icon: typeof Lock; label: string; hint?: string; trailing?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="field">
       <span className="field-box">
@@ -290,7 +290,7 @@ function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; 
           </div>
           {create && (
             <Field
-              icon={User}
+              icon={Person}
               label="Nome"
               hint="Como você quer ser chamado no app"
               value={name}
@@ -301,7 +301,7 @@ function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; 
             />
           )}
           <Field
-            icon={Mail}
+            icon={Email}
             label="E-mail"
             type="email"
             inputMode="email"
@@ -321,7 +321,7 @@ function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; 
             onChange={(e) => setPassword(e.target.value)}
             trailing={
               <button type="button" className="icon" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <VisibilityOff size={20} /> : <Visibility size={20} />}
               </button>
             }
           />
@@ -394,7 +394,7 @@ function PasswordReset({ initialEmail, onBack, onDone }: { initialEmail: string;
       {sent ? (
         <>
           <Field
-            icon={KeyRound}
+            icon={Pin}
             label="Código de 6 dígitos"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -413,7 +413,7 @@ function PasswordReset({ initialEmail, onBack, onDone }: { initialEmail: string;
           />
         </>
       ) : (
-        <Field icon={Mail} label="E-mail" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field icon={Email} label="E-mail" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} />
       )}
       {error && <p className="error-box">{error}</p>}
       <button type="submit" className="button primary wide" disabled={!ready}>

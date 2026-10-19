@@ -73,7 +73,7 @@ export function Confirm({ title, text, action = 'Excluir', onConfirm, onDismiss 
 }
 
 /** Material 3 DropdownMenu under its anchor; a tap outside closes it. */
-export function Menu({ items, onDismiss }: { items: { label: string; onClick: () => void }[]; onDismiss: () => void }) {
+export function Menu({ items, onDismiss, start }: { items: { label: string; onClick: () => void }[]; onDismiss: () => void; start?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const close = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && onDismiss();
@@ -81,7 +81,7 @@ export function Menu({ items, onDismiss }: { items: { label: string; onClick: ()
     return () => document.removeEventListener('pointerdown', close, true);
   }, [onDismiss]);
   return (
-    <div ref={ref} className="menu" role="menu">
+    <div ref={ref} className={`menu${start ? ' start' : ''}`} role="menu">
       {items.map((it) => (
         <button
           type="button"

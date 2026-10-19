@@ -177,7 +177,7 @@ export function SearchSheet({ blocks, onPick, onClose }: { blocks: Block[]; onPi
       <ul className="sheet-list" style={{ maxHeight: 460 }}>
         {results.map((i) => (
           <li key={i}>
-            <button type="button" className="search-row body-medium" onClick={() => onPick(i, query.trim())}>
+            <button type="button" className="search-result body-medium" onClick={() => onPick(i, query.trim())}>
               {snippet(blocks[i].text, needle)}
             </button>
           </li>

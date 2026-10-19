@@ -1,4 +1,4 @@
-import { BookOpen, Check, Headphones, RotateCcw, Volume2 } from 'lucide-react';
+import { Check, Headphones, MenuBook, Refresh, VolumeUp } from './icons';
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
 import { shuffle } from './rules';
 import { speak } from './speech';
@@ -19,8 +19,8 @@ export function Example({ sentence, word }: { sentence: string; word: string }) 
 
 export function BookLine({ title }: { title: string }) {
   return (
-    <p className="book-line">
-      <BookOpen size={20} /> {title}
+    <p className="book-line body-medium">
+      <MenuBook size={22} /> <span className="clamp-2">{title}</span>
     </p>
   );
 }
@@ -89,14 +89,14 @@ export function Cards({ onClose }: { onClose: () => void }) {
                 <b>{learning.size}</b> Aprendendo
               </span>
               <span className="count known">
-                Sei <b>{known}</b>
+                <b>{known}</b> Sei
               </span>
             </div>
             {!deck.scheduled && <p className="note">Nada para revisar hoje: este treino não mexe na sua agenda de revisão.</p>}
             <SwipeCard key={turn} word={deck.queue[0]} listenFirst={listenFirst} onDone={answerCard} />
             <div className="round-buttons">
               <button type="button" className="round learning" onClick={() => answerCard(false)}>
-                <RotateCcw />
+                <Refresh />
                 <span>Aprendendo</span>
               </button>
               <button type="button" className="round known" onClick={() => answerCard(true)}>
@@ -174,14 +174,14 @@ function SwipeCard({ word, listenFirst, onDone }: { word: Word; listenFirst: boo
           {heard ? (
             <>
               <button type="button" className="icon corner" aria-label="Ouvir pronúncia" onPointerDown={stop} onClick={(e) => (stop(e), say())}>
-                <Volume2 />
+                <VolumeUp />
               </button>
               <h2>{word.original}</h2>
             </>
           ) : (
             <div className="listen-first">
               <button type="button" className="big-play" aria-label="Ouvir pronúncia" onPointerDown={stop} onClick={(e) => (stop(e), say())}>
-                <Volume2 size={40} />
+                <VolumeUp size={40} />
               </button>
               <p className="muted">Ouça e tente lembrar o significado</p>
               <button type="button" className="text" onPointerDown={stop} onClick={(e) => (stop(e), setHeard(true))}>

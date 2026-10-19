@@ -9,7 +9,8 @@ import quizSvg from '@material-design-icons/svg/outlined/quiz.svg?raw';
 import schoolSvg from '@material-design-icons/svg/outlined/school.svg?raw';
 import styleSvg from '@material-design-icons/svg/outlined/style.svg?raw';
 import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
-import { Search, Volume2 } from 'lucide-react';
+import arrowDownSvg from '@material-design-icons/svg/filled/keyboard_arrow_down.svg?raw';
+import { Search, VolumeUp } from './icons';
 import { useEffect, useState } from 'react';
 import { BookLine } from './Cards';
 import { DictationSheet, dictationSentences } from './Dictation';
@@ -20,7 +21,7 @@ import { speak } from './speech';
 import { deleteWord, dueWords, setLearned, useDb, type Word, words } from './store';
 import { TopBar } from './study';
 import { localDay } from './text';
-import { Icon, ScreenTitle } from './ui';
+import { Icon, Menu, ScreenTitle } from './ui';
 
 export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'words' | 'kits';
 
@@ -220,6 +221,7 @@ export function WordsScreen({ onClose }: { onClose: () => void }) {
   const [sort, setSort] = useState(0);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [sorting, setSorting] = useState(false);
   const q = query.trim().toLowerCase();
   const found = all.filter((w) => !q || w.original.toLowerCase().includes(q) || w.translated.toLowerCase().includes(q));
   if (sort === 1) found.sort((a, b) => a.original.toLowerCase().localeCompare(b.original.toLowerCase()));
@@ -230,41 +232,43 @@ export function WordsScreen({ onClose }: { onClose: () => void }) {
       <TopBar title="Suas palavras" onClose={onClose} />
       <div className="search-row">
         <label className="search">
-          <Search size={20} />
-          <input placeholder="Buscar" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <Search />
+          <input placeholder="Buscar" aria-label="Buscar" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
-        <select className="sort" aria-label="Ordenar por" value={sort} onChange={(e) => setSort(Number(e.target.value))}>
-          {SORTS.map((s, i) => (
-            <option key={s} value={i}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <span className="menu-anchor">
+          <button type="button" className="sort-pill body-medium" onClick={() => setSorting(true)}>
+            Ordenar por <Icon svg={arrowDownSvg} size={20} />
+          </button>
+          {sorting && (
+            <Menu
+              items={SORTS.map((label, i) => ({ label: i === sort ? `${label} ✓` : label, onClick: () => setSort(i) }))}
+              onDismiss={() => setSorting(false)}
+            />
+          )}
+        </span>
       </div>
-      {found.length === 0 && <p className="muted center">Nenhuma palavra encontrada.</p>}
+      {found.length === 0 && <p className="variant center sheet-empty">Nenhuma palavra encontrada.</p>}
       <ul className="word-list">
         {found.map((w) => (
-          <li key={w.key} className="card word">
-            <button type="button" className="word-main" onClick={() => setOpen(open === w.key ? null : w.key)}>
+          <li key={w.key} className="menu-anchor">
+            <button type="button" className="card word-card" onClick={() => setOpen(w.key)}>
               <span className="word-head">
-                <strong>{w.original}</strong>
-                <span className={`chip${learned(w) ? ' success' : ''}`}>{learned(w) ? 'Memorizada' : reviewLabel(w.dueDay)}</span>
+                <span className="title-medium grow">{w.original}</span>
+                <span className={`due-chip label-medium${learned(w) ? ' success' : ''}`}>{learned(w) ? 'Memorizada' : reviewLabel(w.dueDay)}</span>
               </span>
-              <span className="muted">{w.translated}</span>
+              <span className="body-medium variant">{w.translated}</span>
               {w.bookTitle && <BookLine title={w.bookTitle} />}
             </button>
             {open === w.key && (
-              <span className="word-actions">
-                <button type="button" className="text" onClick={() => speak(w.original, w.src)}>
-                  Ouvir pronúncia
-                </button>
-                <button type="button" className="text" onClick={() => setLearned(w, !learned(w))}>
-                  {learned(w) ? 'Revisar de novo' : 'Marcar como memorizada'}
-                </button>
-                <button type="button" className="text danger" onClick={() => deleteWord(w)}>
-                  Excluir
-                </button>
-              </span>
+              <Menu
+                items={[
+                  { label: 'Ouvir pronúncia', onClick: () => speak(w.original, w.src) },
+                  { label: learned(w) ? 'Revisar de novo' : 'Marcar como memorizada', onClick: () => setLearned(w, !learned(w)) },
+                  { label: 'Excluir', onClick: () => deleteWord(w) },
+                ]}
+                onDismiss={() => setOpen(null)}
+                start
+              />
             )}
           </li>
         ))}

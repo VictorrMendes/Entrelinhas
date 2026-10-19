@@ -1,4 +1,4 @@
-import { Check, Volume2, X } from 'lucide-react';
+import { Check, Close, VolumeUp } from './icons';
 import { useEffect, useState } from 'react';
 import { AnswerOption, langName } from './Learn';
 import { buildTest, isRight, type TestKind, type TestQuestion } from './rules';
@@ -91,9 +91,9 @@ function Setup(props: {
     <div className="study-body">
       <h2 className="setup-title">Monte seu teste</h2>
       <h3 className="label">Quantas perguntas</h3>
-      <div className="pills">
+      <div className="chip-row">
         {counts.map((n) => (
-          <button type="button" key={n} className={`pill${props.count === n ? ' on' : ''}`} onClick={() => props.setCount(n)}>
+          <button type="button" key={n} className={`filter-chip${props.count === n ? ' on' : ''}`} onClick={() => props.setCount(n)}>
             {n === props.available ? `Todas (${n})` : n}
           </button>
         ))}
@@ -115,7 +115,7 @@ function Setup(props: {
           />
         </label>
       ))}
-      <button type="button" className="button primary wide" disabled={props.count === 0} onClick={props.onStart}>
+      <button type="button" className="button primary wide tall" disabled={props.count === 0} onClick={props.onStart}>
         Começar teste
       </button>
     </div>
@@ -141,7 +141,7 @@ function QuestionView({ q, onAnswer }: { q: TestQuestion<Word>; onAnswer: (answe
         <h2>{q.kind === 'written' ? w.translated : w.original}</h2>
         {q.kind !== 'written' && (
           <button type="button" className="icon" aria-label="Ouvir pronúncia" onClick={() => speak(w.original, w.src)}>
-            <Volume2 />
+            <VolumeUp />
           </button>
         )}
       </div>
@@ -232,7 +232,7 @@ function Results(props: {
           <div key={`${q.word.key}-${i}`} className={`card review ${ok ? 'right' : 'wrong'}`}>
             <strong>{q.kind === 'written' ? q.word.translated : q.kind === 'trueFalse' ? `${q.word.original} = ${q.shown}?` : q.word.original}</strong>
             <span className="given">
-              {ok ? <Check size={18} /> : <X size={18} />}
+              {ok ? <Check size={18} /> : <Close size={18} />}
               {!answer.trim() ? 'Sem resposta' : q.kind === 'trueFalse' ? tf(answer) : answer}
             </span>
             {ai?.note && <span className="muted small">{ai.correct ? `Aceita pela IA: ${ai.note}` : `IA: ${ai.note}`}</span>}

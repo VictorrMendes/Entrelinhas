@@ -1,4 +1,4 @@
-import { Check, RotateCcw, Volume2, X } from 'lucide-react';
+import { Check, Close, Refresh, VolumeUp } from './icons';
 import { useEffect, useState } from 'react';
 import { closeEnough, type PracticeQuestion, PracticeRound, practiceWords } from './rules';
 import { speak } from './speech';
@@ -134,7 +134,7 @@ function Question({ q, onVerdict, onAnswered }: { q: PracticeQuestion<Word>; onV
         <h2>{q.stage === 'choice' ? w.original : w.translated}</h2>
         {(q.stage === 'choice' || v) && (
           <button type="button" className="icon" aria-label="Ouvir pronúncia" onClick={() => speak(w.original, w.src)}>
-            <Volume2 />
+            <VolumeUp />
           </button>
         )}
       </div>
@@ -203,7 +203,7 @@ export function AnswerOption({ text, state, disabled, onClick }: { text: string;
   return (
     <button type="button" className={`option${state === true ? ' right' : state === false ? ' wrong' : ''}`} disabled={disabled} onClick={onClick}>
       {state === true && <Check size={20} />}
-      {state === false && <X size={20} />}
+      {state === false && <Close size={20} />}
       {text}
     </button>
   );
@@ -249,7 +249,7 @@ function Summary({
           const missed = round.missed.has(w.key);
           return (
             <li key={w.key}>
-              <span className={`dot ${missed ? 'learning' : 'known'}`}>{missed ? <RotateCcw size={18} /> : <Check size={18} />}</span>
+              <span className={`dot ${missed ? 'learning' : 'known'}`}>{missed ? <Refresh size={18} /> : <Check size={18} />}</span>
               <span>
                 <strong>{w.original}</strong>
                 <span className="muted">{w.translated}</span>

@@ -1,5 +1,5 @@
 /** Pieces every study mode shares (the Android app's Study.kt and SessionEnd.kt). */
-import { X } from 'lucide-react';
+import { Close } from './icons';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { type Accolade, COMBO_MIN, sessionAccolades } from './rules';
 
@@ -8,7 +8,7 @@ export function TopBar({ title, onClose, trailing }: { title: string; onClose: (
   return (
     <header className="study-top">
       <button type="button" className="icon" aria-label="Fechar" onClick={onClose}>
-        <X />
+        <Close />
       </button>
       <h1>{title}</h1>
       {trailing ?? <span className="icon" />}
