@@ -1,6 +1,7 @@
 import { CheckCircle, VolumeUp } from './icons';
 import { useEffect, useState } from 'react';
 import { addedKits, addKit, KIT_LEVELS, type KitPack, loadKits, NEW_WORDS_OPTIONS, perDay } from './kitData';
+import { notify } from './notices';
 import { speak } from './speech';
 import { TopBar } from './study';
 import { Pills } from './ui';
@@ -10,7 +11,7 @@ export function Kits({ onClose }: { onClose: () => void }) {
   const [level, setLevel] = useState(KIT_LEVELS[0]);
   const [kits, setKits] = useState<KitPack[]>([]);
   const [open, setOpen] = useState<KitPack | null>(null);
-  const [added, setAdded] = useState(addedKits);
+  const [added] = useState(addedKits);
   const [daily, setDaily] = useState(perDay);
 
   useEffect(() => {
@@ -27,9 +28,11 @@ export function Kits({ onClose }: { onClose: () => void }) {
             type="button"
             className="button primary wide"
             disabled={isAdded}
+            // added, done: back to Vocabulário, where the kit's words start coming in
             onClick={async () => {
               await addKit(open);
-              setAdded(addedKits());
+              notify({ text: `${open.title} adicionado · ${daily} palavras novas por dia` });
+              onClose();
             }}
           >
             {isAdded ? `Adicionado · ${daily} palavras novas por dia` : 'Adicionar kit'}

@@ -304,17 +304,19 @@ export async function importBook(fileName: string, bytes: Uint8Array<ArrayBuffer
     hash,
     fileType: parsed.fileType,
   };
-  const id = (await db.put('books', book)) as number;
-  try {
-    await db.put('texts', parsed.blocks, id);
-    await db.put('files', bytes, id); // kept for the cloud backup
-    const images = Object.fromEntries(Object.entries(parsed.images).map(([name, data]) => [name, new Blob([data as Uint8Array<ArrayBuffer>], { type: imageType(name) })]));
-    if (Object.keys(images).length) await db.put('images', images, id);
-    if (parsed.cover) await db.put('covers', new Blob([parsed.cover as Uint8Array<ArrayBuffer>]), id);
-  } catch (e) {
-    await deleteBook(id, false); // no half-imported book
-    throw e;
-  }
+  const images = Object.fromEntries(Object.entries(parsed.images).map(([name, data]) => [name, new Blob([data as Uint8Array<ArrayBuffer>], { type: imageType(name) })]));
+  // one transaction: the book shows up complete (with its cover) or, if anything fails, not at all
+  let id = 0;
+  await transact(['books', 'texts', 'files', 'images', 'covers'], (tx) => {
+    const added = tx.objectStore('books').put(book);
+    added.onsuccess = () => {
+      id = added.result as number;
+      tx.objectStore('texts').put(parsed.blocks, id);
+      tx.objectStore('files').put(bytes, id); // kept for the cloud backup
+      if (Object.keys(images).length) tx.objectStore('images').put(images, id);
+      if (parsed.cover) tx.objectStore('covers').put(new Blob([parsed.cover as Uint8Array<ArrayBuffer>]), id);
+    };
+  });
   return id;
 }
 

@@ -105,7 +105,16 @@ export function App() {
   else if (mode === 'listen') screen = <Listen onClose={close} />;
   else if (mode === 'words') screen = <WordsScreen onClose={close} />;
   else if (mode === 'kits') screen = <Kits onClose={close} />;
-  else if (exploring) screen = <FreeBooks onClose={() => setExploring(false)} />;
+  else if (exploring)
+    screen = (
+      <FreeBooks
+        onClose={() => setExploring(false)}
+        onOpen={(b) => {
+          setExploring(false);
+          setBook(b);
+        }}
+      />
+    );
   else
     screen = (
       <>

@@ -37,6 +37,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      // Project Gutenberg's catalog and books (gutenberg.ts), as nginx passes them in production
+      '/gutenberg': {
+        target: 'https://www.gutenberg.org',
+        changeOrigin: true,
+        followRedirects: true,
+        rewrite: (path) => path.replace(/^\/gutenberg/, ''),
+      },
     },
   },
 });
