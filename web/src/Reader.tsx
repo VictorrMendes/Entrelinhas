@@ -275,19 +275,22 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     mark('word', el ? [rangeIn(el, lookup.start, lookup.end)] : []);
   }, [lookup?.block, lookup?.start, lookup?.end]);
 
+  // saved words are marked only around the reading position (as the Android app does with what is on screen): a whole
+  // novel's worth of marks, thousands of them, freezes Safari on the iPhone
+  const near = Math.floor(current / 10) * 10;
   useEffect(() => {
     if (!blocks || !saved?.size) return mark('saved', []);
     const ranges: (Range | null)[] = [];
     const phrases = [...saved].filter((p) => p.includes(' '));
-    blocks.forEach((b, i) => {
+    for (let i = Math.max(0, near - 5); i < Math.min(blocks.length, near + 30); i++) {
       const el = element(i);
-      if (!el) return;
-      const lower = b.text.toLowerCase();
+      if (!el) continue;
+      const lower = blocks[i].text.toLowerCase();
       for (const m of lower.matchAll(WORD)) if (saved.has(m[0])) ranges.push(rangeIn(el, m.index, m.index + m[0].length));
       for (const p of phrases) for (let at = lower.indexOf(p); at >= 0; at = lower.indexOf(p, at + p.length)) ranges.push(rangeIn(el, at, at + p.length));
-    });
+    }
     mark('saved', ranges);
-  }, [blocks, saved, translations, prefs.interlinear]);
+  }, [blocks, saved, translations, prefs.interlinear, near]);
 
   useEffect(() => {
     const el = searchMark && element(searchMark.block);
