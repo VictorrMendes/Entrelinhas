@@ -1,0 +1,48 @@
+/** The Material icons the study screens and forms use, named like the Android app's Icons.* (outlined unless it uses filled). */
+import checkSvg from '@material-design-icons/svg/filled/check.svg?raw';
+import closeSvg from '@material-design-icons/svg/filled/close.svg?raw';
+import arrowRightSvg from '@material-design-icons/svg/filled/keyboard_arrow_right.svg?raw';
+import pauseSvg from '@material-design-icons/svg/filled/pause.svg?raw';
+import playSvg from '@material-design-icons/svg/filled/play_arrow.svg?raw';
+import refreshSvg from '@material-design-icons/svg/filled/refresh.svg?raw';
+import skipNextSvg from '@material-design-icons/svg/filled/skip_next.svg?raw';
+import skipPreviousSvg from '@material-design-icons/svg/filled/skip_previous.svg?raw';
+import checkCircleSvg from '@material-design-icons/svg/outlined/check_circle.svg?raw';
+import emailSvg from '@material-design-icons/svg/outlined/email.svg?raw';
+import formatQuoteSvg from '@material-design-icons/svg/outlined/format_quote.svg?raw';
+import headphonesSvg from '@material-design-icons/svg/outlined/headphones.svg?raw';
+import lockSvg from '@material-design-icons/svg/outlined/lock.svg?raw';
+import menuBookSvg from '@material-design-icons/svg/outlined/menu_book.svg?raw';
+import personSvg from '@material-design-icons/svg/outlined/person.svg?raw';
+import pinSvg from '@material-design-icons/svg/outlined/pin.svg?raw';
+import searchSvg from '@material-design-icons/svg/outlined/search.svg?raw';
+import speedSvg from '@material-design-icons/svg/outlined/speed.svg?raw';
+import visibilitySvg from '@material-design-icons/svg/outlined/visibility.svg?raw';
+import visibilityOffSvg from '@material-design-icons/svg/outlined/visibility_off.svg?raw';
+import volumeUpSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
+import { Icon } from './ui';
+
+type Props = { size?: number; className?: string };
+const make = (svg: string) => (p: Props) => <Icon svg={svg} size={p.size ?? 24} className={p.className} />;
+
+export const Check = make(checkSvg);
+export const Close = make(closeSvg);
+export const KeyboardArrowRight = make(arrowRightSvg);
+export const Pause = make(pauseSvg);
+export const PlayArrow = make(playSvg);
+export const Refresh = make(refreshSvg);
+export const SkipNext = make(skipNextSvg);
+export const SkipPrevious = make(skipPreviousSvg);
+export const CheckCircle = make(checkCircleSvg);
+export const Email = make(emailSvg);
+export const FormatQuote = make(formatQuoteSvg);
+export const Headphones = make(headphonesSvg);
+export const Lock = make(lockSvg);
+export const MenuBook = make(menuBookSvg);
+export const Person = make(personSvg);
+export const Pin = make(pinSvg);
+export const Search = make(searchSvg);
+export const Speed = make(speedSvg);
+export const Visibility = make(visibilitySvg);
+export const VisibilityOff = make(visibilityOffSvg);
+export const VolumeUp = make(volumeUpSvg);

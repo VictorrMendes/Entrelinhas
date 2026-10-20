@@ -50,6 +50,18 @@ jobs:
       - name: Docker build
         run: docker build -t entrelinhas-api:ci .
 
+  # o PWA: a imagem do servidor já roda o tsc e o build do Vite
+  web:
+    name: Web (PWA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Docker build
+        run: docker build -t entrelinhas-web:ci web
+
   android:
     name: Android
     runs-on: ubuntu-latest

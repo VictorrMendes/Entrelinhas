@@ -2,6 +2,7 @@
 node_modules/
 .gradle/
 build/
+dist/
 local.properties
 .idea/
 *.iml
@@ -19,3 +20,4 @@ docker-compose.override.yml
 AGENTS.md
 CLAUDE.MD
 docs
+assets
