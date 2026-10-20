@@ -7,7 +7,7 @@ RUN npm ci
 COPY . .
 RUN npm test && npm run build
 
-FROM nginx:1.30-alpine
+FROM nginx:1.31-alpine
 
 # the base image's Alpine packages get their security fixes before a newer image is out
 RUN apk upgrade --no-cache
