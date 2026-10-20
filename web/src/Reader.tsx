@@ -507,7 +507,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     return el && offset !== null ? { block: Number(el.dataset.i), offset } : null;
   }
 
-  // a long press opens the sentence; holding and dragging marks whole words and translates them on release
+  // a long press opens the sentence; holding and dragging (a mouse just drags) marks whole words and translates them on release
   const press = useRef<{
     x: number;
     y: number;
@@ -521,34 +521,38 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   // a mouse fires a click right after a long press, a finger usually doesn't: ignore only one that comes at once
   const suppressClickUntil = useRef(0);
 
+  /** The press becomes a selection, from the word where it started; false off the text. */
+  function startSelecting(p: NonNullable<typeof press.current>): boolean {
+    const hit = hitAt(p.x, p.y);
+    if (!hit) return false;
+    const w = wordAt(textOf(hit.block), hit.offset, src) ?? { start: hit.offset, end: hit.offset };
+    Object.assign(p, { active: true, block: hit.block, offset: hit.offset, anchor: w, range: w });
+    const el = element(hit.block);
+    mark('select', el ? [rangeIn(el, w.start, w.end)] : []);
+    return true;
+  }
+
   function onPointerDown(e: PointerEvent) {
     touch();
     if (e.button !== 0 || (e.target as Element).closest('[data-tr]') || !blocks) return;
-    const x = e.clientX;
-    const y = e.clientY;
     const timer = window.setTimeout(() => {
-      const hit = hitAt(x, y);
       const p = press.current;
-      if (!hit || !p) return;
-      const w = wordAt(textOf(hit.block), hit.offset, src) ?? { start: hit.offset, end: hit.offset };
-      Object.assign(p, { active: true, block: hit.block, offset: hit.offset, anchor: w, range: w });
-      const el = element(hit.block);
-      mark('select', el ? [rangeIn(el, w.start, w.end)] : []);
-      navigator.vibrate?.(15);
+      if (p && startSelecting(p)) navigator.vibrate?.(15);
     }, LONG_PRESS_MS);
-    press.current = { x, y, timer, active: false, block: 0, offset: 0, anchor: { start: 0, end: 0 }, range: { start: 0, end: 0 } };
+    press.current = { x: e.clientX, y: e.clientY, timer, active: false, block: 0, offset: 0, anchor: { start: 0, end: 0 }, range: { start: 0, end: 0 } };
   }
 
   function onPointerMove(e: PointerEvent) {
     const p = press.current;
     if (!p || !blocks) return;
     if (!p.active) {
-      // moving before the long press is a scroll
-      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) {
-        clearTimeout(p.timer);
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) <= 10) return;
+      clearTimeout(p.timer);
+      // a finger moving before the long press scrolls; a mouse never scrolls by dragging, so it selects at once
+      if (e.pointerType !== 'mouse' || !startSelecting(p)) {
         press.current = null;
+        return;
       }
-      return;
     }
     const hit = hitAt(e.clientX, e.clientY);
     const w = hit && hit.block === p.block ? wordAt(textOf(p.block), hit.offset, src) : null;
