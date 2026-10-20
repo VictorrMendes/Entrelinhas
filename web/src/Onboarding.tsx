@@ -1,6 +1,5 @@
 /** The first run, page for page like the Android app's Onboarding.kt (texts adapted where the web app can't do the same). */
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { account } from './api';
 import { addedKits, addKit, KIT_LEVELS, type KitPack, loadKits, NEW_WORDS_OPTIONS, perDay } from './kitData';
 import { langName } from './Learn';
 import { LANGUAGES } from './ReaderSheets';
@@ -20,7 +19,8 @@ const PAGES: { symbol: string; title: string; text: string }[] = [
 
 export const onboarded = () => localStorage.getItem('onboarded') === '1';
 
-export function Onboarding({ onSignIn, onDone }: { onSignIn: () => void; onDone: () => void }) {
+/** Before the first sign-in; [onDone] leads to the login. */
+export function Onboarding({ onDone }: { onDone: () => void }) {
   const pageCount = PAGES.length + 2;
   const pager = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
@@ -45,7 +45,7 @@ export function Onboarding({ onSignIn, onDone }: { onSignIn: () => void; onDone:
           </Page>
         ))}
         <KitPage />
-        <SetupPage onSignIn={onSignIn} />
+        <SetupPage />
       </div>
       <div className="onboarding-dots">
         {Array.from({ length: pageCount }, (_, i) => (
@@ -53,7 +53,7 @@ export function Onboarding({ onSignIn, onDone }: { onSignIn: () => void; onDone:
         ))}
       </div>
       <button type="button" className="button primary wide tall" onClick={() => (last ? onDone() : goTo(page + 1))}>
-        {last ? 'Começar' : 'Próximo'}
+        {last ? 'Entrar ou criar conta' : 'Próximo'}
       </button>
     </main>
   );
@@ -106,13 +106,12 @@ function KitPage() {
   );
 }
 
-function SetupPage({ onSignIn }: { onSignIn: () => void }) {
+function SetupPage() {
   const [, redraw] = useState(0);
   const set = (key: string, value: string | number) => {
     localStorage.setItem(key, String(value));
     redraw((v) => v + 1);
   };
-  const me = account();
   return (
     <Page>
       <img src="/art/mascot.png" alt="" width={132} height={132} />
@@ -131,13 +130,6 @@ function SetupPage({ onSignIn }: { onSignIn: () => void }) {
             ))}
         </select>
       </div>
-      {me ? (
-        <p className="variant onboarding-signed">Conectado como {me.name ?? me.email}</p>
-      ) : (
-        <button type="button" className="text-button onboarding-signed" onClick={onSignIn}>
-          Já tem conta? Entrar e restaurar
-        </button>
-      )}
     </Page>
   );
 }

@@ -11,9 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-const hex = (bytes: Uint8Array) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
-
-/** The email account signed in on this device; without one, an anonymous device account is used. */
+/** The email account signed in on this device: the web app has no other (books live in the account). */
 export interface Account {
   email: string;
   name: string | null;
@@ -24,26 +22,20 @@ export function account(): Account | null {
   return email ? { email, name: localStorage.getItem('accountName') } : null;
 }
 
-/** Back to the anonymous device account; nothing on this device is deleted. */
-export function signOut() {
-  for (const k of ['token', 'accountEmail', 'accountName']) localStorage.removeItem(k);
+const ended = new Set<(expired: boolean) => void>();
+
+/** Calls [f] when the session ends: signing out, or [expired] when the server refused it; returns how to stop. */
+export function onSignedOut(f: (expired: boolean) => void) {
+  ended.add(f);
+  return () => {
+    ended.delete(f);
+  };
 }
 
-/** Like the Android app: an anonymous account per install (random id + secret) carries the translation quota. */
-async function token(): Promise<string> {
-  const saved = localStorage.getItem('token');
-  if (saved) return saved;
-  let deviceId = localStorage.getItem('deviceId');
-  let secret = localStorage.getItem('deviceSecret');
-  if (!deviceId || !secret) {
-    deviceId = crypto.randomUUID();
-    secret = hex(crypto.getRandomValues(new Uint8Array(32)));
-    localStorage.setItem('deviceId', deviceId);
-    localStorage.setItem('deviceSecret', secret);
-  }
-  const data = await call<{ token: string }>('/auth/device', { deviceId, secret }, null);
-  localStorage.setItem('token', data.token);
-  return data.token;
+/** Ends the session; the data on this device stays (owner.ts decides what happens to it). */
+export function signOut(expired = false) {
+  for (const k of ['token', 'accountEmail', 'accountName']) localStorage.removeItem(k);
+  for (const f of ended) f(expired);
 }
 
 type Body = string | Uint8Array<ArrayBuffer> | null;
@@ -85,17 +77,16 @@ async function send(method: string, path: string, body: Body, type: string, auth
 const data = async <T>(res: Response) => ((await res.json()) as { data: T }).data;
 const call = async <T>(path: string, body: unknown, auth: string | null) => data<T>(await send('POST', path, JSON.stringify(body), JSON_TYPE, auth));
 
-/** An expired or unknown token signs out and registers the device again once; sync calls report the expired session instead. */
+/** Every call goes with the account's token: without one, or with one the server refuses, the session is over (back to the login). */
 async function authed(method: string, path: string, body: Body = null, type = JSON_TYPE): Promise<Response> {
+  const token = localStorage.getItem('token');
   try {
-    return await send(method, path, body, type, await token());
+    if (!token) throw new ApiError(401, 'UNAUTHORIZED');
+    return await send(method, path, body, type, token);
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 401)) throw e;
-    const hadAccount = account() !== null;
-    signOut();
-    // the account's own data: an anonymous session would only find nothing
-    if (hadAccount && (path.startsWith('/sync') || path.startsWith('/books'))) throw new ApiError(401, 'SESSION_EXPIRED');
-    return send(method, path, body, type, await token());
+    signOut(true);
+    throw new ApiError(401, 'SESSION_EXPIRED');
   }
 }
 

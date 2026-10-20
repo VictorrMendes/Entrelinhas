@@ -17,7 +17,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { account } from './api';
 import type { Block } from './blocks';
 import { bookBlocks, bookErrorText, bookImage, openBook } from './remote';
 import { DictationSheet, speechRate } from './Dictation';
@@ -249,7 +248,8 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     let alive = true;
     setFailure(null);
     (async () => {
-      if (!account() || !hash) throw new Error('Entre na sua conta para ler este livro.');
+      // books from before content hashes were never in the account
+      if (!hash) throw new Error('Este livro não está na sua conta.');
       const { blockCount } = await openBook(hash, `${title}.${fileType ?? 'epub'}`);
       if (alive) setTotal(blockCount);
     })().catch((e) => alive && setFailure(bookErrorText(e)));
