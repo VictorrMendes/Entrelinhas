@@ -72,6 +72,21 @@ test('a code stops working after five wrong tries', async () => {
   assert.equal(late.statusCode, 429, 'the route rate limit (5 per 15 min) also stops guessing');
 });
 
+test('codes go out a minute apart and five an hour at most, from any IP', async (t) => {
+  const { app, inbox } = await appWithInbox();
+  const forgot = (ip: string) =>
+    app.inject({ method: 'POST', url: '/auth/password/forgot', remoteAddress: ip, payload: { email: 'ana@example.com' } });
+  await forgot('10.0.0.1');
+  assert.equal((await forgot('10.0.0.2')).statusCode, 200, 'the same answer when nothing is sent');
+  assert.equal(inbox.length, 1, 'a second code within a minute is not sent');
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  for (let i = 3; i <= 8; i++) {
+    t.mock.timers.tick(61_000);
+    await forgot(`10.0.0.${i}`);
+  }
+  assert.equal(inbox.length, 5);
+});
+
 test('without a mail server the feature says it is unavailable', async () => {
   const app = await makeApp({ mailer: null });
   const res = await app.inject({ method: 'POST', url: '/auth/password/forgot', payload: { email: 'ana@example.com' } });
