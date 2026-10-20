@@ -1,6 +1,7 @@
 /**
- * Project Gutenberg inside "Livros grátis": its OPDS catalog and its EPUB files. gutenberg.org doesn't let pages from other
- * sites fetch them, so they go through this app's web server (/gutenberg/, in nginx.conf and vite.config.ts).
+ * Project Gutenberg inside "Livros grátis": its OPDS catalog, which gutenberg.org doesn't let pages from other sites
+ * fetch, so it goes through this app's web server (/gutenberg/, in nginx.conf and vite.config.ts). The API server itself
+ * downloads the books (remote.ts addGutenberg).
  */
 export interface FreeBook {
   id: number;
@@ -44,12 +45,3 @@ export async function searchBooks(query: string, page: string | null = null) {
 }
 
 export const coverUrl = (id: number) => `https://www.gutenberg.org/cache/epub/${id}/pg${id}.cover.medium.jpg`;
-
-/** Bigger downloads are refused, as in the app. */
-const MAX_DOWNLOAD = 80 * 1024 * 1024;
-
-export async function downloadBook(id: number): Promise<Uint8Array<ArrayBuffer>> {
-  const res = await get(`/gutenberg/ebooks/${id}.epub3.images`);
-  if (Number(res.headers.get('content-length')) > MAX_DOWNLOAD) throw new Error('Este livro é grande demais para baixar (mais de 80 MB).');
-  return new Uint8Array(await res.arrayBuffer());
-}

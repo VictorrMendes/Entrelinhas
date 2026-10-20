@@ -13,7 +13,7 @@ import visibilitySvg from '@material-design-icons/svg/outlined/visibility.svg?ra
 import visibilityOffSvg from '@material-design-icons/svg/outlined/visibility_off.svg?raw';
 import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
 import { useEffect, useRef, useState } from 'react';
-import type { Block } from './book';
+import type { Block } from './blocks';
 import { MarkedWords } from './Dictation';
 import { days } from './Goals';
 import { Explanation, Sheet } from './ReaderSheets';

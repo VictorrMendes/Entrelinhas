@@ -1,8 +1,9 @@
 /** Backup and sync with the Android app through the backend, step for step like Sync.kt's syncNow. */
 import { useEffect, useState } from 'react';
-import { account, ApiError, del, getBytes, getJson, putBytes, putJson } from './api';
+import { account, ApiError, del, getJson, putBytes, putJson } from './api';
 import { notify } from './notices';
-import { type Book, type Day, db, deleteBook, type Highlight, importBook, sha256Hex, transact, type Word } from './store';
+import { keepBook, openBook } from './remote';
+import { type Book, type Day, db, deleteBook, type Highlight, transact, type Word } from './store';
 import { emptySnapshot, fromJson, highlightKey, merge, type Snapshot, wordKey } from './sync';
 
 async function deletions(): Promise<Map<string, number>> {
@@ -133,7 +134,8 @@ async function applySnapshot(s: Snapshot) {
 
 /**
  * Pull, merge, apply, push. Book files go up before the snapshot that mentions them, so another device never sees a book
- * it can't download; a push that lost the race to another device (409) starts the round again from a fresh pull.
+ * it can't download; a push that lost the race to another device (409) starts the round again from a fresh pull. A book
+ * from another device only gets a place in the library: the server, which has its file, reads it.
  */
 async function syncNow(): Promise<string> {
   if (!account()) throw new Error('sem conta');
@@ -144,22 +146,16 @@ async function syncNow(): Promise<string> {
 
     for (const b of await db.all<Book>('books')) if (b.hash && !mergedHashes.has(b.hash)) await deleteBook(b.id as number, false);
     const local = new Set((await db.all<Book>('books')).map((b) => b.hash));
-    let downloaded = 0;
+    let added = 0;
     for (const book of merged.books) {
       if (local.has(book.hash)) continue;
-      let bytes: Uint8Array<ArrayBuffer>;
       try {
-        bytes = await getBytes(`/sync/files/${book.hash}`);
+        await keepBook(book.hash, await openBook(book.hash, `${book.title}.${book.fileType}`), { title: book.title });
+        added++;
       } catch (e) {
-        if (e instanceof ApiError && e.status === 404) continue; // its device hasn't uploaded it yet
-        throw e;
-      }
-      if ((await sha256Hex(bytes)) !== book.hash) continue;
-      try {
-        await importBook(`${book.title}.${book.fileType}`, bytes);
-        downloaded++;
-      } catch {
-        // one this app can't read (a PDF of scanned pages needs the Android app's OCR): it stays in the cloud for the other devices
+        // its device hasn't uploaded it yet (404), or the server can't read it (a PDF of scanned pages needs the
+        // Android app's OCR): it stays in the cloud for the other devices
+        if (!(e instanceof ApiError && (e.status === 404 || e.code === 'BOOK_UNREADABLE'))) throw e;
       }
     }
     await applySnapshot(merged);
@@ -171,8 +167,14 @@ async function syncNow(): Promise<string> {
       const file = await db.get<Uint8Array<ArrayBuffer>>('files', b.id as number);
       if (!file) continue; // added before original files were kept
       await putBytes(`/sync/files/${b.hash}`, file);
+      onServer.add(b.hash);
       uploaded++;
     }
+    // books kept whole on this device before the server read them: once their file is in the cloud, the copy here goes
+    const inCloud = (await db.all<Book>('books')).filter((b) => b.hash && onServer.has(b.hash)).map((b) => b.id as number);
+    await transact(['texts', 'files', 'images'], (tx) => {
+      for (const id of inCloud) for (const store of ['texts', 'files', 'images']) tx.objectStore(store).delete(id);
+    });
 
     try {
       await putJson('/sync/snapshot', { version: remote.version, snapshot: merged });
@@ -184,7 +186,7 @@ async function syncNow(): Promise<string> {
     localStorage.setItem('lastSync', String(Date.now()));
     return [
       'Tudo sincronizado.',
-      downloaded > 0 && `${downloaded} livro(s) baixado(s).`,
+      added > 0 && `${added} livro(s) novo(s) na biblioteca.`,
       uploaded > 0 && `${uploaded} livro(s) enviado(s) para a nuvem.`,
     ]
       .filter(Boolean)

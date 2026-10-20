@@ -475,6 +475,23 @@ button.danger {
   padding: 0 4px;
 }
 
+/* while the text comes from the server (or why it couldn't), between the two bars so going back still works */
+.reader-loading {
+  position: fixed;
+  inset: calc(64px + var(--top)) 0 calc(48px + var(--bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.reader-loading p {
+  margin: 0;
+}
+
 .reader-bar {
   position: fixed;
   inset: auto 0 0;

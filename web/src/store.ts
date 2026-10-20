@@ -1,6 +1,6 @@
 /** IndexedDB on this device; cloud.ts syncs it with the Android app through the backend. */
 import { useEffect, useState } from 'react';
-import { parseBook, type TocEntry } from './book';
+import type { TocEntry } from './blocks';
 import { ACHIEVEMENTS, Leitner, STREAK_GOALS, Streak, type Totals, unlocked, WeekStreak } from './rules';
 import { firstDayOfWeek, localDay } from './text';
 
@@ -285,44 +285,10 @@ export async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string>
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-const imageType = (name: string) => `image/${name.split('.').pop()?.replace('jpg', 'jpeg')}`;
-
-/** Adds a book from its file (the library's picker, or a download by the sync); throws when it can't be read. */
-export async function importBook(fileName: string, bytes: Uint8Array<ArrayBuffer>): Promise<number> {
-  const hash = await sha256Hex(bytes);
-  if ((await db.all<Book>('books')).some((b) => b.hash === hash)) throw new Error('Este livro já está na biblioteca.');
-  const parsed = await parseBook(fileName, bytes);
-  const now = Date.now();
-  const book: Book = {
-    title: parsed.title,
-    language: parsed.language,
-    blockCount: parsed.blocks.length,
-    lastBlock: 0,
-    addedAt: now,
-    updatedAt: now,
-    toc: parsed.toc,
-    hash,
-    fileType: parsed.fileType,
-  };
-  const images = Object.fromEntries(Object.entries(parsed.images).map(([name, data]) => [name, new Blob([data as Uint8Array<ArrayBuffer>], { type: imageType(name) })]));
-  // one transaction: the book shows up complete (with its cover) or, if anything fails, not at all
-  let id = 0;
-  await transact(['books', 'texts', 'files', 'images', 'covers'], (tx) => {
-    const added = tx.objectStore('books').put(book);
-    added.onsuccess = () => {
-      id = added.result as number;
-      tx.objectStore('texts').put(parsed.blocks, id);
-      tx.objectStore('files').put(bytes, id); // kept for the cloud backup
-      if (Object.keys(images).length) tx.objectStore('images').put(images, id);
-      if (parsed.cover) tx.objectStore('covers').put(new Blob([parsed.cover as Uint8Array<ArrayBuffer>]), id);
-    };
-  });
-  return id;
-}
-
 /**
- * A book with everything kept for it: text, original file, images, translated paragraphs and highlights. [tombstone]
- * keeps a sync from bringing it back; the sync itself removes books deleted elsewhere without one.
+ * A book with everything kept for it: cover, translated paragraphs and highlights (and the text, file and images books
+ * kept here before the server read them). [tombstone] keeps a sync from bringing it back; the sync itself removes books
+ * deleted elsewhere without one.
  */
 export async function deleteBook(id: number, tombstone = true) {
   const hash = (await db.get<Book>('books', id))?.hash;

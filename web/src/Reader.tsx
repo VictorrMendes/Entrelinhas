@@ -17,7 +17,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { asBlocks, type Block } from './book';
+import { account } from './api';
+import type { Block } from './blocks';
+import { bookBlocks, bookErrorText, bookImage, openBook } from './remote';
 import { DictationSheet, speechRate } from './Dictation';
 import { notify } from './notices';
 import { caretAt, mark, offsetIn, rangeIn } from './readerDom';
@@ -74,6 +76,40 @@ function renderText(b: Block, from: number, to: number): ReactNode[] {
 /** A line of the book's own contents page: a link and nothing to translate. */
 const isNavigation = (b: Block) => !!b.links?.some((l) => l.start === 0 && l.end >= b.text.length);
 
+/** A book's picture from the server: fetched when it comes near the screen, let go with its block. */
+function BookImage({ hash, name, alt }: { hash: string; name: string; alt: string }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let alive = true;
+    let made: string | undefined;
+    const near = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        near.disconnect();
+        bookImage(hash, name).then(
+          (blob) => {
+            if (!alive) return;
+            made = URL.createObjectURL(blob);
+            setUrl(made);
+          },
+          () => undefined, // offline: the block stays empty
+        );
+      },
+      { rootMargin: '600px 0px' },
+    );
+    near.observe(el);
+    return () => {
+      alive = false;
+      near.disconnect();
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [hash, name]);
+  return <img ref={ref} src={url} alt={alt} />;
+}
+
 /** One block: its text, then its translation (one line under each sentence, or a box below) and the small link. */
 const BlockView = memo(function BlockView(props: {
   block: Block;
@@ -85,8 +121,8 @@ const BlockView = memo(function BlockView(props: {
   speaking: boolean;
   /** "Ears only": blurred while it is read, until a tap shows it. */
   veiled: boolean;
-  /** The picture of an 'img' block. */
-  image: string | undefined;
+  /** The book's file hash, which names its pictures on the server. */
+  hash: string;
   onTranslate: (i: number) => void;
   onHide: (i: number) => void;
 }) {
@@ -94,7 +130,7 @@ const BlockView = memo(function BlockView(props: {
   if (block.type === 'img') {
     return (
       <div data-i={i} className="block img">
-        {props.image && <img src={props.image} alt={block.text} loading="lazy" />}
+        {block.image && <BookImage hash={props.hash} name={block.image} alt={block.text} />}
       </div>
     );
   }
@@ -188,25 +224,32 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     lastInteraction.current = Date.now();
   };
 
+  // the text comes from the server, which read the book
+  const [failure, setFailure] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    db.get<(Block | string)[]>('texts', id).then((b) => setBlocks(asBlocks(b ?? [])));
+    const { hash, title, fileType } = bookRef.current;
+    let alive = true;
+    setFailure(null);
+    (async () => {
+      if (!account() || !hash) throw new Error('Entre na sua conta para ler este livro.');
+      const { blockCount } = await openBook(hash, `${title}.${fileType ?? 'epub'}`);
+      const all: Block[] = [];
+      for (let from = 0; from < blockCount && alive; from += 200) all.push(...(await bookBlocks(hash, from, 200)));
+      if (alive) setBlocks(all);
+    })().catch((e) => alive && setFailure(bookErrorText(e)));
+    return () => {
+      alive = false;
+    };
+  }, [id, attempt]);
+
+  useEffect(() => {
     record('sessions');
     // opening counts as reading it now, for the library and the sync
     const now = Date.now();
     const opened = { ...bookRef.current, lastOpenedAt: now, updatedAt: now };
     setBook(opened);
     db.put('books', opened);
-  }, [id]);
-
-  // the book's pictures, as URLs for the 'img' blocks
-  const [images, setImages] = useState<Map<string, string>>(new Map());
-  useEffect(() => {
-    let urls = new Map<string, string>();
-    db.get<Record<string, Blob>>('images', id).then((all) => {
-      urls = new Map(Object.entries(all ?? {}).map(([name, blob]) => [name, URL.createObjectURL(blob)]));
-      setImages(urls);
-    });
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, [id]);
 
   useEffect(() => {
@@ -570,12 +613,12 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
           interlinear={prefs.interlinear}
           speaking={speaking === i}
           veiled={listenOnly && speaking !== null && !revealed.has(i)}
-          image={b.image && images.get(b.image)}
+          hash={book.hash ?? ''}
           onTranslate={onTranslate}
           onHide={onHide}
         />
       )),
-    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, images, onTranslate, onHide],
+    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, book.hash, onTranslate, onHide],
   );
 
   // an expression grows by whole words, within the sentence
@@ -624,6 +667,23 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
       >
         {pages}
       </div>
+      {!blocks && (
+        <div className="reader-loading" role="status">
+          {failure ? (
+            <>
+              <p className="body-large">{failure}</p>
+              <button type="button" className="button outline" onClick={() => setAttempt((n) => n + 1)}>
+                Tentar de novo
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="spinner" />
+              <p className="body-medium variant">Carregando o livro…</p>
+            </>
+          )}
+        </div>
+      )}
 
       {speaking === null ? (
         <footer className="reader-bar">

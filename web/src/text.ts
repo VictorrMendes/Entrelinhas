@@ -43,16 +43,22 @@ export function localDay(ms = Date.now()): number {
 }
 
 
-/** What the backend reads to judge a book's CEFR level: three excerpts (at 20%, 50% and 80%), like the Android app's levelSample. */
-export function levelSample(blocks: { type: string; text: string }[]): string {
-  const paragraphs = blocks.some((b) => b.type === 'p') ? blocks.filter((b) => b.type === 'p') : blocks;
-  return [0.2, 0.5, 0.8]
-    .map((at) => {
+/** Up to 1500 characters from the start of each window of blocks (only its paragraphs, if it has any), as levelSample joins them. */
+export function excerpts(windows: { type: string; text: string }[][]): string {
+  return windows
+    .map((blocks) => {
+      const paragraphs = blocks.some((b) => b.type === 'p') ? blocks.filter((b) => b.type === 'p') : blocks;
       let s = '';
-      for (let i = Math.floor(paragraphs.length * at); i < paragraphs.length && s.length < 1500; i++) s += (s ? ' ' : '') + paragraphs[i].text;
+      for (let i = 0; i < paragraphs.length && s.length < 1500; i++) s += (s ? ' ' : '') + paragraphs[i].text;
       return s.slice(0, 1500);
     })
     .join('\n\n[…]\n\n');
+}
+
+/** What the backend reads to judge a book's CEFR level: three excerpts (at 20%, 50% and 80%), like the Android app's levelSample. */
+export function levelSample(blocks: { type: string; text: string }[]): string {
+  const paragraphs = blocks.some((b) => b.type === 'p') ? blocks.filter((b) => b.type === 'p') : blocks;
+  return excerpts([0.2, 0.5, 0.8].map((at) => paragraphs.slice(Math.floor(paragraphs.length * at))));
 }
 
 /** The device's first day of the week: 0 Sunday … 6 Saturday (Sunday where the browser can't tell, as in Brazil). */

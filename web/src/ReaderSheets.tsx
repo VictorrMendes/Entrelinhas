@@ -6,7 +6,7 @@ import removeSvg from '@material-design-icons/svg/filled/remove.svg?raw';
 import sparkleSvg from '@material-design-icons/svg/outlined/auto_awesome.svg?raw';
 import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import type { Block, TocEntry } from './book';
+import type { Block, TocEntry } from './blocks';
 import { langName } from './Learn';
 import { MAX_FONT, MIN_FONT, READING_THEMES, type ReaderPrefs } from './readerPrefs';
 import { chosenVoice, setVoice, speak, voicesFor } from './speech';

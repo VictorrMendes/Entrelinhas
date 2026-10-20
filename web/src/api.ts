@@ -4,6 +4,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
+    /** The server's own message; shown only where it is written for the reader (why a book can't be read). */
+    readonly detail?: string,
   ) {
     super(code);
   }
@@ -58,10 +60,10 @@ async function exchange(method: string, path: string, body: Body, type: string, 
   }
 }
 
-/** The code of our own error answers; null for anything else, such as a proxy's error page. */
-const errorCode = (res: Response) =>
+/** Our own error answers; null for anything else, such as a proxy's error page. */
+const errorOf = (res: Response) =>
   res.json().then(
-    (j) => (j?.error?.code as string | undefined) ?? null,
+    (j) => (typeof j?.error?.code === 'string' ? { code: j.error.code as string, message: String(j.error.message ?? '') } : null),
     () => null,
   );
 
@@ -69,11 +71,14 @@ async function send(method: string, path: string, body: Body, type: string, auth
   let res = await exchange(method, path, body, type, auth);
   // Cloudflare answers 502-504 on its own while the server restarts; one retry hides that. Auth calls aren't repeated:
   // a lost answer there may already have taken effect.
-  if (res.status >= 502 && res.status <= 504 && !path.startsWith('/auth/') && !(await errorCode(res.clone()))) {
+  if (res.status >= 502 && res.status <= 504 && !path.startsWith('/auth/') && !(await errorOf(res.clone()))) {
     await new Promise((r) => setTimeout(r, 1000));
     res = await exchange(method, path, body, type, auth);
   }
-  if (!res.ok) throw new ApiError(res.status, (await errorCode(res)) ?? `HTTP_${res.status}`);
+  if (!res.ok) {
+    const error = await errorOf(res);
+    throw new ApiError(res.status, error?.code ?? `HTTP_${res.status}`, error?.message);
+  }
   return res;
 }
 
@@ -88,7 +93,8 @@ async function authed(method: string, path: string, body: Body = null, type = JS
     if (!(e instanceof ApiError && e.status === 401)) throw e;
     const hadAccount = account() !== null;
     signOut();
-    if (hadAccount && path.startsWith('/sync')) throw new ApiError(401, 'SESSION_EXPIRED');
+    // the account's own data: an anonymous session would only find nothing
+    if (hadAccount && (path.startsWith('/sync') || path.startsWith('/books'))) throw new ApiError(401, 'SESSION_EXPIRED');
     return send(method, path, body, type, await token());
   }
 }
@@ -97,6 +103,7 @@ export const post = async <T>(path: string, body: unknown) => data<T>(await auth
 export const getJson = async <T>(path: string) => data<T>(await authed('GET', path));
 export const putJson = async <T>(path: string, body: unknown) => data<T>(await authed('PUT', path, JSON.stringify(body)));
 export const getBytes = async (path: string) => new Uint8Array(await (await authed('GET', path)).arrayBuffer());
+export const getBlob = async (path: string) => (await authed('GET', path)).blob();
 export const putBytes = async (path: string, bytes: Uint8Array<ArrayBuffer>) => {
   await authed('PUT', path, bytes, 'application/octet-stream');
 };
