@@ -24,6 +24,10 @@ export const bookBlocks = async (hash: string, from: number, count: number) =>
 
 export const bookImage = (hash: string, name: string) => getBlob(`/books/${hash}/images/${encodeURIComponent(name)}`);
 
+/** Up to 200 places in a book where [q] is, without case or accents, each with a bit of the text around it. */
+export const searchBook = async (hash: string, q: string) =>
+  (await getJson<{ results: { block: number; snippet: string }[] }>(`/books/${hash}/search?q=${encodeURIComponent(q)}`)).results;
+
 const bookWith = async (hash: string) => (await db.all<Book>('books')).find((b) => b.hash === hash);
 
 /** The library's record for a book the server read, with its cover; [hash] is the file's sha256, as the Android app knows it. */

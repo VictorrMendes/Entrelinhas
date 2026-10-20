@@ -9,7 +9,7 @@ type App = Awaited<ReturnType<typeof makeApp>>;
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const sha256 = (bytes: Uint8Array) => crypto.createHash('sha256').update(bytes).digest('hex');
 
-function epub(): Uint8Array {
+function epub(body = '<h1>Chapter 1</h1><p>First paragraph.</p><p>Second paragraph.</p><img src="pic.png"/><p>Third.</p>'): Uint8Array {
   return zipSync({
     mimetype: strToU8('application/epub+zip'),
     'META-INF/container.xml': strToU8('<container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>'),
@@ -17,9 +17,7 @@ function epub(): Uint8Array {
       '<package><metadata><dc:title>Meu Livro</dc:title></metadata>' +
         '<manifest><item id="c" href="ch.xhtml"/><item id="p" href="pic.png" media-type="image/png"/></manifest><spine><itemref idref="c"/></spine></package>',
     ),
-    'OEBPS/ch.xhtml': strToU8(
-      '<html><body><h1>Chapter 1</h1><p>First paragraph.</p><p>Second paragraph.</p><img src="pic.png"/><p>Third.</p></body></html>',
-    ),
+    'OEBPS/ch.xhtml': strToU8(`<html><body>${body}</body></html>`),
     'OEBPS/pic.png': PNG,
   });
 }
@@ -87,6 +85,33 @@ test('another account reads nothing of a book it did not sync', async () => {
     assert.equal((await app.inject({ url, headers: bearer(other) })).statusCode, 404, url);
   }
   assert.equal((await app.inject({ url: `/books/${hash}` })).statusCode, 401, 'and nothing without a token');
+});
+
+test('a book is searched on the server without case or accents, up to 200 places, only by its owner', async () => {
+  const app = await makeApp();
+  const token = await account(app, 'ana@example.com');
+  const long = `${'x'.repeat(60)} Um CAFÉ com ação ${'y'.repeat(60)}`;
+  const book = epub(`<h1>Capítulo</h1><p>${long}</p><p>Nada aqui.</p>${'<p>Mais um cafe.</p>'.repeat(250)}`);
+  const hash = sha256(book);
+  await upload(app, token, book);
+  await app.inject({ url: `/books/${hash}`, headers: bearer(token) });
+  const search = (q: string, as = token) => app.inject({ url: `/books/${hash}/search?q=${encodeURIComponent(q)}`, headers: bearer(as) });
+
+  const one = (await search('cafe com AÇÃO')).json().data.results;
+  assert.deepEqual(one, [{ block: 1, snippet: `…${long.slice(24, 117)}…` }]);
+  assert.match(one[0]?.snippet ?? '', /Um CAFÉ com ação/, 'the text as written, accents and all');
+
+  const many = (await search('Café')).json().data.results;
+  assert.equal(many.length, 200);
+  assert.deepEqual(
+    many.slice(0, 2).map((r: { block: number }) => r.block),
+    [1, 3],
+  );
+  assert.equal(many[1].snippet, 'Mais um cafe.');
+
+  assert.deepEqual((await search(' a ')).json().data.results, [], 'a letter alone finds nothing');
+  assert.equal((await search('a')).statusCode, 400);
+  assert.equal((await search('cafe', await account(app, 'bia@example.com'))).statusCode, 404);
 });
 
 test('a file that is no book is refused with the reason, without reading it again', async () => {

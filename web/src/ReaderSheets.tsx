@@ -5,10 +5,11 @@ import arrowRightSvg from '@material-design-icons/svg/filled/keyboard_arrow_righ
 import removeSvg from '@material-design-icons/svg/filled/remove.svg?raw';
 import sparkleSvg from '@material-design-icons/svg/outlined/auto_awesome.svg?raw';
 import volumeSvg from '@material-design-icons/svg/outlined/volume_up.svg?raw';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import type { Block, TocEntry } from './blocks';
+import { type ReactNode, useEffect, useState } from 'react';
+import type { TocEntry } from './blocks';
 import { langName } from './Learn';
 import { MAX_FONT, MIN_FONT, READING_THEMES, type ReaderPrefs } from './readerPrefs';
+import { bookErrorText, searchBook } from './remote';
 import { chosenVoice, setVoice, speak, voicesFor } from './speech';
 import { fold } from './text';
 import { AlertDialog, Icon, Pills } from './ui';
@@ -143,51 +144,58 @@ export function TocSheet({ toc, current, onPick, onClose }: { toc: TocEntry[]; c
   );
 }
 
+/** The bit of text around a result, with what was searched for in bold. */
 function snippet(text: string, needle: string): ReactNode {
-  const at = Math.max(0, fold(text).indexOf(needle));
-  const start = Math.max(0, at - 40);
-  const end = Math.min(text.length, at + needle.length + 40);
+  const at = fold(text).indexOf(needle);
+  if (at < 0) return text;
   return (
     <>
-      {start > 0 && '…'}
-      {text.slice(start, at)}
+      {text.slice(0, at)}
       <strong>{text.slice(at, at + needle.length)}</strong>
-      {text.slice(at + needle.length, end)}
-      {end < text.length && '…'}
+      {text.slice(at + needle.length)}
     </>
   );
 }
 
-/** [blocks] has holes where a page isn't here: those aren't searched. */
-export function SearchSheet({
-  blocks,
-  onPick,
-  onClose,
-}: {
-  blocks: (Block | undefined)[];
-  onPick: (block: number, query: string) => void;
-  onClose: () => void;
-}) {
+/** The whole book is searched on the server: the phone only has the pages around the reader. */
+export function SearchSheet({ hash, onPick, onClose }: { hash: string; onPick: (block: number, query: string) => void; onClose: () => void }) {
   const [query, setQuery] = useState('');
-  const [needle, setNeedle] = useState('');
-  const folded = useMemo(() => blocks.map((b) => fold(b?.text ?? '')), [blocks]);
-  // debounce typing
+  const [found, setFound] = useState<{ needle: string; results: { block: number; snippet: string }[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // debounce typing; the answer to an older query is dropped
   useEffect(() => {
-    const t = window.setTimeout(() => setNeedle(fold(query.trim())), 250);
-    return () => clearTimeout(t);
-  }, [query]);
-  const results = needle.length < 2 ? [] : folded.flatMap((t, i) => (t.includes(needle) ? [i] : [])).slice(0, 200);
+    const q = query.trim();
+    if (q.length < 2) return setFound(null);
+    let alive = true;
+    const t = window.setTimeout(() => {
+      searchBook(hash, q).then(
+        (results) => {
+          if (!alive) return;
+          setFound({ needle: fold(q), results });
+          setError(null);
+        },
+        (e) => alive && setError(bookErrorText(e)),
+      );
+    }, 250);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [query, hash]);
+  const results = found?.results ?? [];
   return (
     <Sheet onClose={onClose}>
       <input className="outlined-field" placeholder="Buscar no livro" aria-label="Buscar no livro" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
       <span className="label-medium variant search-count">
-        {query.trim().length < 2 ? 'Digite ao menos 2 letras' : `${results.length}${results.length === 200 ? '+' : ''} resultado(s)`}
+        {query.trim().length < 2
+          ? 'Digite ao menos 2 letras'
+          : (error ?? (found ? `${results.length}${results.length === 200 ? '+' : ''} resultado(s)` : 'Buscando…'))}
       </span>
       <ul className="sheet-list" style={{ maxHeight: 460 }}>
-        {results.map((i) => (
-          <li key={i}>
-            <button type="button" className="search-result body-medium" onClick={() => onPick(i, query.trim())}>
-              {snippet(blocks[i]?.text ?? '', needle)}
+        {results.map((r) => (
+          <li key={r.block}>
+            <button type="button" className="search-result body-medium" onClick={() => onPick(r.block, query.trim())}>
+              {snippet(r.snippet, found?.needle ?? '')}
             </button>
           </li>
         ))}

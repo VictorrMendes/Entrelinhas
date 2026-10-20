@@ -933,9 +933,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
         />
       )}
       {panel === 'toc' && <TocSheet toc={book.toc ?? []} current={current} onPick={go} onClose={() => setPanel(null)} />}
-      {panel === 'search' && blocks && (
+      {panel === 'search' && book.hash && (
         <SearchSheet
-          blocks={blocks}
+          hash={book.hash}
           onPick={(block, query) => {
             setSearchMark({ block, query });
             go(block);

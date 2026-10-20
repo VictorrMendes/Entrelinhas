@@ -15,6 +15,7 @@ import type { Block, TocEntry } from './parser.ts';
 const PARSER_VERSION = 1;
 const PARSE_TIMEOUT_MS = 120_000;
 const MAX_BLOCKS = 200;
+const MAX_RESULTS = 200;
 /** Books whose text stays in memory for the next pages (a long novel is a few MB). */
 const KEEP_IN_MEMORY = 8;
 
@@ -39,6 +40,13 @@ const IMAGE_TYPES: Record<string, string> = {
   bmp: 'image/bmp',
 };
 const imageType = (bytes: Buffer) => (bytes[0] === 0x89 ? 'image/png' : bytes[0] === 0x47 ? 'image/gif' : 'image/jpeg');
+/** The app's search folding (web/src/text.ts): no case, no accents, the same length, so a match is found in the text too. */
+const fold = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Mn}/gu, '')
+    .normalize('NFC');
 
 /**
  * The web app reads books through the server: it opens a book (read here once, from the file the account synced) and then
@@ -191,6 +199,33 @@ export async function bookRoutes(app: FastifyInstance, { config, db, tokens }: D
       const { from, count } = request.query;
       const book = await opened(mine(request));
       return { success: true, data: { from, blocks: book.blocks.slice(from, from + count) } };
+    },
+  );
+
+  /** Where [q] is in the book, without case or accents: the first places, each with a bit of the text around it. */
+  // ponytail: folds the whole book on every search (~35 ms for 3 MB of text); keep the folded text in memory if that shows
+  app.get<{ Params: { sha: string }; Querystring: { q: string } }>(
+    '/books/:sha/search',
+    {
+      config: { rateLimit: { max: 120, timeWindow: '1 minute' } },
+      schema: {
+        params: shaParams,
+        querystring: { type: 'object', required: ['q'], properties: { q: { type: 'string', minLength: 2, maxLength: 200 } } },
+      },
+    },
+    async (request) => {
+      const book = await opened(mine(request));
+      const needle = fold(request.query.q.trim());
+      const results: { block: number; snippet: string }[] = [];
+      for (let i = 0; needle.length >= 2 && i < book.blocks.length && results.length < MAX_RESULTS; i++) {
+        const { text } = book.blocks[i] as Block;
+        const at = fold(text).indexOf(needle);
+        if (at < 0) continue;
+        const start = Math.max(0, at - 40);
+        const end = Math.min(text.length, at + needle.length + 40);
+        results.push({ block: i, snippet: `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}` });
+      }
+      return { success: true, data: { results } };
     },
   );
 
