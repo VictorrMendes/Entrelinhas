@@ -612,12 +612,16 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   }
 
   /** The long-pressed sentence and the ones after it, for a dictation that follows the book. */
-  function dictationFrom(block: number, start: number): [string, string][] {
-    if (!blocks) return [];
+  async function dictationFrom(block: number, start: number): Promise<[string, string][]> {
+    const here = blocksRef.current;
+    const hash = bookRef.current.hash;
+    if (!here || !hash) return [];
     const out: [string, string][] = [];
-    for (let i = block; i < blocks.length && out.length < 10; i++) {
-      // the window holds three pages ahead: plenty for ten sentences, and where it ends, so does the dictation
-      const b = blocks[i];
+    let ahead: { from: number; blocks: Block[] } | null = null;
+    for (let i = block; i < here.length && out.length < 10; i++) {
+      // past the window's end, the next blocks come from the server: once, up to 200 is plenty for ten sentences
+      if (!here[i] && !ahead) ahead = { from: i, blocks: await bookBlocks(hash, i, 200).catch(() => []) };
+      const b = here[i] ?? ahead?.blocks[i - ahead.from];
       if (!b) break;
       if (b.type === 'img') continue;
       const text = b.text;
@@ -912,9 +916,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
             setEditing(sentence);
             setSentence(null);
           }}
-          onDictation={() => {
-            const list = dictationFrom(sentence.block, sentence.start);
+          onDictation={async () => {
             setSentence(null);
+            const list = await dictationFrom(sentence.block, sentence.start);
             if (list.length) setDictation(list);
           }}
           onClose={() => setSentence(null)}
@@ -943,7 +947,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
           onClose={() => setPanel(null)}
         />
       )}
-      {panel === 'notes' && blocks && <NotesSheet highlights={highlights} blocks={blocks} onPick={go} onClose={() => setPanel(null)} />}
+      {panel === 'notes' && blocks && book.hash && (
+        <NotesSheet highlights={highlights} blocks={blocks} hash={book.hash} onPick={go} onClose={() => setPanel(null)} />
+      )}
       {panel === 'settings' && <SettingsSheet prefs={prefs} set={setPrefs} onVoice={() => setPanel('voice')} onClose={() => setPanel(null)} />}
       {panel === 'voice' && (
         <VoicePicker

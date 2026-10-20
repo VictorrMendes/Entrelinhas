@@ -17,6 +17,7 @@ import type { Block } from './blocks';
 import { MarkedWords } from './Dictation';
 import { days } from './Goals';
 import { Explanation, Sheet } from './ReaderSheets';
+import { bookBlocks } from './remote';
 import { checkDictation, type StreakState } from './rules';
 import { canListen, listen, speak } from './speech';
 import type { Highlight } from './store';
@@ -190,18 +191,35 @@ export function HighlightSheet(props: {
   );
 }
 
+/** [blocks] has holes where a page isn't here: the quotes from those come from the server. */
 export function NotesSheet({
   highlights,
   blocks,
+  hash,
   onPick,
   onClose,
 }: {
   highlights: Highlight[];
   blocks: (Block | undefined)[];
+  hash: string;
   onPick: (block: number) => void;
   onClose: () => void;
 }) {
   const sorted = [...highlights].sort((a, b) => a.block - b.block || a.start - b.start);
+  const [fetched, setFetched] = useState<Map<number, string>>(new Map());
+  // ponytail: one request per highlighted block away from the reader; ask for whole pages if notes run into the hundreds
+  useEffect(() => {
+    const away = [...new Set(highlights.map((h) => h.block))].filter((i) => !blocks[i]);
+    if (!away.length) return;
+    let alive = true;
+    Promise.all(away.map(async (i) => [i, (await bookBlocks(hash, i, 1))[0]?.text ?? ''] as const)).then(
+      (pairs) => alive && setFetched(new Map(pairs)),
+      () => undefined, // offline: those quotes stay out, the notes are still there
+    );
+    return () => {
+      alive = false;
+    };
+  }, [highlights, hash]);
   return (
     <Sheet title="Destaques e notas" onClose={onClose}>
       {sorted.length === 0 ? (
@@ -209,7 +227,7 @@ export function NotesSheet({
       ) : (
         <ul className="sheet-list" style={{ maxHeight: 520 }}>
           {sorted.map((h) => {
-            const text = blocks[h.block]?.text ?? '';
+            const text = blocks[h.block]?.text ?? fetched.get(h.block) ?? '';
             return (
               <li key={h.id}>
                 <button type="button" className="note-row" onClick={() => onPick(h.block)}>
