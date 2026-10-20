@@ -6,7 +6,7 @@ import exploreSvg from '@material-design-icons/svg/outlined/explore.svg?raw';
 import menuBookSvg from '@material-design-icons/svg/outlined/menu_book.svg?raw';
 import styleSvg from '@material-design-icons/svg/outlined/style.svg?raw';
 import { useEffect, useState } from 'react';
-import { account, post } from './api';
+import { post } from './api';
 import { StreakCard } from './Goals';
 import { notify } from './notices';
 import { addFile, bookBlocks, bookErrorText } from './remote';
@@ -89,12 +89,10 @@ export function Library({
   onOpen,
   onReview,
   onExplore,
-  onSignIn,
 }: {
   onOpen: (book: Book) => void;
   onReview: () => void;
   onExplore: () => void;
-  onSignIn: () => void;
 }) {
   const [books, setBooks] = useState<Book[]>([]);
   const [busy, setBusy] = useState(false);
@@ -171,15 +169,7 @@ export function Library({
         )}
         <Pills options={['Todos', 'Em andamento', 'Concluídos', ...shelves]} selected={filter >= 3 && shelf === undefined ? 0 : filter} onSelect={setFilter} />
         <div className="action-tiles">
-          <label
-            className={`card action-tile${busy ? ' disabled' : ''}`}
-            onClick={(e) => {
-              // books live in the account: without one, signing in comes first
-              if (account()) return;
-              e.preventDefault();
-              onSignIn();
-            }}
-          >
+          <label className={`card action-tile${busy ? ' disabled' : ''}`}>
             <span className="icon-circle">
               <Icon svg={addSvg} size={22} />
             </span>

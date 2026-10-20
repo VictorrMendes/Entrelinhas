@@ -2,7 +2,7 @@
  * Books are read on the server (backend/src/books): this app keeps each book's place, marks and cover, the server its file
  * and text, which the reader asks for a few pages at a time. Adding a book takes an email account, whose files it joins.
  */
-import { account, ApiError, getBlob, getJson, post, putBytes } from './api';
+import { ApiError, getBlob, getJson, post, putBytes } from './api';
 import type { Block, TocEntry } from './blocks';
 import { type Book, db, sha256Hex, transact } from './store';
 
@@ -58,13 +58,8 @@ export async function keepBook(hash: string, meta: RemoteBook, fields: Partial<B
   return { ...book, id };
 }
 
-function signedIn() {
-  if (!account()) throw new Error('Entre na sua conta para adicionar livros.');
-}
-
 /** A book file from this device: up to the account's files, then read by the server. [before]: it was already here. */
 export async function addFile(name: string, bytes: Uint8Array<ArrayBuffer>): Promise<{ book: Book; before: boolean }> {
-  signedIn();
   const hash = await sha256Hex(bytes);
   const before = await bookWith(hash);
   if (before) return { book: before, before: true };
@@ -74,7 +69,6 @@ export async function addFile(name: string, bytes: Uint8Array<ArrayBuffer>): Pro
 
 /** A Project Gutenberg book, which the server downloads itself: the phone never holds the file. */
 export async function addGutenberg(id: number): Promise<{ book: Book; before: boolean }> {
-  signedIn();
   const { sha, ...meta } = await post<RemoteBook & { sha: string }>(`/books/gutenberg/${id}`, {});
   const before = await bookWith(sha);
   return before ? { book: before, before: true } : { book: await keepBook(sha, meta), before: false };

@@ -142,6 +142,14 @@ export async function transact(stores: Store[], write: (tx: IDBTransaction) => v
   for (const f of listeners) f();
 }
 
+/** Empties every store: the account signs out, or another one signs in on this device (owner.ts). */
+export async function clearAll() {
+  const stores = Array.from((await opened).objectStoreNames) as Store[];
+  await transact(stores, (tx) => {
+    for (const s of stores) tx.objectStore(s).clear();
+  });
+}
+
 /** Calls [f] after every write to the database (the translation cache aside); returns how to stop. */
 export function onChange(f: () => void) {
   listeners.add(f);

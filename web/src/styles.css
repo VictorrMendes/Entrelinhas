@@ -1675,7 +1675,22 @@ button.icon:disabled {
   align-self: center;
 }
 
-/* SignInSheet (Account.kt): title, subtitle, segmented buttons, outlined fields, the button 52dp tall */
+/* LoginScreen: the form on a page of its own, centered like the onboarding's pages */
+.login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100dvh;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: calc(var(--top) + 24px) 24px calc(var(--bottom) + 24px);
+}
+
+.auth .login-message {
+  margin: 0 0 16px;
+}
+
+/* LoginScreen (Account.kt): title, subtitle, segmented buttons, outlined fields, the button 52dp tall */
 .auth {
   display: flex;
   flex-direction: column;
@@ -2266,10 +2281,6 @@ button.text.end {
   display: flex;
   align-items: center;
   margin-top: 18px;
-}
-
-.onboarding-signed {
-  margin-top: 12px !important;
 }
 
 .onboarding-dots {

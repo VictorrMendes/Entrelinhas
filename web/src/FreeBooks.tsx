@@ -6,7 +6,6 @@ import arrowBackSvg from '@material-design-icons/svg/filled/arrow_back.svg?raw';
 import downloadSvg from '@material-design-icons/svg/outlined/download.svg?raw';
 import openInNewSvg from '@material-design-icons/svg/outlined/open_in_new.svg?raw';
 import { type FormEvent, useEffect, useState } from 'react';
-import { account } from './api';
 import { coverUrl, type FreeBook, searchBooks } from './gutenberg';
 import { Close, Search } from './icons';
 import { notify } from './notices';
@@ -20,9 +19,9 @@ const SITES = [
   { name: 'Internet Archive', url: 'https://archive.org/details/texts', text: 'Milhões de livros digitalizados. Prefira os de domínio público.', formats: 'EPUB · PDF · TXT' },
 ];
 
-export function FreeBooks({ onClose, onOpen, onSignIn }: { onClose: () => void; onOpen: (book: Book) => void; onSignIn: () => void }) {
+export function FreeBooks({ onClose, onOpen }: { onClose: () => void; onOpen: (book: Book) => void }) {
   const [catalog, setCatalog] = useState(false);
-  if (catalog) return <Catalog onClose={() => setCatalog(false)} onOpen={onOpen} onSignIn={onSignIn} />;
+  if (catalog) return <Catalog onClose={() => setCatalog(false)} onOpen={onOpen} />;
   return (
     <main className="free-books">
       <header className="app-bar">
@@ -59,7 +58,7 @@ export function FreeBooks({ onClose, onOpen, onSignIn }: { onClose: () => void; 
 }
 
 /** The app's Browser for Project Gutenberg: the most downloaded books, a search, and one tap to add a book. */
-function Catalog({ onClose, onOpen, onSignIn }: { onClose: () => void; onOpen: (book: Book) => void; onSignIn: () => void }) {
+function Catalog({ onClose, onOpen }: { onClose: () => void; onOpen: (book: Book) => void }) {
   const [query, setQuery] = useState('');
   const [books, setBooks] = useState<FreeBook[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -85,8 +84,6 @@ function Catalog({ onClose, onOpen, onSignIn }: { onClose: () => void; onOpen: (
   }, []);
 
   async function add(b: FreeBook) {
-    // books live in the account: without one, signing in comes first
-    if (!account()) return onSignIn();
     setDownloading(b.id);
     notify({ text: `Baixando ${b.title}…` });
     try {

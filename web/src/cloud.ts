@@ -201,9 +201,12 @@ const changed = () => {
   for (const f of watchers) f();
 };
 
-/** One sync at a time; [quiet] (the automatic one at start) shows nothing, success or failure. */
-export async function sync(quiet = false) {
-  if (syncing || !account()) return;
+/**
+ * One sync at a time; [quiet] (the automatic one at start) shows nothing, success or failure. True when it went through.
+ * An expired session shows nothing either: the app is back at the login, which says so.
+ */
+export async function sync(quiet = false): Promise<boolean> {
+  if (syncing || !account()) return false;
   syncing = true;
   changed();
   let text: string;
@@ -213,19 +216,19 @@ export async function sync(quiet = false) {
   } catch (e) {
     error = true;
     const code = e instanceof ApiError ? e.code : '';
+    if (code === 'SESSION_EXPIRED') quiet = true;
     text =
-      code === 'SESSION_EXPIRED'
-        ? 'Sua sessão expirou. Entre de novo para sincronizar.'
-        : code === 'STORAGE_FULL'
-          ? 'Espaço na nuvem esgotado. Exclua livros para liberar.'
-          : code === 'NO_CONNECTION'
-            ? 'Sem conexão com o servidor. Tente de novo mais tarde.'
-            : 'Não foi possível sincronizar agora.';
+      code === 'STORAGE_FULL'
+        ? 'Espaço na nuvem esgotado. Exclua livros para liberar.'
+        : code === 'NO_CONNECTION'
+          ? 'Sem conexão com o servidor. Tente de novo mais tarde.'
+          : 'Não foi possível sincronizar agora.';
   } finally {
     syncing = false;
     changed();
   }
   if (!quiet) notify({ text, error, ...(error && { action: { label: 'Tentar de novo', run: () => sync() } }) });
+  return !error;
 }
 
 /** Whether a sync is running and when the last one finished (0: never), redrawn as that changes. */

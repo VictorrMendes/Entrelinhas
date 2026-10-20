@@ -1,14 +1,15 @@
 /** The Settings tab (Screens.kt Settings and Account.kt). */
 import syncSvg from '@material-design-icons/svg/outlined/sync.svg?raw';
 import { Email, Lock, Person, Pin, Visibility, VisibilityOff } from './icons';
-import { type FormEvent, type InputHTMLAttributes, type ReactNode, useEffect, useState } from 'react';
-import { account, ApiError, requestPasswordReset, resetPassword, signIn, signOut } from './api';
+import { type FormEvent, type InputHTMLAttributes, type ReactNode, useState } from 'react';
+import { type Account, ApiError, requestPasswordReset, resetPassword, signIn, signOut } from './api';
 import { sync, useSyncState } from './cloud';
 import { speechRate } from './Dictation';
 import { langName } from './Learn';
-import { LANGUAGES, Sheet } from './ReaderSheets';
+import { forgetData } from './owner';
+import { LANGUAGES } from './ReaderSheets';
 import { rateLabel, SPEECH_RATES } from './ReaderTools';
-import { type Book, dailyGoalMinutes, db, deleteBook } from './store';
+import { type Book, clearAll, dailyGoalMinutes, db, deleteBook } from './store';
 import { AlertDialog, ChoiceDialog, Confirm, Icon, ScreenTitle, Section, SettingCard, appTheme, applyTheme } from './ui';
 import { defaultTarget } from './words';
 
@@ -72,45 +73,31 @@ const GOAL_OPTIONS = [3, 5, 10, 15, 20, 30];
 type Dialog = 'theme' | 'goal' | 'speed' | 'language' | 'books' | 'signOut';
 
 /** The Settings tab, card for card like the Android app's (what only a phone can do — reminders, offline models, updates — stays out). */
-export function Settings() {
-  // read on every redraw: a sync can sign out by itself when the session expires
+export function Settings({ me }: { me: Account }) {
   const [, redraw] = useState(0);
-  const me = account();
-  const [signingIn, setSigningIn] = useState(false);
   const [dialog, setDialog] = useState<Dialog | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const syncState = useSyncState();
   const set = (key: string, value: string | number) => {
     localStorage.setItem(key, String(value));
     redraw((v) => v + 1);
   };
 
-  useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   return (
     <main className="tab-page">
       <ScreenTitle>Ajustes</ScreenTitle>
       <div className="settings">
         <Section>Conta e backup</Section>
-        {me ? (
-          <div className="card account-card">
-            <span className="avatar title-medium">{(me.name ?? me.email).slice(0, 1).toUpperCase()}</span>
-            <span className="account-text">
-              <span className="title-medium">{me.name ?? me.email}</span>
-              {me.name && <span className="body-medium variant">{me.email}</span>}
-              <span className="body-small variant">{syncStatus(syncState)}</span>
-            </span>
-            <button type="button" className={`icon${syncState.syncing ? ' spinning' : ''}`} aria-label="Sincronizar agora" disabled={syncState.syncing} onClick={() => sync()}>
-              <Icon svg={syncSvg} />
-            </button>
-          </div>
-        ) : (
-          <SettingCard title="Entrar ou criar conta" subtitle="Backup e sincronização de livros, progresso, vocabulário e destaques entre aparelhos" onClick={() => setSigningIn(true)} />
-        )}
+        <div className="card account-card">
+          <span className="avatar title-medium">{(me.name ?? me.email).slice(0, 1).toUpperCase()}</span>
+          <span className="account-text">
+            <span className="title-medium">{me.name ?? me.email}</span>
+            {me.name && <span className="body-medium variant">{me.email}</span>}
+            <span className="body-small variant">{syncStatus(syncState)}</span>
+          </span>
+          <button type="button" className={`icon${syncState.syncing ? ' spinning' : ''}`} aria-label="Sincronizar agora" disabled={syncState.syncing} onClick={() => sync()}>
+            <Icon svg={syncSvg} />
+          </button>
+        </div>
         <Section>Aplicativo</Section>
         <SettingCard title="Tema" value={THEMES[appTheme()]?.title ?? THEMES[0].title} onClick={() => setDialog('theme')} />
         <Section>Leitura</Section>
@@ -122,11 +109,9 @@ export function Settings() {
         <SettingCard title="Excluir todos os livros" subtitle="Remove os livros importados e suas imagens" onClick={() => setDialog('books')} />
         <Section>Sobre o app</Section>
         <SettingCard title="Sobre" subtitle={`Versão web ${__BUILD__} · servidor ${location.host}`} />
-        {me && (
-          <button type="button" className="sign-out-button title-medium" onClick={() => setDialog('signOut')}>
-            Sair da conta
-          </button>
-        )}
+        <button type="button" className="sign-out-button title-medium" onClick={() => setDialog('signOut')}>
+          Sair da conta
+        </button>
       </div>
 
       {dialog === 'theme' && (
@@ -201,27 +186,16 @@ export function Settings() {
       {dialog === 'signOut' && (
         <Confirm
           title="Sair da conta?"
-          text="A sincronização para até você entrar de novo. Nada é apagado deste aparelho."
+          text="Os livros, o vocabulário e o progresso serão apagados deste aparelho. Tudo continua na sua conta, na nuvem, e volta quando você entrar de novo."
           action="Sair"
-          onConfirm={() => {
+          onConfirm={async () => {
+            // what is only here goes up first; if that fails nothing is deleted, and only this account can get it back here
+            if (await sync(true)) await forgetData(localStorage, clearAll);
             signOut();
-            redraw((v) => v + 1);
           }}
           onDismiss={() => setDialog(null)}
         />
       )}
-      {signingIn && (
-        <SignInSheet
-          onDone={(message) => {
-            setSigningIn(false);
-            redraw((v) => v + 1);
-            if (message) setToast(message);
-            sync();
-          }}
-          onClose={() => setSigningIn(false)}
-        />
-      )}
-      {toast && <p className="toast">{toast}</p>}
     </main>
   );
 }
@@ -239,7 +213,11 @@ function Field({ icon: Icon, label, hint, trailing, ...input }: { icon: typeof L
   );
 }
 
-export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) => void; onClose: () => void }) {
+/**
+ * The way into the web app: no tab, book or study shows before an email account signs in (the books live in it).
+ * [message] says why it is back here (an expired session); [onDone] runs once the account is signed in.
+ */
+export function LoginScreen({ message, onDone }: { message: string | null; onDone: (message?: string) => Promise<void> }) {
   const [create, setCreate] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [name, setName] = useState('');
@@ -257,7 +235,7 @@ export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) =>
     setError(null);
     try {
       await signIn(email.trim(), password, create ? name.trim() : undefined);
-      onDone();
+      await onDone();
     } catch (err) {
       setError(signInError(err, create));
       setBusy(false);
@@ -265,7 +243,7 @@ export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) =>
   }
 
   return (
-    <Sheet onClose={onClose}>
+    <main className="login">
       <img className="mascot" src="/art/mascot.png" alt="" width={88} height={88} />
       {resetting ? (
         <PasswordReset initialEmail={email} onBack={() => setResetting(false)} onDone={() => onDone('Senha alterada. Você já está conectado.')} />
@@ -273,6 +251,7 @@ export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) =>
         <form className="auth" onSubmit={submit}>
           <h2>{create ? 'Crie sua conta' : 'Entre na sua conta'}</h2>
           <p className="muted">Seus livros, vocabulário e ofensiva guardados na nuvem e em todos os seus aparelhos.</p>
+          {message && <p className="error-box login-message">{message}</p>}
           <div className="segmented">
             {['Entrar', 'Criar conta'].map((label, i) => (
               <button
@@ -343,7 +322,7 @@ export function SignInSheet({ onDone, onClose }: { onDone: (message?: string) =>
           </button>
         </form>
       )}
-    </Sheet>
+    </main>
   );
 }
 
