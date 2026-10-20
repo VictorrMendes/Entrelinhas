@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { test } from 'node:test';
-import { bearer, deviceToken, makeApp } from './helpers.ts';
+import { bearer, deviceToken, emailToken, makeApp } from './helpers.ts';
 
 const sha256 = (data: Buffer) => crypto.createHash('sha256').update(data).digest('hex');
 const upload = (sha: string, body: Buffer, headers: object) => ({
@@ -26,8 +26,8 @@ test('snapshot push rejects a stale version', async () => {
 
 test('book files are stored by hash and isolated per account', async () => {
   const app = await makeApp();
-  const h = bearer(await deviceToken(app, 'device-2'));
-  const other = bearer(await deviceToken(app, 'device-3'));
+  const h = bearer(await emailToken(app, 'ana@example.com'));
+  const other = bearer(await emailToken(app, 'bia@example.com'));
   const data = Buffer.from('%PDF-1.4 fake book');
   const sha = sha256(data);
 
@@ -48,12 +48,20 @@ test('book files are stored by hash and isolated per account', async () => {
 
 test('uploads beyond the account storage are refused', async () => {
   const app = await makeApp({ env: { MAX_ACCOUNT_BYTES: '10' } });
-  const h = bearer(await deviceToken(app, 'device-4'));
+  const h = bearer(await emailToken(app, 'ana@example.com'));
   const data = Buffer.from('more than ten bytes of book');
   const res = await app.inject(upload(sha256(data), data, h));
   assert.equal(res.statusCode, 413);
   assert.equal(res.json().error.code, 'STORAGE_FULL');
   assert.deepEqual((await app.inject({ url: '/sync/files', headers: h })).json().data.files, []);
+});
+
+test('only email accounts can add book files', async () => {
+  const app = await makeApp();
+  const data = Buffer.from('%PDF-1.4 fake book');
+  const res = await app.inject(upload(sha256(data), data, bearer(await deviceToken(app, 'device-6'))));
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.json().error.code, 'ACCOUNT_REQUIRED');
 });
 
 test('crash reports need a token and a report', async () => {

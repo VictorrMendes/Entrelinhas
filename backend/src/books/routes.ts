@@ -1,10 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import { Worker } from 'node:worker_threads';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Deps } from '../app.ts';
-import { requireAccount } from '../auth/guard.ts';
+import { requireAccount, requireEmailAccount } from '../auth/guard.ts';
 import { ApiError } from '../errors.ts';
+import { createFileStore } from '../sync/files.ts';
 import type { ParseJob, ParseResult } from './parse-worker.ts';
 import type { Block, TocEntry } from './parser.ts';
 
@@ -44,7 +47,8 @@ const imageType = (bytes: Buffer) => (bytes[0] === 0x89 ? 'image/png' : bytes[0]
 export async function bookRoutes(app: FastifyInstance, { config, db, tokens }: Deps) {
   const root = path.join(config.dataDir, 'books');
   const dirOf = (hash: string) => path.join(root, hash);
-  const owns = db.prepare('SELECT 1 FROM files WHERE account_id = ? AND sha256 = ?');
+  const files = createFileStore({ config, db });
+  const emailOnly = requireEmailAccount(db);
 
   const memory = new Map<string, Parsed>();
   const parsing = new Map<string, Promise<Parsed>>();
@@ -110,7 +114,7 @@ export async function bookRoutes(app: FastifyInstance, { config, db, tokens }: D
 
   /** Every book route answers only for an account that synced that file. */
   const mine = (request: FastifyRequest<{ Params: { sha: string } }>) => {
-    if (!owns.get(request.accountId, request.params.sha)) throw new ApiError(404, 'NOT_FOUND', 'Book not found');
+    if (!files.has(request.accountId, request.params.sha)) throw new ApiError(404, 'NOT_FOUND', 'Book not found');
     return request.params.sha;
   };
   const opened = async (hash: string) => {
@@ -118,10 +122,45 @@ export async function bookRoutes(app: FastifyInstance, { config, db, tokens }: D
     if (!book) throw new ApiError(409, 'BOOK_NOT_OPEN', 'Open the book first');
     return book;
   };
+  /** What the app needs to list and open a book, reading it the first time ([name] is its file name: it tells TXT apart). */
+  async function open(accountId: number, hash: string, name: string) {
+    const failed = unreadable.get(hash);
+    if (failed) throw new ApiError(422, 'BOOK_UNREADABLE', failed);
+    const book = (await read(hash)) ?? (await parse(accountId, hash, name));
+    const { title, language, fileType, toc, cover } = book;
+    return { title, language, fileType, toc, cover, blockCount: book.blocks.length };
+  }
 
   app.addHook('preHandler', requireAccount(db, tokens));
 
-  /** Opens a book (reading it the first time; [name] is its file name, which tells TXT apart). */
+  /**
+   * Adds a Project Gutenberg book straight from gutenberg.org into the account's files, and opens it: the phone never
+   * downloads the whole file. Each call downloads a book, so a few an hour per IP.
+   */
+  app.post<{ Params: { id: number } }>(
+    '/books/gutenberg/:id',
+    {
+      config: { rateLimit: { max: 30, timeWindow: '1 hour' } },
+      schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'integer', minimum: 1, maximum: 9_999_999 } } } },
+    },
+    async (request) => {
+      emailOnly(request.accountId);
+      const { id } = request.params;
+      const unavailable = new ApiError(502, 'GUTENBERG_UNAVAILABLE', 'Project Gutenberg did not answer');
+      const res = await fetch(`https://www.gutenberg.org/ebooks/${id}.epub3.images`, {
+        headers: { 'user-agent': 'Entrelinhas (one book for a reader who asked for it)' },
+        signal: AbortSignal.timeout(90_000),
+      }).catch(() => {
+        throw unavailable;
+      });
+      if (res.status === 404) throw new ApiError(404, 'NOT_FOUND', 'No such book on Project Gutenberg');
+      if (!res.ok || !res.body) throw unavailable;
+      const body = Readable.fromWeb(res.body as WebReadableStream<Uint8Array>);
+      const hash = await files.save(request.accountId, body, Number(res.headers.get('content-length') ?? 0));
+      return { success: true, data: { sha: hash, ...(await open(request.accountId, hash, `gutenberg-${id}.epub`)) } };
+    },
+  );
+
   app.get<{ Params: { sha: string }; Querystring: { name?: string } }>(
     '/books/:sha',
     {
@@ -132,11 +171,7 @@ export async function bookRoutes(app: FastifyInstance, { config, db, tokens }: D
     },
     async (request) => {
       const hash = mine(request);
-      const failed = unreadable.get(hash);
-      if (failed) throw new ApiError(422, 'BOOK_UNREADABLE', failed);
-      const book = (await read(hash)) ?? (await parse(request.accountId, hash, request.query.name ?? 'book.epub'));
-      const { title, language, fileType, toc, cover } = book;
-      return { success: true, data: { title, language, fileType, toc, cover, blockCount: book.blocks.length } };
+      return { success: true, data: await open(request.accountId, hash, request.query.name ?? 'book.epub') };
     },
   );
 

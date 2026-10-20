@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { test } from 'node:test';
 import { strToU8, zipSync } from 'fflate';
-import { bearer, makeApp } from './helpers.ts';
+import { bearer, deviceToken, makeApp } from './helpers.ts';
 
 type App = Awaited<ReturnType<typeof makeApp>>;
 
@@ -111,4 +111,34 @@ test('deleting the synced file takes the book with it', async () => {
   assert.equal((await app.inject({ url: `/books/${hash}`, headers: bearer(token) })).statusCode, 200);
   await app.inject({ method: 'DELETE', url: `/sync/files/${hash}`, headers: bearer(token) });
   assert.equal((await app.inject({ url: `/books/${hash}`, headers: bearer(token) })).statusCode, 404);
+});
+
+test('a Project Gutenberg book is downloaded by the server and opened', async (t) => {
+  const app = await makeApp();
+  const token = await account(app, 'ana@example.com');
+  const book = epub();
+  const asked: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string) => {
+    asked.push(url);
+    return url.includes('/ebooks/11.')
+      ? new Response(new Uint8Array(book), { headers: { 'content-length': String(book.length) } })
+      : new Response('', { status: 404 });
+  });
+  const added = await app.inject({ method: 'POST', url: '/books/gutenberg/11', headers: bearer(token) });
+  assert.equal(added.statusCode, 200);
+  assert.equal(added.json().data.sha, sha256(book));
+  assert.equal(added.json().data.title, 'Meu Livro');
+  assert.deepEqual(asked, ['https://www.gutenberg.org/ebooks/11.epub3.images']);
+  assert.deepEqual(
+    (await app.inject({ url: '/sync/files', headers: bearer(token) })).json().data.files,
+    [sha256(book)],
+    "the file is the account's now",
+  );
+  const page = await app.inject({ url: `/books/${sha256(book)}/blocks?from=0&count=1`, headers: bearer(token) });
+  assert.equal(page.json().data.blocks[0].text, 'Chapter 1');
+
+  const missing = await app.inject({ method: 'POST', url: '/books/gutenberg/999', headers: bearer(token) });
+  assert.equal(missing.statusCode, 404);
+  const anonymous = await app.inject({ method: 'POST', url: '/books/gutenberg/11', headers: bearer(await deviceToken(app, 'device-7')) });
+  assert.equal(anonymous.json().error.code, 'ACCOUNT_REQUIRED');
 });
