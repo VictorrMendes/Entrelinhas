@@ -1,14 +1,17 @@
 /** The Android app's FreeBooks (Explore.kt): the same four collections. The app browses them in its own browser and catches
- *  the download; a web app can't, so Project Gutenberg comes as a catalog inside the app (its download goes straight into
- *  the library, as in the app) and the other three open in the browser, their file coming in through "Adicionar livro". */
+ *  the download; a web app can't, so Project Gutenberg comes as a catalog inside the app (the server downloads the book
+ *  straight into the library, as in the app) and the other three open in the browser, their file coming in through
+ *  "Adicionar livro". */
 import arrowBackSvg from '@material-design-icons/svg/filled/arrow_back.svg?raw';
 import downloadSvg from '@material-design-icons/svg/outlined/download.svg?raw';
 import openInNewSvg from '@material-design-icons/svg/outlined/open_in_new.svg?raw';
 import { type FormEvent, useEffect, useState } from 'react';
-import { coverUrl, downloadBook, type FreeBook, searchBooks } from './gutenberg';
+import { account } from './api';
+import { coverUrl, type FreeBook, searchBooks } from './gutenberg';
 import { Close, Search } from './icons';
 import { notify } from './notices';
-import { type Book, db, importBook, sha256Hex } from './store';
+import { addGutenberg, bookErrorText } from './remote';
+import type { Book } from './store';
 import { AlertDialog, Icon } from './ui';
 
 const SITES = [
@@ -17,9 +20,9 @@ const SITES = [
   { name: 'Internet Archive', url: 'https://archive.org/details/texts', text: 'Milhões de livros digitalizados. Prefira os de domínio público.', formats: 'EPUB · PDF · TXT' },
 ];
 
-export function FreeBooks({ onClose, onOpen }: { onClose: () => void; onOpen: (book: Book) => void }) {
+export function FreeBooks({ onClose, onOpen, onSignIn }: { onClose: () => void; onOpen: (book: Book) => void; onSignIn: () => void }) {
   const [catalog, setCatalog] = useState(false);
-  if (catalog) return <Catalog onClose={() => setCatalog(false)} onOpen={onOpen} />;
+  if (catalog) return <Catalog onClose={() => setCatalog(false)} onOpen={onOpen} onSignIn={onSignIn} />;
   return (
     <main className="free-books">
       <header className="app-bar">
@@ -56,7 +59,7 @@ export function FreeBooks({ onClose, onOpen }: { onClose: () => void; onOpen: (b
 }
 
 /** The app's Browser for Project Gutenberg: the most downloaded books, a search, and one tap to add a book. */
-function Catalog({ onClose, onOpen }: { onClose: () => void; onOpen: (book: Book) => void }) {
+function Catalog({ onClose, onOpen, onSignIn }: { onClose: () => void; onOpen: (book: Book) => void; onSignIn: () => void }) {
   const [query, setQuery] = useState('');
   const [books, setBooks] = useState<FreeBook[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -82,16 +85,14 @@ function Catalog({ onClose, onOpen }: { onClose: () => void; onOpen: (book: Book
   }, []);
 
   async function add(b: FreeBook) {
+    // books live in the account: without one, signing in comes first
+    if (!account()) return onSignIn();
     setDownloading(b.id);
     notify({ text: `Baixando ${b.title}…` });
     try {
-      const bytes = await downloadBook(b.id);
-      const hash = await sha256Hex(bytes);
-      const before = (await db.all<Book>('books')).find((x) => x.hash === hash);
-      const book = before ?? (await db.get<Book>('books', await importBook(`${b.title}.epub`, bytes)));
-      if (book) setAdded({ book, before: !!before });
+      setAdded(await addGutenberg(b.id));
     } catch (e) {
-      notify({ text: (e as Error).message, error: true });
+      notify({ text: bookErrorText(e), error: true });
     } finally {
       setDownloading(null);
     }

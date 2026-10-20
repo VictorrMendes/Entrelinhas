@@ -108,6 +108,7 @@ export function App() {
   else if (exploring)
     screen = (
       <FreeBooks
+        onSignIn={() => setSigningIn(true)}
         onClose={() => setExploring(false)}
         onOpen={(b) => {
           setExploring(false);
@@ -119,7 +120,7 @@ export function App() {
     screen = (
       <>
         {tab === 'books' && (
-          <Library onOpen={setBook} onReview={() => setMode('cards')} onExplore={() => setExploring(true)} />
+          <Library onOpen={setBook} onReview={() => setMode('cards')} onExplore={() => setExploring(true)} onSignIn={() => setSigningIn(true)} />
         )}
         {tab === 'vocabulary' && <Vocabulary onStudy={setMode} />}
         {tab === 'progress' && <Progress />}

@@ -30,6 +30,12 @@ type App = Awaited<ReturnType<typeof makeApp>>;
 
 export const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 
+/** An email account: the kind that can add books. */
+export async function emailToken(app: App, email: string): Promise<string> {
+  const res = await app.inject({ method: 'POST', url: '/auth/signup', payload: { email, password: 'password 1', name: 'Ana' } });
+  return res.json().data.token;
+}
+
 export async function deviceToken(app: App, deviceId: string): Promise<string> {
   const res = await app.inject({
     method: 'POST',

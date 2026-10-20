@@ -2,16 +2,23 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { strToU8, zipSync } from 'fflate';
-import { htmlBlocks, parseBook, txt } from './book.ts';
+import { htmlBlocks, parseBook, txt } from '../src/books/parser.ts';
 
 /** Minimal EPUB: [chapters] (href, html) in spine order; the manifest lists them reversed so order must come from the spine. */
 function epub(chapters: [string, string][], files: Record<string, Uint8Array> = {}, extraManifest = ''): Uint8Array {
-  const manifest = chapters.map((_, i) => i).reverse().map((i) => `<item id="c${i}" href="${chapters[i][0]}"/>`).join('') + extraManifest;
+  const manifest =
+    chapters
+      .map((_, i) => i)
+      .reverse()
+      .map((i) => `<item id="c${i}" href="${(chapters[i] as [string, string])[0]}"/>`)
+      .join('') + extraManifest;
   const spine = chapters.map((_, i) => `<itemref idref="c${i}"/>`).join('');
   const zip: Record<string, Uint8Array> = {
     mimetype: strToU8('application/epub+zip'),
     'META-INF/container.xml': strToU8('<container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>'),
-    'OEBPS/content.opf': strToU8(`<package><metadata><dc:title>Meu Livro</dc:title></metadata><manifest>${manifest}</manifest><spine>${spine}</spine></package>`),
+    'OEBPS/content.opf': strToU8(
+      `<package><metadata><dc:title>Meu Livro</dc:title></metadata><manifest>${manifest}</manifest><spine>${spine}</spine></package>`,
+    ),
   };
   for (const [href, html] of chapters) zip[`OEBPS/${decodeURIComponent(href)}`] = strToU8(html);
   return zipSync({ ...zip, ...files });
@@ -50,7 +57,7 @@ test('FB2 with a legacy encoding, emphasis and an image', async () => {
     { type: 'poem', text: 'verso um' },
     { type: 'poem', text: 'verso dois' },
   ]);
-  assert.deepEqual([...book.images['0.png']], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  assert.deepEqual([...(book.images['0.png'] as Uint8Array)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   assert.deepEqual(book.cover, book.images['0.png'], 'coverpage image is the cover');
 });
 
@@ -79,7 +86,11 @@ test('EPUB in spine order, with its images', async () => {
 test('a declared EPUB cover is not a regular image', async () => {
   const book = await parseBook(
     'x.epub',
-    epub([['text/ch.xhtml', '<p>texto</p>']], { 'OEBPS/img/c.jpg': Uint8Array.from([0xff, 0xd8, 9]) }, '<item id="cv" href="img/c.jpg" media-type="image/jpeg" properties="cover-image"/>'),
+    epub(
+      [['text/ch.xhtml', '<p>texto</p>']],
+      { 'OEBPS/img/c.jpg': Uint8Array.from([0xff, 0xd8, 9]) },
+      '<item id="cv" href="img/c.jpg" media-type="image/jpeg" properties="cover-image"/>',
+    ),
   );
   assert.deepEqual(book.cover, Uint8Array.from([0xff, 0xd8, 9]));
   assert.deepEqual(book.images, {});
@@ -138,9 +149,9 @@ test('EPUB links and the table of contents follow anchors inside a file', async 
   const ch1 = text.lastIndexOf('Chapter 1');
   const ch2 = text.lastIndexOf('Chapter 2');
   assert.deepEqual([ch1, ch2], [6, 8]);
-  assert.deepEqual(parsed.blocks[1].links, [{ start: 0, end: 9, target: ch1 }]);
-  assert.deepEqual(parsed.blocks[2].links, [{ start: 0, end: 9, target: ch2 }]);
-  assert.equal(parsed.blocks[3].links, undefined, 'external links are not kept');
+  assert.deepEqual(parsed.blocks[1]?.links, [{ start: 0, end: 9, target: ch1 }]);
+  assert.deepEqual(parsed.blocks[2]?.links, [{ start: 0, end: 9, target: ch2 }]);
+  assert.equal(parsed.blocks[3]?.links, undefined, 'external links are not kept');
   assert.deepEqual(parsed.blocks.at(-1)?.links, [{ start: 13, end: 21, target: 0 }]);
   assert.deepEqual(parsed.toc, [
     { title: 'One', block: ch1 },

@@ -1,10 +1,11 @@
 /**
  * The Android app's BookParser.kt, rule for rule: reading positions and highlights sync by block index and text offset,
- * so both apps must cut a book into exactly the same blocks. Book markup is only tokenized, never handed to the DOM.
- * PDF is the exception: the app reads it with PDFBox, this one with pdf.js, so its blocks come close but can differ.
+ * so both apps must cut a book into exactly the same blocks. The server reads the books the web app shows; book markup
+ * is only tokenized, never rendered. PDFs: the app reads them with PDFBox, this with pdf.js, glyph by glyph as PDFBox.
  */
 import { strFromU8, unzipSync } from 'fflate';
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { encode } from 'jpeg-js';
+import type { PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 /** Bold or italic text inside a block: [start, end) of its text. */
 export interface Span {
@@ -116,14 +117,17 @@ const attrs = new Map<string, RegExp>();
 /** Attribute value; also matches namespaced names (xlink:href, l:href). */
 function attr(tag: string, name: string): string | null {
   let re = attrs.get(name);
-  if (!re) attrs.set(name, (re = new RegExp(`${S}(?:[\\w-]+:)?${name}${S}*=${S}*(["'])(.*?)\\1`, 'u')));
+  if (!re) {
+    re = new RegExp(`${S}(?:[\\w-]+:)?${name}${S}*=${S}*(["'])(.*?)\\1`, 'u');
+    attrs.set(name, re);
+  }
   return re.exec(tag)?.[2] ?? null;
 }
 
 const dirOf = (path: string) => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '');
 
 function resolve(dir: string, href: string): string {
-  const raw = href.split('#')[0];
+  const raw = href.split('#')[0] as string;
   let decoded = raw;
   try {
     decoded = decodeURIComponent(raw);
@@ -231,7 +235,29 @@ const HTML: Markup = {
     ['blockquote', 'q'],
     ['li', 'li'],
   ],
-  breaks: new Set(['p', 'div', 'section', 'article', 'pre', 'td', 'th', 'tr', 'dd', 'dt', 'figcaption', 'ul', 'ol', 'table', 'hr', 'br', 'body', 'header', 'footer', 'aside', 'nav']),
+  breaks: new Set([
+    'p',
+    'div',
+    'section',
+    'article',
+    'pre',
+    'td',
+    'th',
+    'tr',
+    'dd',
+    'dt',
+    'figcaption',
+    'ul',
+    'ol',
+    'table',
+    'hr',
+    'br',
+    'body',
+    'header',
+    'footer',
+    'aside',
+    'nav',
+  ]),
   skip: new Set(['head', 'script', 'style', 'math']),
   bold: new Set(['b', 'strong']),
   italic: new Set(['i', 'em']),
@@ -317,7 +343,8 @@ function markupBlocks(src: string, m: Markup, image: (tag: string) => string | n
         .map((s) => ({ start: s.start, end: s.end, ...(s.bold && { bold: true }), ...(s.italic && { italic: true }) }));
       out.push({ type, text: sb, ...(kept.length && { spans: kept }) });
       // a link still open continues in the next block
-      if (linkHref !== null && sb.length > linkStart) links.push({ block: out.length - 1, start: linkStart, end: sb.length, href: linkHref });
+      if (linkHref !== null && sb.length > linkStart)
+        links.push({ block: out.length - 1, start: linkStart, end: sb.length, href: linkHref });
       linkStart = 0;
     }
     sb = '';
@@ -384,7 +411,10 @@ export function txt(s: string): Block[] {
   const lines = (t.match(/\n/g)?.length ?? 0) + 1;
   const blanks = t.match(/\n[ \t]*\n/g)?.length ?? 0;
   const paras = blanks * 20 >= lines ? t.split(/\n[ \t]*\n/) : t.split('\n');
-  return paras.map((p) => trim(p.replace(WS, ' '))).filter(Boolean).map((text) => ({ type: classify(text), text }));
+  return paras
+    .map((p) => trim(p.replace(WS, ' ')))
+    .filter(Boolean)
+    .map((text) => ({ type: classify(text), text }));
 }
 
 /** [from, to) of a block, with its styles and links moved along. */
@@ -392,7 +422,9 @@ function slice(b: Block, from: number, to: number): Block {
   const text = b.text.slice(from, to).replace(KT_TRIM_END, '');
   const end = from + text.length;
   const cut = <T extends { start: number; end: number }>(list: T[] | undefined) =>
-    (list ?? []).flatMap((x) => (x.end <= from || x.start >= end ? [] : [{ ...x, start: Math.max(x.start, from) - from, end: Math.min(x.end, end) - from }]));
+    (list ?? []).flatMap((x) =>
+      x.end <= from || x.start >= end ? [] : [{ ...x, start: Math.max(x.start, from) - from, end: Math.min(x.end, end) - from }],
+    );
   const spans = cut(b.spans);
   const links = cut(b.links);
   const { spans: _, links: __, ...rest } = b;
@@ -427,10 +459,10 @@ const metaText = (doc: string, tag: string) => {
   const raw = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`).exec(doc)?.[1];
   return raw === undefined ? null : decode(raw.replace(TAG, ''));
 };
-const languageOf = (code: string | null) => (code || 'en').split('-')[0].toLowerCase();
+const languageOf = (code: string | null) => ((code || 'en').split('-')[0] as string).toLowerCase();
 
 function epub(files: Record<string, Uint8Array>, fallback: string): Omit<ParsedBook, 'fileType'> {
-  const container = xmlText(files['META-INF/container.xml']);
+  const container = xmlText(files['META-INF/container.xml'] as Uint8Array);
   const root = /<(?:\w+:)?rootfile\b[^>]*>/.exec(container)?.[0];
   const opfPath = root ? attr(root, 'full-path') : null;
   if (!opfPath) throw new Error('EPUB sem o arquivo de conteúdo (OPF).');
@@ -466,15 +498,15 @@ function epub(files: Record<string, Uint8Array>, fallback: string): Omit<ParsedB
     for (const b of parsed.blocks) blocks.push(b);
   }
   const target = (key: string) => {
-    const at = anchors.get(key) ?? anchors.get(key.split('#')[0]);
+    const at = anchors.get(key) ?? anchors.get(key.split('#')[0] as string);
     return at === undefined ? null : Math.min(at, blocks.length - 1);
   };
   for (const [i, group] of groupBy(links, ([l]) => l.block)) {
     const inBlock = group.flatMap(([l, key]) => {
       const t = target(key);
-      return t === null ? [] : [{ start: l.start, end: Math.min(l.end, blocks[i].text.length), target: t }];
+      return t === null ? [] : [{ start: l.start, end: Math.min(l.end, (blocks[i] as Block).text.length), target: t }];
     });
-    if (inBlock.length) blocks[i] = { ...blocks[i], links: inBlock };
+    if (inBlock.length) blocks[i] = { ...(blocks[i] as Block), links: inBlock };
   }
   return {
     title: metaText(opf, 'dc:title') || fallback,
@@ -487,7 +519,13 @@ function epub(files: Record<string, Uint8Array>, fallback: string): Omit<ParsedB
 }
 
 // EPUB 3 marks the cover with properties="cover-image", EPUB 2 with <meta name="cover" content="id">
-function epubCover(files: Record<string, Uint8Array>, opf: string, items: string[], manifest: Map<string | null, string | null>, opfDir: string) {
+function epubCover(
+  files: Record<string, Uint8Array>,
+  opf: string,
+  items: string[],
+  manifest: Map<string | null, string | null>,
+  opfDir: string,
+) {
   const meta = [...opf.matchAll(/<(?:\w+:)?meta\b[^>]*>/g)].map((m) => m[0]).find((t) => attr(t, 'name') === 'cover');
   const declared = items.find((it) => attr(it, 'properties')?.split(' ').includes('cover-image'));
   const href = (declared ? attr(declared, 'href') : null) ?? manifest.get(meta ? attr(meta, 'content') : null) ?? null;
@@ -508,7 +546,7 @@ function epubToc(files: Record<string, Uint8Array>, items: string[], opfDir: str
     const dir = dirOf(path);
     const entries = [...section.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].flatMap((m) => {
       const href = attr(` ${m[1]}`, 'href');
-      return href === null ? [] : entry(m[2], dir, href);
+      return href === null ? [] : entry(m[2] as string, dir, href);
     });
     if (entries.length) return entries;
   }
@@ -520,7 +558,7 @@ function epubToc(files: Record<string, Uint8Array>, items: string[], opfDir: str
   const navPoint = new RegExp(`<navLabel>${S}*<text>([\\s\\S]*?)</text>${S}*</navLabel>${S}*<content\\b([^>]*)>`, 'gu');
   return [...(files[path] ? xmlText(files[path]) : '').matchAll(navPoint)].flatMap((m) => {
     const src = attr(` ${m[2]}`, 'src');
-    return src === null ? [] : entry(m[1], dir, src);
+    return src === null ? [] : entry(m[1] as string, dir, src);
   });
 }
 
@@ -528,8 +566,8 @@ function fb2(bytes: Uint8Array, fallback: string): Omit<ParsedBook, 'fileType'> 
   const xml = xmlText(bytes);
   const binaries = new Map<string, string>();
   for (const m of xml.matchAll(/<binary\b([^>]*)>([\s\S]*?)<\/binary>/g)) {
-    const id = attr(m[1], 'id');
-    if (id !== null) binaries.set(id, m[2]);
+    const id = attr(m[1] as string, 'id');
+    if (id !== null) binaries.set(id, m[2] as string);
   }
   const images = new ImageStore();
   const parsed = markupBlocks(xml, FB2, (tag) => {
@@ -541,9 +579,11 @@ function fb2(bytes: Uint8Array, fallback: string): Omit<ParsedBook, 'fileType'> 
   for (const [i, group] of groupBy(parsed.links, (l) => l.block)) {
     const inBlock = group.flatMap((l) => {
       const t = parsed.anchors.get(l.href.replace(/^#/, ''));
-      return t === undefined ? [] : [{ start: l.start, end: Math.min(l.end, blocks[i].text.length), target: Math.min(t, blocks.length - 1) }];
+      return t === undefined
+        ? []
+        : [{ start: l.start, end: Math.min(l.end, (blocks[i] as Block).text.length), target: Math.min(t, blocks.length - 1) }];
     });
-    if (inBlock.length) blocks[i] = { ...blocks[i], links: inBlock };
+    if (inBlock.length) blocks[i] = { ...(blocks[i] as Block), links: inBlock };
   }
   const title = /<book-title>([\s\S]*?)<\/book-title>/.exec(xml)?.[1];
   const coverpage = /<coverpage>[\s\S]*?<\/coverpage>/.exec(xml)?.[0];
@@ -567,14 +607,10 @@ export interface PdfImage {
   data: Uint8Array | Uint8ClampedArray;
 }
 
-/** What a PDF needs pixels for. Only the browser has it; without it (tests) images and the cover are left out. */
+/** What a PDF needs pixels for; without it (tests) its images are left out. */
 export interface Draw {
   image(img: PdfImage): Promise<Uint8Array | null>;
-  cover(page: PDFPageProxy): Promise<Uint8Array | null>;
 }
-
-const toJpeg = (canvas: HTMLCanvasElement, quality: number) =>
-  new Promise<Uint8Array | null>((done) => canvas.toBlob((b) => (b ? b.arrayBuffer().then((a) => done(new Uint8Array(a))) : done(null)), 'image/jpeg', quality));
 
 function rgba({ width, height, kind, data }: PdfImage): Uint8ClampedArray<ArrayBuffer> | null {
   const n = width * height;
@@ -585,30 +621,25 @@ function rgba({ width, height, kind, data }: PdfImage): Uint8ClampedArray<ArrayB
   } else if (kind === 1) {
     const row = (width + 7) >> 3;
     for (let y = 0; y < height; y++)
-      for (let x = 0; x < width; x++) if (!((data[y * row + (x >> 3)] >> (7 - (x & 7))) & 1)) out.fill(0, (y * width + x) * 4, (y * width + x) * 4 + 3);
+      for (let x = 0; x < width; x++)
+        if (!(((data[y * row + (x >> 3)] as number) >> (7 - (x & 7))) & 1)) out.fill(0, (y * width + x) * 4, (y * width + x) * 4 + 3);
   } else return null;
   return out;
 }
 
-const BROWSER: Draw = {
+/** JPEG in plain JavaScript (jpeg-js), so the server needs no native image library. */
+export const SERVER: Draw = {
   // the app copies a PDF's JPEGs as they are and saves the rest as PNG; pdf.js only hands out pixels, so all become JPEG
   async image(img) {
     const pixels = rgba(img);
     if (!pixels) return null;
-    const canvas = Object.assign(document.createElement('canvas'), { width: img.width, height: img.height });
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, img.width, img.height);
-    ctx.drawImage(await createImageBitmap(new ImageData(pixels, img.width, img.height)), 0, 0);
-    return toJpeg(canvas, 0.9);
-  },
-  // the first page 360 px wide, as the app's pdfCover renders it
-  async cover(page) {
-    const viewport = page.getViewport({ scale: 360 / page.getViewport({ scale: 1 }).width });
-    const canvas = Object.assign(document.createElement('canvas'), { width: 360, height: Math.floor(viewport.height) });
-    await page.render({ canvas, viewport, background: '#fff' }).promise;
-    return toJpeg(canvas, 0.85);
+    // see-through pixels over white, as on the page (JPEG has no transparency)
+    for (let i = 3; i < pixels.length; i += 4) {
+      const a = pixels[i] as number;
+      if (a === 255) continue;
+      for (let c = i - 3; c < i; c++) pixels[c] = Math.round(((pixels[c] as number) * a + 255 * (255 - a)) / 255);
+    }
+    return new Uint8Array(encode({ data: pixels, width: img.width, height: img.height }, 90).data);
   },
 };
 
@@ -635,7 +666,8 @@ const PRESENTATION = /[ﬀ-﷿ﹰ-﻿]/g;
 const normalizeWord = (s: string) => s.replace(PRESENTATION, (c) => c.normalize('NFKC').replace(/^[\0- ]+|[\0- ]+$/g, ''));
 const round3 = (v: number) => Math.round(v * 1000) / 1000;
 const within = (a: number, b: number, v: number) => b < a + v && b > a - v;
-const overlap = (y1: number, h1: number, y2: number, h2: number) => within(y1, y2, 0.1) || (y2 <= y1 && y2 >= y1 - h1) || (y1 <= y2 && y1 >= y2 - h2);
+const overlap = (y1: number, h1: number, y2: number, h2: number) =>
+  within(y1, y2, 0.1) || (y2 <= y1 && y2 >= y1 - h1) || (y1 <= y2 && y1 >= y2 - h2);
 
 // TextPositionComparator: on the same line (by baseline and height), left to right; otherwise top to bottom
 const byPosition = (p: Glyph, q: Glyph) =>
@@ -745,10 +777,18 @@ interface FontMetrics {
  *  to itself) and PDFont.getSpaceWidth (the glyph ToUnicode maps to a space, else code 32, else 80% of the average width),
  *  both per unit of font size. */
 function fontMetrics(
-  f: { name?: string; fontMatrix?: number[]; bbox?: number[]; widths?: Record<number, number>; toUnicode?: { _map?: unknown }; defaultWidth?: number } | null,
+  f: {
+    name?: string;
+    fontMatrix?: number[];
+    bbox?: number[];
+    widths?: Record<number, number>;
+    toUnicode?: { _map?: unknown };
+    defaultWidth?: number;
+  } | null,
 ): FontMetrics {
-  const matrix = f?.fontMatrix ?? [0.001, 0, 0, 0.001];
-  const glyphHeight = (f?.bbox ? f.bbox[3] - f.bbox[1] : (STANDARD_BOX[f?.name ?? ''] ?? 0)) / 2;
+  const [sx = 0.001, , , sy = 0.001] = f?.fontMatrix ?? [];
+  const [, bottom = 0, , top = 0] = f?.bbox ?? [];
+  const glyphHeight = (f?.bbox ? top - bottom : (STANDARD_BOX[f?.name ?? ''] ?? 0)) / 2;
   const widths = f?.widths ?? {};
   const map = f?.toUnicode?._map;
   const code = Array.isArray(map) ? map.indexOf(' ') : -1;
@@ -757,7 +797,7 @@ function fontMetrics(
     const all = Object.values(widths).filter((w) => w > 0);
     space = all.length ? (all.reduce((a, b) => a + b, 0) / all.length) * 0.8 : 0;
   }
-  return { scale: matrix[0], height: glyphHeight ? glyphHeight * Math.abs(matrix[3]) : 0.5, space: space ? space * Math.abs(matrix[0]) : 1 };
+  return { scale: sx, height: glyphHeight ? glyphHeight * Math.abs(sy) : 0.5, space: space ? space * Math.abs(sx) : 1 };
 }
 
 async function digest(data: Uint8Array | Uint8ClampedArray) {
@@ -775,7 +815,8 @@ async function pdfOutline(doc: PDFDocumentProxy, pageStart: number[]): Promise<T
   const walk = async (items: { title: string; dest: unknown; items: unknown[] }[], depth: number) => {
     for (const item of items) {
       const index = await pageOf(item.dest).catch(() => -1);
-      if (index >= 0 && index < pageStart.length && trim(item.title ?? '')) out.push({ title: trim(item.title), block: pageStart[index] });
+      if (index >= 0 && index < pageStart.length && trim(item.title ?? ''))
+        out.push({ title: trim(item.title), block: pageStart[index] as number });
       if (depth < 1) await walk(item.items as typeof items, depth + 1);
     }
   };
@@ -798,10 +839,14 @@ interface TextState {
 async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Promise<ParsedBook> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const { OPS, Util } = pdfjs;
-  if (typeof document !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc)
-    pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
   // a copy, since pdf.js hands the bytes over to its worker; raw pixels (no ImageBitmap) so images can be compared
-  const task = pdfjs.getDocument({ data: bytes.slice(), fontExtraProperties: true, isOffscreenCanvasSupported: false, isImageDecoderSupported: false, verbosity: 0 });
+  const task = pdfjs.getDocument({
+    data: bytes.slice(),
+    fontExtraProperties: true,
+    isOffscreenCanvasSupported: false,
+    isImageDecoderSupported: false,
+    verbosity: 0,
+  });
   const doc = await task.promise.catch((e: unknown) => {
     throw new Error((e as Error)?.name === 'PasswordException' ? 'Este PDF é protegido por senha.' : 'Não consegui abrir este PDF.');
   });
@@ -815,7 +860,7 @@ async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Prom
       pageStart.push(blocks.length);
       const page = await doc.getPage(i);
       const ops = await page.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
-      const [left, bottom, , top] = page.view;
+      const [left, bottom, , top] = page.view as [number, number, number, number];
       const glyphs: Glyph[] = [];
       const drawn = new Map<string, [number, number][]>();
       const pictures: [number, string][] = [];
@@ -858,7 +903,10 @@ async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Prom
         else if (fn === OPS.setFont) state = { ...state, font: args[0], size: args[1] };
         else if (fn === OPS.showText) {
           let font = metrics.get(state.font);
-          if (!font) metrics.set(state.font, (font = fontMetrics(page.commonObjs.has(state.font) ? page.commonObjs.get(state.font) : null)));
+          if (!font) {
+            font = fontMetrics(page.commonObjs.has(state.font) ? page.commonObjs.get(state.font) : null);
+            metrics.set(state.font, font);
+          }
           const size = Math.abs(state.size);
           const hScale = state.hScale * Math.sign(state.size || 1);
           const m = Util.transform(ctm, tm);
@@ -891,7 +939,12 @@ async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Prom
               // processTextPosition: the same character drawn again on top of itself (fake bold) counts once
               const tolerance = glyph.width / glyph.text.length / 3;
               const same = drawn.get(glyph.text) ?? [];
-              if (!same.some(([sx, sy]) => sx >= glyph.x - tolerance && sx < glyph.x + tolerance && sy >= glyph.y - tolerance && sy < glyph.y + tolerance)) {
+              if (
+                !same.some(
+                  ([sx, sy]) =>
+                    sx >= glyph.x - tolerance && sx < glyph.x + tolerance && sy >= glyph.y - tolerance && sy < glyph.y + tolerance,
+                )
+              ) {
                 same.push([glyph.x, glyph.y]);
                 drawn.set(glyph.text, same);
                 glyphs.push(glyph);
@@ -912,7 +965,7 @@ async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Prom
           if (img.width < 64 || img.height < 64) continue;
           const data = await draw.image(img).catch(() => null);
           const name = data && images.add(`pdf-${seen.size}`, data);
-          if (name) pictures.push([top - bottom - (ctm[5] + ctm[3]), name]);
+          if (name) pictures.push([top - bottom - ((ctm[5] as number) + (ctm[3] as number)), name]);
         }
       }
       const placed: [number, Block][] = pageParagraphs(glyphs).map(([py, text]) => [py, { type: classify(text), text }]);
@@ -924,15 +977,38 @@ async function pdf(bytes: Uint8Array, fallback: string, draw: Draw | null): Prom
     if (!blocks.some((b) => b.text)) throw new Error('Este PDF só tem páginas escaneadas; o texto dele só é reconhecido no app Android.');
     const info = (await doc.getMetadata().catch(() => null))?.info as { Title?: unknown } | undefined;
     const title = typeof info?.Title === 'string' && trim(info.Title) ? info.Title : fallback;
-    const cover = draw ? ((await draw.cover(await doc.getPage(1)).catch(() => null)) ?? undefined) : undefined;
-    return { title, fileType: 'pdf', language: 'en', blocks, images: images.bytes, cover, toc: await pdfOutline(doc, pageStart).catch(() => []) };
+    // the app draws the first page as the cover; with no canvas here, the first picture stands in
+    const cover = Object.values(images.bytes)[0];
+    return {
+      title,
+      fileType: 'pdf',
+      language: 'en',
+      blocks,
+      images: images.bytes,
+      cover,
+      toc: await pdfOutline(doc, pageStart).catch(() => []),
+    };
   } finally {
     await task.destroy();
   }
 }
 
+/** Past this much unpacked, a zip is refused before anything is unpacked: a zip bomb is a few MB that unpack to gigabytes. */
+const MAX_UNZIPPED = 400 * 1024 * 1024;
+
+function unzip(bytes: Uint8Array): Record<string, Uint8Array> {
+  let total = 0;
+  return unzipSync(bytes, {
+    filter: (f) => {
+      total += f.originalSize;
+      if (total > MAX_UNZIPPED) throw new Error('Este livro é grande demais para abrir.');
+      return !f.name.endsWith('/');
+    },
+  });
+}
+
 /** EPUB, FB2 (also zipped), TXT or PDF. */
-export async function parseBook(fileName: string, bytes: Uint8Array, draw: Draw | null = typeof document === 'undefined' ? null : BROWSER): Promise<ParsedBook> {
+export async function parseBook(fileName: string, bytes: Uint8Array, draw: Draw | null = SERVER): Promise<ParsedBook> {
   const dot = fileName.lastIndexOf('.');
   const stem = dot >= 0 ? fileName.slice(0, dot) : fileName;
   const fallback = trim(stem) ? stem : fileName;
@@ -940,13 +1016,14 @@ export async function parseBook(fileName: string, bytes: Uint8Array, draw: Draw 
   let book: ParsedBook;
   if (head.startsWith('%PDF')) book = await pdf(bytes, fallback, draw);
   else if (head.startsWith('PK')) {
-    const files = Object.fromEntries(Object.entries(unzipSync(bytes)).filter(([name]) => !name.endsWith('/')));
+    const files = unzip(bytes);
     const inner = Object.keys(files).find((k) => k.toLowerCase().endsWith('.fb2'));
     if ('META-INF/container.xml' in files) book = { ...epub(files, fallback), fileType: 'epub' };
-    else if (inner) book = { ...fb2(files[inner], fallback), fileType: 'fb2' };
+    else if (inner) book = { ...fb2(files[inner] as Uint8Array, fallback), fileType: 'fb2' };
     else throw new Error('Este arquivo compactado não tem um EPUB nem um FB2.');
   } else if (head.includes('<FictionBook')) book = { ...fb2(bytes, fallback), fileType: 'fb2' };
-  else if (/\.txt$/i.test(fileName)) book = { title: fallback, fileType: 'txt', language: 'en', blocks: txt(decodeText(bytes)), images: {}, toc: [] };
+  else if (/\.txt$/i.test(fileName))
+    book = { title: fallback, fileType: 'txt', language: 'en', blocks: txt(decodeText(bytes)), images: {}, toc: [] };
   else throw new Error('Formato não aceito: use EPUB, FB2, TXT ou PDF.');
 
   // splitting long blocks shifts indices, so links and the table of contents are remapped through the same split
@@ -961,6 +1038,10 @@ export async function parseBook(fileName: string, bytes: Uint8Array, draw: Draw 
   if (!linked.length) throw new Error('Não encontrei texto neste livro.');
   const toc = book.toc.map((e) => ({ ...e, block: moved(e.block) }));
   // without a table of contents of its own, the headings stand in
-  if (!toc.length) linked.forEach((b, i) => b.type === 'h' && b.text.length <= 120 && toc.push({ title: b.text, block: i }));
+  if (!toc.length) {
+    linked.forEach((b, i) => {
+      if (b.type === 'h' && b.text.length <= 120) toc.push({ title: b.text, block: i });
+    });
+  }
   return { ...book, blocks: linked, toc };
 }

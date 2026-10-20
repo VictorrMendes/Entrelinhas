@@ -7,6 +7,9 @@ import { hashPassword, sha256 } from './passwords.ts';
 const CODE_TTL_MS = 15 * 60_000;
 const MAX_ATTEMPTS = 5;
 const RATE_LIMIT = { rateLimit: { max: 5, timeWindow: '15 minutes' } };
+/** Per account, whatever the IP: a minute apart and a few an hour, so no inbox gets flooded and new codes don't buy new guesses. */
+const RESEND_MS = 60_000;
+const MAX_SENDS_PER_HOUR = 5;
 
 const email = { type: 'string', maxLength: 254, pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' } as const;
 
@@ -25,6 +28,8 @@ export async function resetRoutes(app: FastifyInstance, { db, tokens, mailer }: 
   const dropCode = db.prepare('DELETE FROM password_resets WHERE account_id = ?');
   const setPassword = db.prepare('UPDATE accounts SET password_hash = ?, password_changed_at = ? WHERE id = ?');
   const codeHash = (accountId: number, code: string) => sha256(`${accountId}:${code}`);
+  // In memory, like the login lockout: resets on restart. Keyed by existing accounts only, so it can't be grown at will.
+  const sent = new Map<number, number[]>();
 
   app.post<{ Body: { email: string } }>(
     '/auth/password/forgot',
@@ -33,7 +38,12 @@ export async function resetRoutes(app: FastifyInstance, { db, tokens, mailer }: 
       if (!mailer) throw new ApiError(503, 'RESET_UNAVAILABLE', 'Password reset is not configured on this server');
       const address = request.body.email.trim().toLowerCase();
       const account = findAccount.get(address) as { id: number; name: string | null } | undefined;
-      if (account) {
+      const now = Date.now();
+      const recent = account ? (sent.get(account.id) ?? []).filter((t) => now - t < 3600_000) : [];
+      const last = recent.at(-1);
+      // the answer is the same when nothing is sent, so it tells nothing about the account
+      if (account && recent.length < MAX_SENDS_PER_HOUR && (last === undefined || now - last >= RESEND_MS)) {
+        sent.set(account.id, [...recent, now]);
         const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
         saveCode.run(account.id, codeHash(account.id, code), Date.now() + CODE_TTL_MS);
         const hello = account.name ? `Olá, ${account.name}!` : 'Olá!';

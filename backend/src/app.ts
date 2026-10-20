@@ -5,6 +5,7 @@ import Fastify, { type FastifyError } from 'fastify';
 import { resetRoutes } from './auth/reset.ts';
 import { authRoutes } from './auth/routes.ts';
 import { createTokens, type Tokens } from './auth/tokens.ts';
+import { bookRoutes } from './books/routes.ts';
 import type { Config } from './config.ts';
 import { crashRoutes } from './crashes/routes.ts';
 import { openDb } from './db.ts';
@@ -80,6 +81,7 @@ export function buildApp(
   app.register(translateRoutes, deps);
   app.register(snapshotRoutes, deps);
   app.register(fileRoutes, deps);
+  app.register(bookRoutes, deps);
   app.register(crashRoutes, deps);
   return app;
 }

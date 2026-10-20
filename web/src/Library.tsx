@@ -6,12 +6,12 @@ import exploreSvg from '@material-design-icons/svg/outlined/explore.svg?raw';
 import menuBookSvg from '@material-design-icons/svg/outlined/menu_book.svg?raw';
 import styleSvg from '@material-design-icons/svg/outlined/style.svg?raw';
 import { useEffect, useState } from 'react';
-import { post } from './api';
-import { asBlocks, type Block } from './book';
+import { account, post } from './api';
 import { StreakCard } from './Goals';
 import { notify } from './notices';
-import { type Book, db, deleteBook, dueWords, importBook, onChange, useDb } from './store';
-import { levelSample } from './text';
+import { addFile, bookBlocks, bookErrorText } from './remote';
+import { type Book, db, deleteBook, dueWords, onChange, useDb } from './store';
+import { excerpts } from './text';
 import { AlertDialog, Confirm, Icon, Menu, Pills, ScreenTitle } from './ui';
 
 const onIphone = /iPhone|iPad/.test(navigator.userAgent);
@@ -26,8 +26,11 @@ async function assessLevels(done: () => void) {
   assessing = true;
   try {
     for (const b of await db.all<Book>('books')) {
-      if (b.level) continue;
-      const sample = levelSample(asBlocks((await db.get<(Block | string)[]>('texts', b.id as number)) ?? []));
+      const { hash } = b;
+      if (b.level || !hash) continue;
+      // the excerpts at 20%, 50% and 80% of the book, from the server: never the whole text
+      const windows = await Promise.all([0.2, 0.5, 0.8].map((at) => bookBlocks(hash, Math.floor(b.blockCount * at), 40)));
+      const sample = excerpts(windows);
       const { level } = await post<{ level: string }>('/level', { sample, language: b.language });
       // the reader may have moved on in the book meanwhile: only the level changes
       const now = await db.get<Book>('books', b.id as number);
@@ -82,7 +85,17 @@ function Cover({ url, fileType, width, height }: { url?: string; fileType?: stri
   );
 }
 
-export function Library({ onOpen, onReview, onExplore }: { onOpen: (book: Book) => void; onReview: () => void; onExplore: () => void }) {
+export function Library({
+  onOpen,
+  onReview,
+  onExplore,
+  onSignIn,
+}: {
+  onOpen: (book: Book) => void;
+  onReview: () => void;
+  onExplore: () => void;
+  onSignIn: () => void;
+}) {
   const [books, setBooks] = useState<Book[]>([]);
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState(0);
@@ -98,14 +111,16 @@ export function Library({ onOpen, onReview, onExplore }: { onOpen: (book: Book) 
     return onChange(load); // books a sync downloads or removes show up at once
   }, []);
 
+  // the file goes to the account's cloud files, where the server reads it
   async function add(file: File) {
     setBusy(true);
     try {
-      await importBook(file.name, new Uint8Array(await file.arrayBuffer()));
+      const { before } = await addFile(file.name, new Uint8Array(await file.arrayBuffer()));
+      if (before) notify({ text: 'Este livro já está na biblioteca.' });
       await load();
       assessLevels(load);
     } catch (e) {
-      notify({ text: e instanceof Error ? e.message : 'Não consegui abrir este arquivo.', error: true });
+      notify({ text: bookErrorText(e), error: true });
     } finally {
       setBusy(false);
     }
@@ -156,7 +171,15 @@ export function Library({ onOpen, onReview, onExplore }: { onOpen: (book: Book) 
         )}
         <Pills options={['Todos', 'Em andamento', 'Concluídos', ...shelves]} selected={filter >= 3 && shelf === undefined ? 0 : filter} onSelect={setFilter} />
         <div className="action-tiles">
-          <label className={`card action-tile${busy ? ' disabled' : ''}`}>
+          <label
+            className={`card action-tile${busy ? ' disabled' : ''}`}
+            onClick={(e) => {
+              // books live in the account: without one, signing in comes first
+              if (account()) return;
+              e.preventDefault();
+              onSignIn();
+            }}
+          >
             <span className="icon-circle">
               <Icon svg={addSvg} size={22} />
             </span>

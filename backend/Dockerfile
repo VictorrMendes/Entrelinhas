@@ -3,8 +3,12 @@ FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+# the base image's Alpine packages get their security fixes before a newer image is out
+RUN apk upgrade --no-cache
+
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+# npm and corepack are only needed to install: removed, they leave neither unused code nor their dependencies' CVEs behind
+RUN npm ci --omit=dev && npm cache clean --force   && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Node runs the TypeScript directly (type stripping): no build step, the image ships the sources
 COPY src ./src

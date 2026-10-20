@@ -9,6 +9,16 @@ declare module 'fastify' {
   }
 }
 
+/** Adding books takes an email account: anonymous ones are made at will, and books fill the server's disk. */
+export function requireEmailAccount(db: DatabaseSync) {
+  const find = db.prepare('SELECT email FROM accounts WHERE id = ?');
+  return (accountId: number) => {
+    if (!(find.get(accountId) as { email: string | null } | undefined)?.email) {
+      throw new ApiError(403, 'ACCOUNT_REQUIRED', 'Sign in with an email account to add books');
+    }
+  };
+}
+
 export function requireAccount(db: DatabaseSync, tokens: Tokens) {
   const find = db.prepare('SELECT password_changed_at AS changed FROM accounts WHERE id = ?');
   return async (request: FastifyRequest) => {

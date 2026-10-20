@@ -17,7 +17,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { asBlocks, type Block } from './book';
+import { account } from './api';
+import type { Block } from './blocks';
+import { bookBlocks, bookErrorText, bookImage, openBook } from './remote';
 import { DictationSheet, speechRate } from './Dictation';
 import { notify } from './notices';
 import { caretAt, mark, offsetIn, rangeIn } from './readerDom';
@@ -49,6 +51,11 @@ import { defaultTarget, errorText, saveWord, translate, translateSentences, tran
 type Panel = 'toc' | 'search' | 'settings' | 'languages' | 'notes' | 'voice';
 
 const WORD = /\p{L}[\p{L}'’-]*/gu;
+/** The text comes from the server a page of blocks at a time: the page being read, one behind and AHEAD ahead, at most
+ *  KEEP in the phone (the ones farthest behind go first). */
+const PAGE = 20;
+const AHEAD = 3;
+const KEEP = 15;
 /** Reading time is credited in ticks, only while the app is on screen and the reader recently scrolled, tapped or listened. */
 const TICK_SECONDS = 10;
 const IDLE_AFTER_MS = 120_000;
@@ -74,6 +81,40 @@ function renderText(b: Block, from: number, to: number): ReactNode[] {
 /** A line of the book's own contents page: a link and nothing to translate. */
 const isNavigation = (b: Block) => !!b.links?.some((l) => l.start === 0 && l.end >= b.text.length);
 
+/** A book's picture from the server: fetched when it comes near the screen, let go with its block. */
+function BookImage({ hash, name, alt }: { hash: string; name: string; alt: string }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let alive = true;
+    let made: string | undefined;
+    const near = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        near.disconnect();
+        bookImage(hash, name).then(
+          (blob) => {
+            if (!alive) return;
+            made = URL.createObjectURL(blob);
+            setUrl(made);
+          },
+          () => undefined, // offline: the block stays empty
+        );
+      },
+      { rootMargin: '600px 0px' },
+    );
+    near.observe(el);
+    return () => {
+      alive = false;
+      near.disconnect();
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [hash, name]);
+  return <img ref={ref} src={url} alt={alt} />;
+}
+
 /** One block: its text, then its translation (one line under each sentence, or a box below) and the small link. */
 const BlockView = memo(function BlockView(props: {
   block: Block;
@@ -85,8 +126,8 @@ const BlockView = memo(function BlockView(props: {
   speaking: boolean;
   /** "Ears only": blurred while it is read, until a tap shows it. */
   veiled: boolean;
-  /** The picture of an 'img' block. */
-  image: string | undefined;
+  /** The book's file hash, which names its pictures on the server. */
+  hash: string;
   onTranslate: (i: number) => void;
   onHide: (i: number) => void;
 }) {
@@ -94,7 +135,7 @@ const BlockView = memo(function BlockView(props: {
   if (block.type === 'img') {
     return (
       <div data-i={i} className="block img">
-        {props.image && <img src={props.image} alt={block.text} loading="lazy" />}
+        {block.image && <BookImage hash={props.hash} name={block.image} alt={block.text} />}
       </div>
     );
   }
@@ -151,7 +192,19 @@ interface SentenceTarget {
 
 export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; onClose: () => void; onVocabulary: () => void }) {
   const [book, setBook] = useState(opened);
-  const [blocks, setBlocks] = useState<Block[] | null>(null);
+  // the book's text, as far as it is here: the pages around the reader (holes where a page isn't)
+  const [total, setTotal] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState<Map<number, Block[]>>(new Map());
+  const blocks = useMemo(() => {
+    if (total === null || !loaded.size) return null;
+    const all = new Array<Block | undefined>(total);
+    for (const [page, list] of loaded) list.forEach((b, k) => (all[page * PAGE + k] = b));
+    return all;
+  }, [loaded, total]);
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+  /** A block's text; empty for one not here (taps and marks only ever reach blocks on screen, which are). */
+  const textOf = (i: number) => blocks?.[i]?.text ?? '';
   const [prefs, setPrefs] = useReaderPrefs();
   const [translations, setTranslations] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState<Set<number>>(new Set());
@@ -188,25 +241,124 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     lastInteraction.current = Date.now();
   };
 
+  // the text comes from the server, which read the book: opened first, then a window of pages follows the reader
+  const [failure, setFailure] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    db.get<(Block | string)[]>('texts', id).then((b) => setBlocks(asBlocks(b ?? [])));
+    const { hash, title, fileType } = bookRef.current;
+    let alive = true;
+    setFailure(null);
+    (async () => {
+      if (!account() || !hash) throw new Error('Entre na sua conta para ler este livro.');
+      const { blockCount } = await openBook(hash, `${title}.${fileType ?? 'epub'}`);
+      if (alive) setTotal(blockCount);
+    })().catch((e) => alive && setFailure(bookErrorText(e)));
+    return () => {
+      alive = false;
+    };
+  }, [id, attempt]);
+
+  /** The page the reader is on: the window is built around it. */
+  const [page, setPage] = useState(Math.floor(opened.lastBlock / PAGE));
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const loadedRef = useRef(loaded);
+  loadedRef.current = loaded;
+  const fetching = useRef(new Set<number>());
+  const [pageFailure, setPageFailure] = useState<string | null>(null);
+  /** Where the reader lands once its page is here: the book's place when it opens, a jump's target. */
+  const landing = useRef<number | null>(opened.lastBlock);
+  /** The first block on screen and where it is, kept as the reader scrolls: whatever changes size above it (a page
+   *  coming or going, a picture arriving, the book's font loading) puts it back there. Safari doesn't on its own. */
+  const anchor = useRef<{ i: number; top: number } | null>(null);
+  /** The scroll position the anchor is up to date with (the reader's scrolling moves it, in onScroll). */
+  const seen = useRef(0);
+  function keepPlace() {
+    const before = anchor.current;
+    const el = before && element(before.i);
+    const moved = el ? el.getBoundingClientRect().top - (before?.top ?? 0) : 0;
+    if (moved) window.scrollBy(0, moved);
+    seen.current = window.scrollY;
+  }
+
+  /** The first block not yet scrolled under the top bar, and where it is (blocks are in the page in order). */
+  function firstOnScreen(): { i: number; top: number } | null {
+    const items = pagesRef.current?.querySelectorAll<HTMLElement>(':scope > [data-i]');
+    if (!items?.length) return null;
+    const line = headerRef.current?.getBoundingClientRect().bottom ?? 0;
+    let lo = 0;
+    let hi = items.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (items[mid].getBoundingClientRect().bottom > line) hi = mid;
+      else lo = mid + 1;
+    }
+    const el = items[lo];
+    return { i: Number(el.dataset.i), top: el.getBoundingClientRect().top };
+  }
+
+  useEffect(() => {
+    const hash = bookRef.current.hash;
+    if (total === null || !hash) return;
+    const to = Math.min(Math.ceil(total / PAGE) - 1, page + AHEAD);
+    const from = page - (KEEP - AHEAD - 1);
+    const far = [...loadedRef.current.keys()].filter((p) => p < from || p > to);
+    if (far.length) setLoaded((m) => new Map([...m].filter(([p]) => !far.includes(p))));
+    for (let p = Math.max(0, page - 1); p <= to; p++) {
+      if (loadedRef.current.has(p) || fetching.current.has(p)) continue;
+      fetching.current.add(p);
+      setPageFailure(null);
+      bookBlocks(hash, p * PAGE, PAGE)
+        .then(
+          (list) => {
+            // the reader may have jumped far away meanwhile
+            if (p < pageRef.current - (KEEP - AHEAD - 1) || p > pageRef.current + AHEAD) return;
+            setLoaded((m) => new Map(m).set(p, list));
+          },
+          (e) => setPageFailure(bookErrorText(e)),
+        )
+        .finally(() => fetching.current.delete(p));
+    }
+    // emptied by a jump to the page it is already on: fetched again all the same
+  }, [page, total, attempt, loaded.size === 0]);
+
+  // the window changed: the landing, once its block is here, or else the text stays where it was
+  useLayoutEffect(() => {
+    if (!blocks) return;
+    const target = landing.current;
+    const el = target !== null && element(target);
+    if (!el) return target === null ? keepPlace() : undefined;
+    landing.current = null;
+    el.scrollIntoView();
+    anchor.current = { i: target as number, top: el.getBoundingClientRect().top };
+    seen.current = window.scrollY;
+  }, [blocks]);
+
+  // anything else changing size above the screen: put back before the screen is drawn
+  useEffect(() => {
+    const el = pagesRef.current;
+    if (!el) return;
+    const resized = new ResizeObserver(() => landing.current === null && keepPlace());
+    resized.observe(el);
+    return () => resized.disconnect();
+  }, []);
+
+  /** A block that may still be on its way from the server (reading aloud runs ahead of the scrolling). */
+  async function blockAt(i: number): Promise<Block | undefined> {
+    for (let tries = 0; tries < 100 && !blocksRef.current?.[i]; tries++) {
+      setPage(Math.floor(i / PAGE));
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return blocksRef.current?.[i];
+  }
+
+  useEffect(() => {
     record('sessions');
     // opening counts as reading it now, for the library and the sync
     const now = Date.now();
     const opened = { ...bookRef.current, lastOpenedAt: now, updatedAt: now };
     setBook(opened);
     db.put('books', opened);
-  }, [id]);
-
-  // the book's pictures, as URLs for the 'img' blocks
-  const [images, setImages] = useState<Map<string, string>>(new Map());
-  useEffect(() => {
-    let urls = new Map<string, string>();
-    db.get<Record<string, Blob>>('images', id).then((all) => {
-      urls = new Map(Object.entries(all ?? {}).map(([name, blob]) => [name, URL.createObjectURL(blob)]));
-      setImages(urls);
-    });
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, [id]);
 
   useEffect(() => {
@@ -228,36 +380,37 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     return () => clearInterval(timer);
   }, []);
 
-  // back to the paragraph the book was left on, then keep the first one on screen as the reader scrolls
-  const restored = useRef(false);
-  useLayoutEffect(() => {
-    if (!blocks || restored.current) return;
-    restored.current = true;
-    element(opened.lastBlock)?.scrollIntoView();
-  }, [blocks]);
-
+  // as the reader scrolls: the window follows at once, and the place is saved once the scrolling stops
   useEffect(() => {
-    if (!blocks) return;
+    if (total === null) return;
     let timer: number | undefined;
+    let frame = 0;
     const onScroll = () => {
       touch();
+      // the anchor follows the reader's scrolling without measuring: a measure would also take in whatever changed size
+      // since the last frame (a picture, the book's font), as if the reader had scrolled it
+      if (anchor.current) anchor.current.top -= window.scrollY - seen.current;
+      seen.current = window.scrollY;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (landing.current !== null) return;
+        // what changed size goes back first; then the first block on screen is the anchor
+        keepPlace();
+        const first = firstOnScreen();
+        if (!first) return;
+        anchor.current = first;
+        setPage(Math.floor(first.i / PAGE));
+      });
       clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const items = pagesRef.current?.children;
-        if (!items?.length) return;
-        // binary search for the first block not yet scrolled under the top bar (blocks are in page order)
-        const line = headerRef.current?.getBoundingClientRect().bottom ?? 0;
-        let lo = 0;
-        let hi = items.length - 1;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (items[mid].getBoundingClientRect().bottom > line) hi = mid;
-          else lo = mid + 1;
-        }
-        setCurrent(lo);
-        const atEnd = items[items.length - 1].getBoundingClientRect().bottom <= window.innerHeight;
+        const first = landing.current === null && firstOnScreen();
+        if (!first) return;
+        setCurrent(first.i);
+        const blocksHere = pagesRef.current?.querySelectorAll<HTMLElement>(':scope > [data-i]');
+        const last = blocksHere?.[blocksHere.length - 1];
+        const atEnd = !!last && Number(last.dataset.i) === total - 1 && last.getBoundingClientRect().bottom <= window.innerHeight;
         const now = Date.now();
-        const next = { ...bookRef.current, lastBlock: lo, lastOpenedAt: now, updatedAt: now, ...(atEnd && !bookRef.current.completedAt && { completedAt: now }) };
+        const next = { ...bookRef.current, lastBlock: first.i, lastOpenedAt: now, updatedAt: now, ...(atEnd && !bookRef.current.completedAt && { completedAt: now }) };
         setBook(next);
         db.put('books', next);
       }, 400);
@@ -265,9 +418,10 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [blocks]);
+  }, [total]);
 
   // the marks drawn over the text: the looked-up word, saved words, a search result, highlights, the word being read
   useEffect(() => {
@@ -275,25 +429,29 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     mark('word', el ? [rangeIn(el, lookup.start, lookup.end)] : []);
   }, [lookup?.block, lookup?.start, lookup?.end]);
 
+  // saved words are marked only around the reading position (as the Android app does with what is on screen): a whole
+  // novel's worth of marks, thousands of them, freezes Safari on the iPhone
+  const near = Math.floor(current / 10) * 10;
   useEffect(() => {
     if (!blocks || !saved?.size) return mark('saved', []);
     const ranges: (Range | null)[] = [];
     const phrases = [...saved].filter((p) => p.includes(' '));
-    blocks.forEach((b, i) => {
+    for (let i = Math.max(0, near - 5); i < Math.min(blocks.length, near + 30); i++) {
       const el = element(i);
-      if (!el) return;
+      const b = blocks[i];
+      if (!el || !b) continue;
       const lower = b.text.toLowerCase();
       for (const m of lower.matchAll(WORD)) if (saved.has(m[0])) ranges.push(rangeIn(el, m.index, m.index + m[0].length));
       for (const p of phrases) for (let at = lower.indexOf(p); at >= 0; at = lower.indexOf(p, at + p.length)) ranges.push(rangeIn(el, at, at + p.length));
-    });
+    }
     mark('saved', ranges);
-  }, [blocks, saved, translations, prefs.interlinear]);
+  }, [blocks, saved, translations, prefs.interlinear, near]);
 
   useEffect(() => {
     const el = searchMark && element(searchMark.block);
     if (!el || !blocks) return mark('search', []);
     const needle = fold(searchMark.query);
-    const haystack = fold(blocks[searchMark.block].text);
+    const haystack = fold(textOf(searchMark.block));
     const ranges: (Range | null)[] = [];
     for (let at = haystack.indexOf(needle); needle && at >= 0; at = haystack.indexOf(needle, at + needle.length)) ranges.push(rangeIn(el, at, at + needle.length));
     mark('search', ranges);
@@ -328,7 +486,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   function lookUp(block: number, start: number, end: number) {
     if (!blocks) return;
     touch();
-    const text = blocks[block].text;
+    const text = textOf(block);
     const asked: Lookup = { block, start, end, word: text.slice(start, end), sentence: sentenceAt(text, start, src) };
     setLookup(asked);
     const same = (l: Lookup | null) => l?.block === block && l.start === start && l.end === end;
@@ -372,7 +530,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
       const hit = hitAt(x, y);
       const p = press.current;
       if (!hit || !p) return;
-      const w = wordAt(blocks[hit.block].text, hit.offset, src) ?? { start: hit.offset, end: hit.offset };
+      const w = wordAt(textOf(hit.block), hit.offset, src) ?? { start: hit.offset, end: hit.offset };
       Object.assign(p, { active: true, block: hit.block, offset: hit.offset, anchor: w, range: w });
       const el = element(hit.block);
       mark('select', el ? [rangeIn(el, w.start, w.end)] : []);
@@ -393,7 +551,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
       return;
     }
     const hit = hitAt(e.clientX, e.clientY);
-    const w = hit && hit.block === p.block ? wordAt(blocks[p.block].text, hit.offset, src) : null;
+    const w = hit && hit.block === p.block ? wordAt(textOf(p.block), hit.offset, src) : null;
     if (!w) return;
     p.range = { start: Math.min(p.anchor.start, w.start), end: Math.max(p.anchor.end, w.end) };
     const el = element(p.block);
@@ -437,16 +595,16 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     if ((e.target as Element).closest('[data-tr]')) return;
     const hit = hitAt(e.clientX, e.clientY);
     // a contents line or footnote mark goes where it points
-    const link = hit && blocks?.[hit.block].links?.find((l) => hit.offset >= l.start && hit.offset <= l.end);
+    const link = hit && blocks?.[hit.block]?.links?.find((l) => hit.offset >= l.start && hit.offset <= l.end);
     if (link) return go(link.target);
-    const w = hit && blocks ? wordAt(blocks[hit.block].text, hit.offset, src) : null;
+    const w = hit && blocks ? wordAt(textOf(hit.block), hit.offset, src) : null;
     if (hit && w) lookUp(hit.block, w.start, w.end);
     else setLookup(null);
   }
 
   function openSentence(block: number, offset: number) {
     if (!blocks) return;
-    const text = blocks[block].text;
+    const text = textOf(block);
     const existing = highlights.find((h) => h.block === block && offset >= h.start && offset < h.end) ?? null;
     const range = existing ? [existing.start, existing.end] : (sentenceRanges(text, src).find(([, e]) => offset < e) ?? [0, text.length]);
     setLookup(null);
@@ -454,12 +612,19 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   }
 
   /** The long-pressed sentence and the ones after it, for a dictation that follows the book. */
-  function dictationFrom(block: number, start: number): [string, string][] {
-    if (!blocks) return [];
+  async function dictationFrom(block: number, start: number): Promise<[string, string][]> {
+    const here = blocksRef.current;
+    const hash = bookRef.current.hash;
+    if (!here || !hash) return [];
     const out: [string, string][] = [];
-    for (let i = block; i < blocks.length && out.length < 10; i++) {
-      if (blocks[i].type === 'img') continue;
-      const text = blocks[i].text;
+    let ahead: { from: number; blocks: Block[] } | null = null;
+    for (let i = block; i < here.length && out.length < 10; i++) {
+      // past the window's end, the next blocks come from the server: once, up to 200 is plenty for ten sentences
+      if (!here[i] && !ahead) ahead = { from: i, blocks: await bookBlocks(hash, i, 200).catch(() => []) };
+      const b = here[i] ?? ahead?.blocks[i - ahead.from];
+      if (!b) break;
+      if (b.type === 'img') continue;
+      const text = b.text;
       for (const [s, e] of sentenceRanges(text, src)) {
         const piece = text.slice(s, e);
         if ((i !== block || s >= start) && piece.split(' ').length >= 3 && out.length < 10) out.push([piece, src]);
@@ -486,11 +651,20 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   const rateRef = useRef(rate);
   rateRef.current = rate;
   async function speakFrom(from: number, step = 1) {
-    if (!blocks) return;
+    const count = blocksRef.current?.length;
+    if (count === undefined) return;
     const me = ++speakRun.current;
+    // the next block with words, waiting for its page when reading aloud has run past the window
     let i = from;
-    while (i >= 0 && i < blocks.length && (blocks[i].type === 'img' || !blocks[i].text.trim())) i += step;
-    if (i < 0 || i >= blocks.length) return stopSpeaking();
+    let b: Block | undefined;
+    for (; i >= 0 && i < count; i += step) {
+      b = blocksRef.current?.[i] ?? (await blockAt(i));
+      if (speakRun.current !== me) return;
+      if (!b) return stopSpeaking(); // its page didn't come (offline)
+      if (b.type !== 'img' && b.text.trim()) break;
+    }
+    if (!b || i < 0 || i >= count) return stopSpeaking();
+    const text = b.text;
     setSpeaking(i);
     setPaused(false);
     setSpoken(null);
@@ -499,7 +673,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     if (el && r && (r.top < (headerRef.current?.getBoundingClientRect().bottom ?? 0) || r.bottom > window.innerHeight - 64)) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    const ok = await speak(blocks[i].text, src, rateRef.current, (start, end) => speakRun.current === me && setSpoken({ block: i, start, end }));
+    const ok = await speak(text, src, rateRef.current, (start, end) => speakRun.current === me && setSpoken({ block: i, start, end }));
     if (speakRun.current !== me) return; // paused, stopped or moved on
     if (!ok) {
       stopSpeaking();
@@ -518,10 +692,10 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   }
 
   async function translateBlock(i: number) {
-    if (!blocks || loading.has(i)) return;
+    const text = blocks?.[i]?.text;
+    if (text === undefined || loading.has(i)) return;
     setLoading((s) => new Set(s).add(i));
     try {
-      const text = blocks[i].text;
       const result = prefs.interlinear
         ? (await translateSentences(sentenceRanges(text, src).map(([s, e]) => text.slice(s, e)), src, tgt)).join('\n')
         : await translate(text, src, tgt);
@@ -556,7 +730,8 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
   // the list itself only changes with the text, its translations or the reading aloud, never with a lookup or a panel
   const pages = useMemo(
     () =>
-      blocks?.map((b, i) => (
+      // only the pages here: the holes in between are skipped
+      blocks?.map((b, i) => b && (
         <BlockView
           key={i}
           block={b}
@@ -567,19 +742,19 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
           interlinear={prefs.interlinear}
           speaking={speaking === i}
           veiled={listenOnly && speaking !== null && !revealed.has(i)}
-          image={b.image && images.get(b.image)}
+          hash={book.hash ?? ''}
           onTranslate={onTranslate}
           onHide={onHide}
         />
       )),
-    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, images, onTranslate, onHide],
+    [blocks, src, translations, loading, prefs.interlinear, speaking, listenOnly, revealed, book.hash, onTranslate, onHide],
   );
 
   // an expression grows by whole words, within the sentence
   let growBack: { start: number; end: number } | null = null;
   let growOn: { start: number; end: number } | null = null;
   if (lookup && blocks) {
-    const text = blocks[lookup.block].text;
+    const text = textOf(lookup.block);
     const s = sentenceRanges(text, src).find(([a, b]) => lookup.start >= a && lookup.start < b) ?? [0, text.length];
     growBack = previousWord(text, lookup.start, src);
     if (growBack && growBack.start < s[0]) growBack = null;
@@ -589,9 +764,32 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
 
   const go = (block: number) => {
     setPanel(null);
-    element(block)?.scrollIntoView();
+    const el = element(block);
+    if (el) return el.scrollIntoView();
+    // a page that isn't here (contents, notes, a link): the window starts over there, and the reader lands once it comes
+    landing.current = block;
+    setLoaded(new Map());
+    setPage(Math.floor(block / PAGE));
   };
   const percent = blocks?.length ? Math.round(((current + 1) * 100) / blocks.length) : 0;
+
+  // the reading screen waits for the page being read; at the window's ends, the next page coming (or why it can't)
+  const ready = !!blocks && loaded.has(page);
+  const here = [...loaded.keys()];
+  const edge = (
+    <div className="reader-more" role="status">
+      {pageFailure ? (
+        <>
+          <p className="body-medium">{pageFailure}</p>
+          <button type="button" className="button outline" onClick={() => setAttempt((n) => n + 1)}>
+            Tentar de novo
+          </button>
+        </>
+      ) : (
+        <span className="spinner" aria-label="Carregando" />
+      )}
+    </div>
+  );
 
   return (
     <main className="reader" style={themeVars(prefs.theme)}>
@@ -619,8 +817,27 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
         onPointerCancel={onPointerUp}
         onContextMenu={(e) => e.preventDefault()}
       >
+        {ready && Math.min(...here) > 0 && edge}
         {pages}
+        {ready && total !== null && (Math.max(...here) + 1) * PAGE < total && edge}
       </div>
+      {!ready && (
+        <div className="reader-loading" role="status">
+          {failure || pageFailure ? (
+            <>
+              <p className="body-large">{failure || pageFailure}</p>
+              <button type="button" className="button outline" onClick={() => setAttempt((n) => n + 1)}>
+                Tentar de novo
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="spinner" />
+              <p className="body-medium variant">Carregando o livro…</p>
+            </>
+          )}
+        </div>
+      )}
 
       {speaking === null ? (
         <footer className="reader-bar">
@@ -691,7 +908,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
       )}
       {sentence && blocks && (
         <SentenceSheet
-          sentence={blocks[sentence.block].text.slice(sentence.start, sentence.end)}
+          sentence={textOf(sentence.block).slice(sentence.start, sentence.end)}
           lang={src}
           tgt={tgt}
           highlighted={sentence.existing !== null}
@@ -699,9 +916,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
             setEditing(sentence);
             setSentence(null);
           }}
-          onDictation={() => {
-            const list = dictationFrom(sentence.block, sentence.start);
+          onDictation={async () => {
             setSentence(null);
+            const list = await dictationFrom(sentence.block, sentence.start);
             if (list.length) setDictation(list);
           }}
           onClose={() => setSentence(null)}
@@ -709,7 +926,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
       )}
       {editing && blocks && (
         <HighlightSheet
-          quote={blocks[editing.block].text.slice(editing.start, editing.end)}
+          quote={textOf(editing.block).slice(editing.start, editing.end)}
           existing={editing.existing}
           onSave={saveHighlight}
           onRemove={async () => {
@@ -720,9 +937,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
         />
       )}
       {panel === 'toc' && <TocSheet toc={book.toc ?? []} current={current} onPick={go} onClose={() => setPanel(null)} />}
-      {panel === 'search' && blocks && (
+      {panel === 'search' && book.hash && (
         <SearchSheet
-          blocks={blocks}
+          hash={book.hash}
           onPick={(block, query) => {
             setSearchMark({ block, query });
             go(block);
@@ -730,7 +947,9 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
           onClose={() => setPanel(null)}
         />
       )}
-      {panel === 'notes' && blocks && <NotesSheet highlights={highlights} blocks={blocks} onPick={go} onClose={() => setPanel(null)} />}
+      {panel === 'notes' && blocks && book.hash && (
+        <NotesSheet highlights={highlights} blocks={blocks} hash={book.hash} onPick={go} onClose={() => setPanel(null)} />
+      )}
       {panel === 'settings' && <SettingsSheet prefs={prefs} set={setPrefs} onVoice={() => setPanel('voice')} onClose={() => setPanel(null)} />}
       {panel === 'voice' && (
         <VoicePicker
