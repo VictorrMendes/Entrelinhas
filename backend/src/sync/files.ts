@@ -24,6 +24,7 @@ export async function fileRoutes(app: FastifyInstance, { config, db, tokens }: D
   const used = db.prepare('SELECT COALESCE(SUM(size), 0) AS n FROM files WHERE account_id = ?');
   const insert = db.prepare('INSERT OR IGNORE INTO files (account_id, sha256, size) VALUES (?, ?, ?)');
   const remove = db.prepare('DELETE FROM files WHERE account_id = ? AND sha256 = ?');
+  const anyOwner = db.prepare('SELECT 1 FROM files WHERE sha256 = ?');
 
   // the body reaches the handler as the raw request stream instead of being buffered
   app.addContentTypeParser('application/octet-stream', (_request, payload, done) => done(null, payload));
@@ -43,6 +44,9 @@ export async function fileRoutes(app: FastifyInstance, { config, db, tokens }: D
   app.delete<{ Params: { sha: string } }>('/sync/files/:sha', { schema: { params: sha256Param } }, async (request) => {
     remove.run(request.accountId, request.params.sha);
     await fs.promises.rm(fileOf(request.accountId, request.params.sha), { force: true });
+    // the book as the server read it (books/routes.ts) goes with the last account that had the file
+    if (!anyOwner.get(request.params.sha))
+      await fs.promises.rm(path.join(config.dataDir, 'books', request.params.sha), { recursive: true, force: true });
     return { success: true };
   });
 
