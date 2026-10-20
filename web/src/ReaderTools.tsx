@@ -190,7 +190,17 @@ export function HighlightSheet(props: {
   );
 }
 
-export function NotesSheet({ highlights, blocks, onPick, onClose }: { highlights: Highlight[]; blocks: Block[]; onPick: (block: number) => void; onClose: () => void }) {
+export function NotesSheet({
+  highlights,
+  blocks,
+  onPick,
+  onClose,
+}: {
+  highlights: Highlight[];
+  blocks: (Block | undefined)[];
+  onPick: (block: number) => void;
+  onClose: () => void;
+}) {
   const sorted = [...highlights].sort((a, b) => a.block - b.block || a.start - b.start);
   return (
     <Sheet title="Destaques e notas" onClose={onClose}>

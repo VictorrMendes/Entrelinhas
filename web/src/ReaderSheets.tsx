@@ -158,10 +158,19 @@ function snippet(text: string, needle: string): ReactNode {
   );
 }
 
-export function SearchSheet({ blocks, onPick, onClose }: { blocks: Block[]; onPick: (block: number, query: string) => void; onClose: () => void }) {
+/** [blocks] has holes where a page isn't here: those aren't searched. */
+export function SearchSheet({
+  blocks,
+  onPick,
+  onClose,
+}: {
+  blocks: (Block | undefined)[];
+  onPick: (block: number, query: string) => void;
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState('');
   const [needle, setNeedle] = useState('');
-  const folded = useMemo(() => blocks.map((b) => fold(b.text)), [blocks]);
+  const folded = useMemo(() => blocks.map((b) => fold(b?.text ?? '')), [blocks]);
   // debounce typing
   useEffect(() => {
     const t = window.setTimeout(() => setNeedle(fold(query.trim())), 250);
@@ -178,7 +187,7 @@ export function SearchSheet({ blocks, onPick, onClose }: { blocks: Block[]; onPi
         {results.map((i) => (
           <li key={i}>
             <button type="button" className="search-result body-medium" onClick={() => onPick(i, query.trim())}>
-              {snippet(blocks[i].text, needle)}
+              {snippet(blocks[i]?.text ?? '', needle)}
             </button>
           </li>
         ))}
