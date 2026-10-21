@@ -18,8 +18,8 @@
     "fastify": "^5.12.7",
     "fflate": "0.8.3",
     "jpeg-js": "0.4.4",
-    "nodemailer": "^10.1.1",
-    "pdfjs-dist": "6.3.289"
+    "nodemailer": "^10.1.6",
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
