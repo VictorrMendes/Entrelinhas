@@ -140,6 +140,26 @@ fun checkDictation(expected: String, typed: String): Dictation {
     return Dictation(out, if (e.isEmpty()) 100 else out.count { it.mark == Mark.OK } * 100 / e.size)
 }
 
+enum class SpeakGrade { RIGHT, ALMOST, WRONG }
+
+/** [heard] is the alternative the grade came from: the one that matched or, when WRONG, the closest one ("Ouvi: …"). */
+data class Spoken(val grade: SpeakGrade, val heard: String)
+
+/**
+ * A word or expression said aloud, from the recognizer's alternatives (best first), compared as dictation compares words.
+ * RIGHT: one alternative is the word (an expression: all its words heard). ALMOST: one is [closeEnough] (an expression:
+ * at least 60% of its words). WRONG: neither. The web app's speakGrade (rules.ts) is the same.
+ */
+fun speakGrade(expected: String, heard: List<String>): Spoken {
+    val expression = checkDictation(expected, "").words.size > 1 // its words, as dictation splits them
+    val scored = heard.filter { it.isNotBlank() }.map { it to checkDictation(expected, it) }
+    scored.firstOrNull { (_, d) -> if (expression) d.score == 100 else d.words.singleOrNull()?.mark == Mark.OK }
+        ?.let { return Spoken(SpeakGrade.RIGHT, it.first) }
+    scored.firstOrNull { (text, d) -> closeEnough(expected, text) || expression && d.score >= 60 }
+        ?.let { return Spoken(SpeakGrade.ALMOST, it.first) }
+    return Spoken(SpeakGrade.WRONG, scored.maxByOrNull { it.second.score }?.first.orEmpty())
+}
+
 /** Lifetime numbers that XP and achievements come from. */
 data class Totals(
     val readingMinutes: Int = 0,
