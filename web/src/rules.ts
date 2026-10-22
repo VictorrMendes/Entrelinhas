@@ -237,6 +237,25 @@ export function checkDictation(expected: string, typed: string): { words: { text
   return { words: out, score: e.length ? Math.floor((ok * 100) / e.length) : 100 };
 }
 
+export type SpeakGrade = 'right' | 'almost' | 'wrong';
+
+/**
+ * A word or expression said aloud, from the recognizer's alternatives (best first), compared as dictation compares words.
+ * right: one alternative is the word (an expression: all its words heard). almost: one is closeEnough (an expression: at
+ * least 60% of its words). wrong: neither. [heard] is the alternative the grade came from: the one that matched or, when
+ * wrong, the closest one ("Ouvi: …"). The Android app's speakGrade (Rules.kt) is the same.
+ */
+export function speakGrade(expected: string, heard: string[]): { grade: SpeakGrade; heard: string } {
+  const expression = checkDictation(expected, '').words.length > 1; // its words, as dictation splits them
+  const scored = heard.filter((h) => h.trim()).map((text) => ({ text, d: checkDictation(expected, text) }));
+  const right = scored.find(({ d }) => (expression ? d.score === 100 : d.words.length === 1 && d.words[0].mark === 'ok'));
+  if (right) return { grade: 'right', heard: right.text };
+  const almost = scored.find(({ text, d }) => closeEnough(expected, text) || (expression && d.score >= 60));
+  if (almost) return { grade: 'almost', heard: almost.text };
+  const best = scored.reduce<(typeof scored)[number] | null>((a, b) => (!a || b.d.score > a.d.score ? b : a), null);
+  return { grade: 'wrong', heard: best?.text ?? '' };
+}
+
 const csvField = (s: string) => (/[,"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 
 /** Anki-ready CSV: Anki reads the `#` header lines; spreadsheets just show them as text rows. */

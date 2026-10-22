@@ -17,6 +17,7 @@ import {
   type StudyWord,
   Streak,
   sessionAccolades,
+  speakGrade,
   unlocked,
   vocabularyCsv,
   WeekStreak,
@@ -179,6 +180,23 @@ test('dictation ignores case, accents and punctuation, and marks wrong and missi
   ]);
   assert.equal(r.score, 60);
   assert.equal(checkDictation('Some words here', '').score, 0);
+});
+
+test('a spoken word is right, almost or wrong', () => {
+  assert.deepEqual(speakGrade('sheep', ['sheep']), { grade: 'right', heard: 'sheep' });
+  assert.deepEqual(speakGrade('café', ['Cafe!']), { grade: 'right', heard: 'Cafe!' });
+  assert.deepEqual(speakGrade('think', ['sink', 'think']), { grade: 'right', heard: 'think' });
+  assert.deepEqual(speakGrade('think', ['thing']), { grade: 'almost', heard: 'thing' });
+  // two letters off in a five-letter word is too far for closeEnough: the vowel itself was wrong
+  assert.deepEqual(speakGrade('sheep', ['ship', 'chip']), { grade: 'wrong', heard: 'ship' });
+  assert.deepEqual(speakGrade('sheep', []), { grade: 'wrong', heard: '' });
+  assert.deepEqual(speakGrade('sheep', ['', ' ']), { grade: 'wrong', heard: '' });
+});
+
+test('a spoken expression counts its words', () => {
+  assert.deepEqual(speakGrade('look up', ['Look up!']), { grade: 'right', heard: 'Look up!' });
+  assert.deepEqual(speakGrade('give up on', ['give up']), { grade: 'almost', heard: 'give up' });
+  assert.deepEqual(speakGrade('look up to', ['book', 'look']), { grade: 'wrong', heard: 'look' });
 });
 
 test('the vocabulary CSV quotes when needed', () => {

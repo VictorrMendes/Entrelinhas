@@ -89,6 +89,7 @@ enum class StudyMode(@StringRes val title: Int) {
     TEST(R.string.mode_test),
     MATCH(R.string.mode_match),
     LISTEN(R.string.mode_listen),
+    SPEAK(R.string.mode_speak),
     WORDS(R.string.mode_words),
     KITS(R.string.kits_title),
 }
@@ -104,6 +105,7 @@ fun StudyScreen(app: App, mode: StudyMode, onClose: () -> Unit) {
                 StudyMode.TEST -> TestMode(app, onClose)
                 StudyMode.MATCH -> MatchMode(app, onClose)
                 StudyMode.LISTEN -> ListenMode(app, onClose)
+                StudyMode.SPEAK -> SpeakMode(app, onClose)
                 StudyMode.WORDS -> WordsScreen(app, onClose)
                 StudyMode.KITS -> KitsMode(app, onClose)
             }

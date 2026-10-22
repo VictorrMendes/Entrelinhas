@@ -404,6 +404,29 @@
     <string name="mode_match_best">Seu recorde: %1$s s</string>
     <string name="mode_dictation">Ditado</string>
     <string name="mode_dictation_hint">Ouça frases dos seus livros e escreva</string>
+    <string name="mode_speak">Falar</string>
+    <string name="mode_speak_hint">Diga as palavras e veja se o celular entendeu</string>
+    <string name="speak_empty_text">Traduza uma palavra durante a leitura e toque em Salvar para treinar a pronúncia dela aqui.</string>
+    <string name="speak_listen_slowly">Ouvir devagar</string>
+    <string name="speak_say">Falar</string>
+    <string name="speak_right">Certo!</string>
+    <string name="speak_almost">Quase lá</string>
+    <string name="speak_heard">Ouvi: %1$s</string>
+    <string name="speak_try_again">Tentativa %1$d de %2$d: toque no 🎤 e tente de novo.</string>
+    <string name="speak_hint_not_heard">Não ouvi. Toque no 🎤 e fale de novo.</string>
+    <string name="speak_hint_network">Sem internet: o reconhecimento de voz precisa de conexão. Tente de novo quando estiver online.</string>
+    <string name="speak_hint_mic">Não consegui usar o microfone. Confira se o app de reconhecimento de voz (Google) tem permissão de microfone e tente de novo.</string>
+    <string name="speak_next">Próxima</string>
+    <string name="speak_see_result">Ver resultado</string>
+    <plurals name="speak_stat_right">
+        <item quantity="one">certa</item>
+        <item quantity="other">certas</item>
+    </plurals>
+    <string name="speak_stat_almost">quase</string>
+    <plurals name="speak_stat_wrong">
+        <item quantity="one">errada</item>
+        <item quantity="other">erradas</item>
+    </plurals>
     <string name="cards_learning">Aprendendo</string>
     <string name="cards_known">Sei</string>
     <string name="cards_hint">Toque para virar · arraste: ← aprendendo, sei →</string>

@@ -523,6 +523,9 @@ button.danger {
   -webkit-touch-callout: none; /* the long press is ours: sentence actions, not the system menu */
   /* pages come and go above the screen: Reader.tsx keeps the text in place itself, the same in every browser */
   overflow-anchor: none;
+  /* the marks drawn as boxes go behind the text (.mark-layer) */
+  position: relative;
+  isolation: isolate;
 }
 
 .pages.sans {
@@ -654,6 +657,50 @@ button.danger {
 }
 
 ::highlight(spoken) {
+  background-color: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+/* the same marks as boxes behind the text, where ::highlight isn't painted (Safari: readerDom.ts) */
+.mark-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.mark-layer span {
+  position: absolute;
+  border-radius: 2px;
+}
+
+[data-mark='word'] span,
+[data-mark='search'] span,
+[data-mark='select'] span {
+  background-color: var(--mark);
+}
+
+[data-mark='saved'] span {
+  box-shadow: inset 0 -1px currentColor;
+}
+
+[data-mark='hl0'] span {
+  background-color: rgba(250, 204, 21, 0.35);
+}
+
+[data-mark='hl1'] span {
+  background-color: rgba(74, 222, 128, 0.35);
+}
+
+[data-mark='hl2'] span {
+  background-color: rgba(96, 165, 250, 0.35);
+}
+
+[data-mark='hl3'] span {
+  background-color: rgba(244, 114, 182, 0.35);
+}
+
+[data-mark='spoken'] span {
   background-color: color-mix(in srgb, var(--primary) 28%, transparent);
 }
 

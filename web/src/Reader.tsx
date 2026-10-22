@@ -21,7 +21,7 @@ import type { Block } from './blocks';
 import { bookBlocks, bookErrorText, bookImage, openBook } from './remote';
 import { DictationSheet, speechRate } from './Dictation';
 import { notify } from './notices';
-import { caretAt, mark, offsetIn, rangeIn } from './readerDom';
+import { caretAt, mark, markLayer, offsetIn, rangeIn, redrawMarks } from './readerDom';
 import { LINE_SPACINGS, MARGINS, themeVars, useReaderPrefs } from './readerPrefs';
 import { LanguageDialog, type Lookup, SearchSheet, SettingsSheet, TocSheet, VoicePicker, WordSheet } from './ReaderSheets';
 import { GoalReached, HIGHLIGHT_COLORS, HighlightSheet, NotesSheet, PlayerBar, SPEECH_RATES, SentenceSheet } from './ReaderTools';
@@ -334,11 +334,14 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
     seen.current = window.scrollY;
   }, [blocks]);
 
-  // anything else changing size above the screen: put back before the screen is drawn
+  // anything else changing size above the screen: put back before the screen is drawn (the marks drawn as boxes too)
   useEffect(() => {
     const el = pagesRef.current;
     if (!el) return;
-    const resized = new ResizeObserver(() => landing.current === null && keepPlace());
+    const resized = new ResizeObserver(() => {
+      if (landing.current === null) keepPlace();
+      redrawMarks();
+    });
     resized.observe(el);
     return () => resized.disconnect();
   }, []);
@@ -821,6 +824,7 @@ export function Reader({ book: opened, onClose, onVocabulary }: { book: Book; on
         onPointerCancel={onPointerUp}
         onContextMenu={(e) => e.preventDefault()}
       >
+        <div className="mark-layer" ref={markLayer} aria-hidden="true" />
         {ready && Math.min(...here) > 0 && edge}
         {pages}
         {ready && total !== null && (Math.max(...here) + 1) * PAGE < total && edge}

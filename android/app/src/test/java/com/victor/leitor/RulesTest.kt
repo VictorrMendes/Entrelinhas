@@ -55,6 +55,26 @@ class RulesTest {
         assertEquals(0, checkDictation("Some words here", "").score)
     }
 
+    // the same cases as rules.test.ts, so the two apps grade alike
+    @Test
+    fun speakingAWordIsRightAlmostOrWrong() {
+        assertEquals(Spoken(SpeakGrade.RIGHT, "sheep"), speakGrade("sheep", listOf("sheep")))
+        assertEquals(Spoken(SpeakGrade.RIGHT, "Cafe!"), speakGrade("café", listOf("Cafe!")))
+        assertEquals(Spoken(SpeakGrade.RIGHT, "think"), speakGrade("think", listOf("sink", "think")))
+        assertEquals(Spoken(SpeakGrade.ALMOST, "thing"), speakGrade("think", listOf("thing")))
+        // two letters off in a five-letter word is too far for closeEnough: the vowel itself was wrong
+        assertEquals(Spoken(SpeakGrade.WRONG, "ship"), speakGrade("sheep", listOf("ship", "chip")))
+        assertEquals(Spoken(SpeakGrade.WRONG, ""), speakGrade("sheep", emptyList()))
+        assertEquals(Spoken(SpeakGrade.WRONG, ""), speakGrade("sheep", listOf("", " ")))
+    }
+
+    @Test
+    fun speakingAnExpressionCountsItsWords() {
+        assertEquals(Spoken(SpeakGrade.RIGHT, "Look up!"), speakGrade("look up", listOf("Look up!")))
+        assertEquals(Spoken(SpeakGrade.ALMOST, "give up"), speakGrade("give up on", listOf("give up")))
+        assertEquals(Spoken(SpeakGrade.WRONG, "look"), speakGrade("look up to", listOf("book", "look")))
+    }
+
     @Test
     fun vocabularyCsvQuotesWhenNeeded() {
         val w = Word(1, "bright", "claro", "The \"Quiet\" Library", "A bright, cold day.", 0, 10, "en")
