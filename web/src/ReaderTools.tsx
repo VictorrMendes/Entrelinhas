@@ -129,7 +129,7 @@ export function SentenceSheet(props: {
               onClick={async () => {
                 stop();
                 setListening(true);
-                const heard = await listen(lang);
+                const heard = await listen(lang).catch(() => [] as string[]);
                 setListening(false);
                 if (heard.length) setSpoken(heard.map((h) => checkDictation(sentence, h)).reduce((a, b) => (b.score > a.score ? b : a)));
               }}

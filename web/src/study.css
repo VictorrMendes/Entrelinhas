@@ -1204,3 +1204,22 @@ button.icon.big {
 .kit-card .grow {
   display: grid;
 }
+
+/* Falar (Speak.tsx): the word to say, big, its meaning and the buttons under it */
+.speak {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.speak p {
+  margin: 0;
+}
+
+.speak-word {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

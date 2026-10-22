@@ -5,6 +5,7 @@ import extensionSvg from '@material-design-icons/svg/outlined/extension.svg?raw'
 import downloadSvg from '@material-design-icons/svg/outlined/file_download.svg?raw';
 import headphonesSvg from '@material-design-icons/svg/outlined/headphones.svg?raw';
 import hearingSvg from '@material-design-icons/svg/outlined/hearing.svg?raw';
+import micSvg from '@material-design-icons/svg/outlined/mic.svg?raw';
 import quizSvg from '@material-design-icons/svg/outlined/quiz.svg?raw';
 import schoolSvg from '@material-design-icons/svg/outlined/school.svg?raw';
 import styleSvg from '@material-design-icons/svg/outlined/style.svg?raw';
@@ -17,13 +18,13 @@ import { DictationSheet, dictationSentences } from './Dictation';
 import { releaseKitWords } from './kitData';
 import { matchBest, seconds } from './Match';
 import { learned, vocabularyCsv } from './rules';
-import { speak } from './speech';
+import { canListen, speak } from './speech';
 import { deleteWord, dueWords, setLearned, useDb, type Word, words } from './store';
 import { TopBar } from './study';
 import { localDay } from './text';
 import { Icon, Menu, ScreenTitle } from './ui';
 
-export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'words' | 'kits';
+export type StudyMode = 'cards' | 'learn' | 'test' | 'match' | 'listen' | 'speak' | 'words' | 'kits';
 
 const plural = (n: number, one: string, other: string) => `${n} ${n === 1 ? one : other}`;
 
@@ -103,6 +104,14 @@ export function Vocabulary({ onStudy }: { onStudy: (mode: StudyMode) => void }) 
         {all.some((w) => (w.example?.split(' ').length ?? 0) >= 3) && (
           <ModeRow icon={hearingSvg} tint="var(--success)" title="Ditado" subtitle="Ouça frases dos seus livros e escreva" onClick={() => setDictation(dictationSentences(all))} />
         )}
+        <ModeRow
+          icon={micSvg}
+          tint="var(--primary)"
+          title="Falar"
+          subtitle={canListen() ? 'Diga as palavras e veja se o celular entendeu' : 'Seu navegador não reconhece voz'}
+          disabled={!canListen()}
+          onClick={() => onStudy('speak')}
+        />
         <ModeRow
           icon={bookmarksSvg}
           tint="var(--primary)"

@@ -43,7 +43,7 @@ type Recognition = {
   maxAlternatives: number;
   interimResults: boolean;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
 };
@@ -51,7 +51,10 @@ type Recognition = {
 /** Whether "Falar junto" can listen here (Safari and Chrome have the prefixed webkitSpeechRecognition). */
 export const canListen = () => 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 
-/** What the microphone heard, up to five guesses (empty when nothing was understood or the user refused the microphone). */
+/**
+ * What the microphone heard, up to five guesses (empty when nothing was understood). Fails with the recognizer's error code
+ * ('no-speech', 'not-allowed', 'network'…).
+ */
 export function listen(lang: string): Promise<string[]> {
   const w = window as unknown as Record<string, new () => Recognition>;
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
@@ -61,12 +64,12 @@ export function listen(lang: string): Promise<string[]> {
   r.lang = lang;
   r.maxAlternatives = 5;
   r.interimResults = false;
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let heard: string[] = [];
     r.onresult = (e) => {
       heard = Array.from(e.results[0] ?? [], (a) => a.transcript);
     };
-    r.onerror = () => resolve([]);
+    r.onerror = (e) => reject(e.error);
     r.onend = () => resolve(heard);
     r.start();
   });

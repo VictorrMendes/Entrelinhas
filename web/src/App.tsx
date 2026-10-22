@@ -18,6 +18,7 @@ import { claimData } from './owner';
 import { Progress } from './Progress';
 import { Reader } from './Reader';
 import { LoginScreen, Settings } from './Settings';
+import { Speak } from './Speak';
 import { type Book, celebrations, clearAll, onChange } from './store';
 import { Test } from './Test';
 import { Icon } from './ui';
@@ -142,6 +143,7 @@ export function App() {
   else if (mode === 'test') screen = <Test onClose={close} />;
   else if (mode === 'match') screen = <Match onClose={close} />;
   else if (mode === 'listen') screen = <Listen onClose={close} />;
+  else if (mode === 'speak') screen = <Speak onClose={close} />;
   else if (mode === 'words') screen = <WordsScreen onClose={close} />;
   else if (mode === 'kits') screen = <Kits onClose={close} />;
   else if (exploring)
