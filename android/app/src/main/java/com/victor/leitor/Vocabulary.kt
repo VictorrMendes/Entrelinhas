@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.Hearing
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Search
@@ -143,6 +144,7 @@ fun Vocabulary(app: App, modifier: Modifier, onStudy: (StudyMode) -> Unit) {
             if (examples.isNotEmpty()) {
                 item { ModeRow(Icons.Outlined.Hearing, Success, stringResource(R.string.mode_dictation), stringResource(R.string.mode_dictation_hint)) { dictation = examples } }
             }
+            item { ModeRow(Icons.Outlined.Mic, MaterialTheme.colorScheme.primary, stringResource(R.string.mode_speak), stringResource(R.string.mode_speak_hint)) { onStudy(StudyMode.SPEAK) } }
             item {
                 ModeRow(
                     Icons.Outlined.Bookmarks, MaterialTheme.colorScheme.primary, stringResource(R.string.mode_words),
